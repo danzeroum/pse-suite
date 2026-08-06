@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://danzeroum.github.io/pse-suite/schemas/catalog-1.0.json",
+  "title": "Catalogo vivo de dados do consumidor",
+  "description": "O inventario que P-04 cobra. Sem ele nenhum outro controle de privacidade opera: nao se protege o que nao se sabe que existe.",
+  "type": "object",
+  "required": ["tables"],
+  "properties": {
+    "tables": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["fields"],
+        "properties": {
+          "fields": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/$defs/campo"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "campo": {
+      "type": "object",
+      "required": ["class", "owner", "purpose", "legal_basis", "retention_years"],
+      "properties": {
+        "class": {"enum": ["personal", "sensitive", "anonymized", "public"]},
+        "owner": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "legal_basis": {
+          "type": "string",
+          "minLength": 1,
+          "description": "class: sensitive NUNCA aceita legitimo_interesse (P-08, Art. 11)."
+        },
+        "retention_years": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Declarar prazo exige job de purga que execute (P-02)."
+        },
+        "status": {"enum": ["active", "deprecated", "prohibited"]}
+      }
+    }
+  }
+}

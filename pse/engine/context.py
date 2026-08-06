@@ -24,11 +24,17 @@ class Contexto:
     def __init__(self, repo_path, config: dict | None = None):
         self.repo = Path(repo_path)
         self.config = config or {}
+        # Relatorios que um check quer anexar ao laudo (ex.: cobertura do
+        # catalogo). Nao sao findings: descrevem o estado, nao um defeito.
+        self.relatorios: dict = {}
         # A regua: carregada do PACOTE, nunca do consumidor.
         self.data = {
             f.stem: yaml.safe_load(f.read_text(encoding="utf-8"))
             for f in sorted(DATA_DIR.glob("*.yaml"))
         }
+
+    def relatorio(self, nome: str, dados: dict):
+        self.relatorios[nome] = dados
 
     def catalog_path(self) -> str:
         return self.config.get("catalog_path", "tests/qa/catalog.yaml")

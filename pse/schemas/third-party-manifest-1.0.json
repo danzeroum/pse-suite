@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://danzeroum.github.io/pse-suite/schemas/third-party-manifest-1.0.json",
+  "title": "Manifesto de terceiros",
+  "description": "Prometido no plano §2. Base declarativa de S-04 (host no codigo sem registro/DPA) e S-08 (destino fora do BR sem base de transferencia).",
+  "type": "object",
+  "required": ["integrations"],
+  "properties": {
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "hosts"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "hosts": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Integracao obrigatoria sem dpa_signed e CRITICO: nenhum deploy sem DPA."
+          },
+          "dpa_signed": {"type": "boolean"},
+          "dpa_path": {"type": "string"},
+          "data_residency": {
+            "type": "string",
+            "description": "Fora de BR sem transfer_basis -> S-08 (Art. 33)."
+          },
+          "transfer_basis": {"type": "string"},
+          "purpose": {"type": "string"}
+        }
+      }
+    }
+  }
+}

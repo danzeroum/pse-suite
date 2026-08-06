@@ -29,6 +29,17 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: valor de PII vai cru para a chamada de log
+      arquivos:
+        app.py: |
+          import logging
+          logger = logging.getLogger(__name__)
+
+
+          def f(cpf):
+              logger.info("cadastro cpf=%s", cpf)
+      espera_severidade: CRITICO
   P-02:
     pack: privacy
     titulo: Retencao declarada sem job de purga
@@ -37,6 +48,22 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: catalogo declara retencao e nao ha job de purga que apague
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                cpf:
+                  class: personal
+                  owner: o
+                  purpose: p
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
   P-03:
     pack: privacy
     titulo: Soft-delete sem eliminacao fisica / crypto-shredding
@@ -45,6 +72,13 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: soft-delete sem eliminacao definitiva
+      arquivos:
+        models.py: |
+          class User:
+              deleted_at = None
+      espera_severidade: ALTO
   P-04:
     pack: privacy
     titulo: Catalogo vivo de dados
@@ -53,6 +87,19 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: campo do catalogo sem dono, base legal e retencao
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                email:
+                  class: personal
+                  purpose: contato
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: MEDIO
   P-05:
     pack: privacy
     titulo: Minimizacao por jornada — DTO rejeita campo fora da allowlist
@@ -69,6 +116,12 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: chave de pseudonimizacao em texto claro na fonte
+      arquivos:
+        app.py: |
+          hmac_key = "segredo-plantado-1234567890"
+      espera_severidade: CRITICO
   P-07:
     pack: privacy
     titulo: Consentimento granular por finalidade, opt-in, com registro
@@ -85,6 +138,22 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: dado sensivel com base legal legitimo interesse
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                genero:
+                  class: sensitive
+                  owner: o
+                  purpose: p
+                  legal_basis: legitimo_interesse
+                  retention_years: 2
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: CRITICO
   P-09:
     pack: privacy
     titulo: k-anonimato em agregacoes de BI
@@ -143,6 +212,16 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: host de terceiro no codigo sem entrada no manifesto
+      arquivos:
+        app.py: |
+          import requests
+
+
+          def enviar():
+              requests.post("https://analytics.google.com/collect", json={})
+      espera_severidade: ALTO
   S-05:
     pack: security
     titulo: Payload minimo de egresso — schema por destino, PII proibida
@@ -159,6 +238,12 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: credencial de parceiro hardcoded
+      arquivos:
+        app.py: |
+          api_key = "sk-live-plantada-0123456789"
+      espera_severidade: CRITICO
   S-07:
     pack: security
     titulo: Propagacao de finalidade (X-Purpose) + log de auditoria estruturado
@@ -175,6 +260,18 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: destino fora do BR sem base de transferencia declarada
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: parceiro-us
+              hosts: [api.parceiro.example.net]
+              dpa_signed: true
+              data_residency: US
+      config:
+        third_party_manifest: tp.yml
+      espera_severidade: ALTO
 
   # -------------------------------------------------- Pacote E — Etica
   E-00:
@@ -186,6 +283,16 @@ checks:
     fase: 1
     status: implementado
     guarda_de_pack: true
+    canonical_mutation:
+      descricao: codigo mostra modelo de ML e o consumidor declara decision_making none
+      arquivos:
+        ml.py: |
+          from sklearn.linear_model import LogisticRegression
+
+          modelo = LogisticRegression()
+      config:
+        decision_making: none
+      espera_severidade: ALTO
   E-01:
     pack: ethics
     titulo: Decisao automatizada sem explicacao (motivo/fatores/reason_code)
@@ -218,6 +325,17 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: decisao de alto impacto sem nenhuma rota de revisao humana
+      arquivos:
+        app.py: |
+          def negar_credito(user, score):
+              if score < 500:
+                  return {"aprovado": False}
+              return {"aprovado": True}
+      config:
+        decision_making: automated
+      espera_severidade: CRITICO
   E-05:
     pack: ethics
     titulo: Proxy de discriminacao — feature proibida no pipeline
@@ -226,6 +344,15 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: proxy de discriminacao no score sem ajuste de fairness
+      arquivos:
+        score.py: |
+          def calcular_score(renda, cep):
+              return renda * 0.4 + int(cep[:2]) * 0.1
+      config:
+        decision_making: automated
+      espera_severidade: ALTO
   E-06:
     pack: ethics
     titulo: Drift de disparidade — DPD por grupo vs baseline
@@ -242,6 +369,16 @@ checks:
     modo: inventory
     fase: 1
     status: implementado
+    canonical_mutation:
+      descricao: codigo de ML sem Model Card versionado
+      arquivos:
+        ml.py: |
+          from sklearn.linear_model import LogisticRegression
+
+          modelo = LogisticRegression()
+      config:
+        decision_making: automated
+      espera_severidade: ALTO
   E-08:
     pack: ethics
     titulo: Provenance/lineage — origem, transformacao e destino rastreaveis

@@ -111,6 +111,9 @@ def test_schemas_viajam_no_wheel(tmp_path):
     # documentado quebra por arquivo inexistente no consumidor.
     assert any(n.endswith("pse/fixtures/mordida/app.py") for n in nomes)
     assert any(n.endswith("pse/fixtures/mordida/catalog.yaml") for n in nomes)
+    for extra in ("catalog-1.0.json", "consent-model-1.0.json",
+                  "third-party-manifest-1.0.json", "trabalho-a-config-1.0.json"):
+        assert any(n.endswith(f"pse/schemas/{extra}") for n in nomes), extra
 
 
 def test_schemas_nao_ficaram_duplicados_na_raiz():
@@ -177,3 +180,69 @@ def test_localizador_acha_entrada_de_lista():
              "    dpa_signed: false\n")
     assert yamlloc.localizar_valor(texto, "name", "stripe") == 4
     assert yamlloc.localizar_valor(texto, "name", "ausente") is None
+
+
+# ------------------------------------------------------------------ D-09/D-10
+def test_sem_findings_duplicados(tmp_path):
+    """Politica de ruido unificada: nada de dois findings para o mesmo
+    defeito no mesmo lugar (E-05 emitia um por linha; P-03, um por arquivo)."""
+    out = tmp_path / "l.json"
+    main(["--path", str(FIX / "consumidor_ruim"),
+          "--config", str(FIX / "consumidor_ruim" / "pse-config.yaml"),
+          "--output", str(out)])
+    laudo = json.loads(out.read_text(encoding="utf-8"))
+    chaves = [(f["check_id"], f["arquivo"], f["linha"]) for f in laudo["findings"]]
+    dups = {k for k in chaves if chaves.count(k) > 1}
+    assert not dups, f"findings duplicados: {sorted(dups)}"
+
+
+def test_p02_reporta_gap_por_tabela(tmp_path):
+    """Plano §3: 'Finding + gap por tabela'. O finding agregado dizia que
+    faltava purga sem dizer de que dados."""
+    (tmp_path / "catalog.yaml").write_text(
+        "tables:\n"
+        "  users:\n    fields:\n      cpf:\n        class: personal\n"
+        "        owner: o\n        purpose: p\n        legal_basis: contrato\n"
+        "        retention_years: 5\n"
+        "  pedidos:\n    fields:\n      endereco:\n        class: personal\n"
+        "        owner: o\n        purpose: p\n        legal_basis: contrato\n"
+        "        retention_years: 2\n")
+    from pse.engine.runner import executar
+    res = executar(tmp_path, {"privacy"}, {"catalog_path": "catalog.yaml"})
+    p02 = [f for f in res["findings"] if f.check_id == "P-02"]
+    assert len(p02) == 2, [f.titulo for f in p02]
+    assert {"users", "pedidos"} == {t for f in p02 for t in ("users", "pedidos")
+                                    if t in f.titulo}
+    assert all(f.linha for f in p02)
+
+
+def test_cobertura_do_catalogo_entra_no_laudo(tmp_path):
+    """P-04 devia produzir 'laudo de cobertura do catalogo' (plano §3): o
+    consumidor precisa saber o quanto ja esta certo, nao so o que falta."""
+    out = tmp_path / "l.json"
+    main(["--path", str(FIX / "consumidor_ruim"),
+          "--config", str(FIX / "consumidor_ruim" / "pse-config.yaml"),
+          "--output", str(out)])
+    cob = json.loads(out.read_text(encoding="utf-8"))["relatorios"]["cobertura_catalogo"]
+    assert cob["presente"] and cob["campos_catalogados"] == 3
+    assert cob["campos_incompletos"] == 1 and cob["campos_sensiveis"] == 1
+
+
+def test_p04_valida_contra_o_schema_da_suite(tmp_path):
+    """Validacao contra schema versionado, nao contra lista Python solta."""
+    (tmp_path / "catalog.yaml").write_text(
+        "tables:\n  users:\n    fields:\n      cpf:\n"
+        "        class: inventada\n        owner: o\n        purpose: p\n"
+        "        legal_basis: contrato\n        retention_years: 5\n")
+    from pse.engine.runner import executar
+    res = executar(tmp_path, {"privacy"}, {"catalog_path": "catalog.yaml"})
+    p04 = [f for f in res["findings"] if f.check_id == "P-04"]
+    assert any("fora do schema" in f.titulo for f in p04), [f.titulo for f in p04]
+
+
+def test_schemas_prometidos_no_plano_existem():
+    """Plano §2 prometia consent-model e third-party-manifest; nao existiam."""
+    for nome in ("catalog-1.0.json", "consent-model-1.0.json",
+                 "third-party-manifest-1.0.json", "trabalho-a-config-1.0.json"):
+        s = carregar(nome)
+        assert s["$id"].endswith(nome) and s.get("title")

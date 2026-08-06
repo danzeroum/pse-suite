@@ -41,6 +41,22 @@ def _validador():
     return Draft7Validator(laudo, registry=registry)
 
 
+@lru_cache(maxsize=None)
+def _validador_de(nome: str):
+    from jsonschema import Draft7Validator
+    return Draft7Validator(carregar(nome))
+
+
+def erros_de(nome: str, dado):
+    """Erros de um documento do consumidor contra um schema da suite.
+
+    Devolve os erros em vez de levantar: o check decide a severidade e
+    transforma cada um num Finding com arquivo:linha.
+    """
+    return sorted(_validador_de(nome).iter_errors(dado),
+                  key=lambda e: list(e.path))
+
+
 def validar_laudo(laudo: dict) -> None:
     erros = sorted(_validador().iter_errors(laudo), key=lambda e: list(e.path))
     if erros:

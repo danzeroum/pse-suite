@@ -47,6 +47,11 @@
         }
       }
     },
+    "relatorios": {
+      "type": "object",
+      "description": "Estado, nao defeito. Ex.: cobertura_catalogo — quantos campos existem, quantos estao completos. O consumidor precisa saber o quanto ja esta certo, nao so o que esta errado.",
+      "additionalProperties": {"type": "object"}
+    },
     "cobertura": {
       "type": "object",
       "properties": {

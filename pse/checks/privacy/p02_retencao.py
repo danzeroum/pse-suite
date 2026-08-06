@@ -61,14 +61,25 @@ def retencao(ctx):
         raise SkipCheck("nenhum campo declara retention_years no catalogo")
     if _job_de_purga(ctx):
         return []
-    return [Finding(
-        check_id="P-02", pack="privacy", severidade=Severidade.ALTO,
-        titulo="Retencao declarada no catalogo sem job de eliminacao",
-        descricao="O catalogo declara prazos de retencao, mas nao existe job "
-                  "de purga que execute uma eliminacao — dados serao mantidos "
-                  "alem do termino da finalidade.",
-        recomendacao="Implementar job periodico que elimine dados expirados e "
-                     "registre evidencia de eliminacao para auditoria.",
-        base_legal="LGPD Art. 15-16",
-        arquivo=ctx.catalog_path(),
-        linha=ctx.linha_no_catalogo("tables", declara[0][0], "fields", declara[0][1]))]
+    # Um gap POR TABELA (plano §3: "Finding + gap por tabela"). O finding
+    # agregado dizia "falta purga" sem dizer de que dados — e quem vai
+    # implementar o job precisa da lista.
+    vistas, findings = set(), []
+    for tabela, campo in declara:
+        if tabela in vistas:
+            continue
+        vistas.add(tabela)
+        campos = sorted(c for t, c in declara if t == tabela)
+        findings.append(Finding(
+            check_id="P-02", pack="privacy", severidade=Severidade.ALTO,
+            titulo=f"Tabela '{tabela}' declara retencao sem job de eliminacao",
+            descricao=f"O catalogo declara retention_years para {campos} em "
+                      f"'{tabela}', mas nao existe job de purga que execute uma "
+                      f"eliminacao — dados serao mantidos alem do termino da "
+                      f"finalidade.",
+            recomendacao="Implementar job periodico que elimine dados expirados "
+                         "desta tabela e registre evidencia da eliminacao.",
+            base_legal="LGPD Art. 15-16",
+            arquivo=ctx.catalog_path(),
+            linha=ctx.linha_no_catalogo("tables", tabela, "fields", campos[0])))
+    return findings

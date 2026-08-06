@@ -90,5 +90,6 @@ def executar(repo_path, packs: set, config: dict | None = None) -> dict:
         {"pack": p, "motivo": m} for p, m in sorted(fora_de_escopo.items())]
     # Previsto e ausente: o catalogo torna dizivel o que o registro nao sabe.
     res["checks_previstos"] = catalogo.previstos(packs)
+    res["relatorios"] = ctx.relatorios
     res["duracao_s"] = round(time.time() - inicio, 2)
     return res

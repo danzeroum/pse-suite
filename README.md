@@ -82,6 +82,22 @@ Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
 (exit 30), não `0.2.0-dev`.
 
+## Autoprova — a régua obedece ao que receita
+
+```bash
+pse --self-test     # a trava desta versão instalada ainda morde?
+pse --manifesto     # versão, catalog_hash, checks, resultado da autoprova
+```
+
+`--self-test` audita uma fixture **embarcada no wheel** e exige vermelho, e
+roda a **mutação canônica** de cada check: a violação mínima que deve reprová-lo,
+declarada como dado no catálogo. Check implementado sem mutação declarada
+**reprova a si mesmo** — um check que nunca foi visto reprovando nada é uma
+hipótese, não uma trava.
+
+O consumidor roda isso no próprio CI, sem clonar este repositório. Se um check
+parar de morder, o pipeline diz qual.
+
 ## Desenvolvimento
 
 ```bash

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pse.engine.runner import executar
 from pse.model import Severidade
+from pse.mutacao import provar_todas
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mordida"
 
@@ -35,14 +36,22 @@ def autoprova() -> dict:
     laudo_vaza = [f.check_id for f in res["findings"]
                   if f.snippet and "chave-falsa-plantada-1234" in f.snippet]
 
-    ok = not faltando and not laudo_vaza
-    motivo = "trava integra: a fixture embarcada produz os CRITICOs esperados"
+    # Gap 4: alem da fixture, o inverso canonico de cada check.
+    mutacoes = provar_todas()
+
+    ok = not faltando and not laudo_vaza and mutacoes["ok"]
+    motivo = ("trava integra: a fixture embarcada produz os CRITICOs esperados "
+              f"e as {mutacoes['total']} mutacoes canonicas reprovam")
     if faltando:
         motivo = (f"TRAVA QUEBRADA: check(s) {faltando} deixaram de produzir "
                   f"CRITICO na fixture embarcada")
     elif laudo_vaza:
         motivo = (f"SANITIZACAO QUEBRADA: {laudo_vaza} publicaram o segredo "
                   f"plantado em claro no finding")
+    elif not mutacoes["ok"]:
+        motivo = ("MUTACAO CANONICA FALHOU: " +
+                  "; ".join(f"{f['check']}: {f['motivo']}"
+                            for f in mutacoes["falhas"]))
 
     return {
         "ok": ok,
@@ -50,4 +59,5 @@ def autoprova() -> dict:
         "encontrados": sorted(criticos),
         "faltando": faltando,
         "indeterminados": [c["id"] for c in res["checks_indeterminados"]],
+        "mutacoes": mutacoes,
     }

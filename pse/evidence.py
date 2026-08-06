@@ -104,6 +104,9 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         # aparecer no laudo com motivo, na Fase 2.
         "checks_previstos": resultados.get("checks_previstos", []),
         "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
+        # Estado, nao defeito: o consumidor precisa saber o quanto ja esta
+        # certo, nao so o que esta errado.
+        "relatorios": resultados.get("relatorios", {}),
         # Choke point da sanitizacao: nenhum caminho serializa um finding
         # sem passar por aqui.
         "findings": [sanitizar_finding(f.to_dict()) for f in resultados["findings"]],
