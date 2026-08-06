@@ -9,6 +9,8 @@ alterar este teste no mesmo PR — visivel, versionado e revisavel. O
 `catalog_hash` no laudo (Gap 3) faz a outra metade: torna a edicao
 *evidente na evidencia*, mesmo que alguem altere teste e regua juntos.
 """
+from pathlib import Path
+
 import pytest
 
 from pse.engine.context import Contexto
@@ -108,3 +110,36 @@ def test_llm_da_regua_alimenta_o_reconhecimento_do_e11(regua):
     assert _llm.e_chamada_llm("openai.chat.completions.create", _Ctx(), False)
     assert _llm.e_chamada_llm("llm.complete", _Ctx(), False)
     assert not _llm.e_chamada_llm("db.create", _Ctx(), False)
+
+
+def test_regua_do_frontend_e_vigiada(regua):
+    """FE-01/02/03 derivam da régua `frontend-terms`. Esvaziar um grupo aqui
+    cega um check inteiro em silêncio — o mesmo defeito do D-13, num domínio
+    novo."""
+    fe = regua["frontend-terms"]
+    piso = {
+        "consentimento": {"consent", "consentimento", "aceito", "optin",
+                          "cookies", "marketing"},
+        "handlers_de_mudanca": {"onchange", "onclick"},
+        "armazenamento_cliente": {"localstorage", "sessionstorage"},
+        "segredos_cliente": {"token", "jwt", "refresh_token", "senha",
+                             "password", "secret"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {t.lower() for t in fe[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de frontend-terms.yaml [{grupo}]: "
+            f"{sorted(faltando)} — remover encolhe a cobertura de FE-* em "
+            f"silêncio; se a remoção é intencional, altere o piso no mesmo PR")
+
+
+def test_pii_do_frontend_vem_da_regua_geral(regua):
+    """FE-02 não pode ter lista própria de PII: se tivesse, `cpf` removido de
+    pii-patterns.yaml continuaria sendo pego no backend e não no frontend."""
+    fonte = Path(__file__).resolve().parent.parent
+    codigo = (fonte / "pse" / "checks" / "frontend" /
+              "fe02_pii_no_cliente.py").read_text(encoding="utf-8")
+    assert 'ctx.data["pii-patterns"]' in codigo
+    for termo in ("cpf", "titulo_eleitor", "passaporte"):
+        assert f'"{termo}"' not in codigo and f"'{termo}'" not in codigo

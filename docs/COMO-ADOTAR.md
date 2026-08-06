@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.5.0
+pse-suite==0.6.0
 ```
 
 ## 2. Config declarativa
@@ -346,3 +346,51 @@ seria desligável escrevendo um parágrafo.
 Base legal: rastreabilidade (Art. 37), com **Art. 42** junto quando o
 manifesto declara terceiros — a trilha que atravessa operador carrega a
 responsabilidade solidária.
+
+## 14. A matriz: pilar × domínio
+
+A suite deixou de ser backend-only. Cada check declara, além do **pilar**
+(privacy/security/ethics), um **domínio** técnico — `frontend`, `api`,
+`backend`, `data`, `ai`, lista quando couber.
+
+```bash
+pse --path . --pilar privacy               # o DPO: privacidade em todos os estratos
+pse --path . --domain frontend             # o time de front: os três pilares no seu estrato
+pse --path . --pilar privacy --domain data # o cruzamento
+pse --path . --packs frontend              # `--packs` aceita os dois vocabulários
+```
+
+Os dois eixos são ortogonais de propósito: o pilar responde *que valor está em
+jogo*, o domínio responde *onde ele se manifesta no sistema*. Nenhum check foi
+duplicado para a matriz existir — os 33 anteriores foram reclassificados, não
+reescritos.
+
+**Recorte que não alcança check nenhum é entrada inválida (exit 30)**, não
+"conforme": seria verde por não ter olhado, com o agravante de o consumidor
+achar que pediu uma auditoria. O laudo traz `cobertura.por_dominio` justamente
+para que um estrato com zero checks apareça como zero, e não seja omitido.
+
+Marcadores pytest acompanham: `-m pse_frontend`, `-m pse_api`, `-m pse_backend`,
+`-m pse_data`, `-m pse_ai`, ao lado dos de pilar.
+
+## 15. Domínio frontend (FE-01 · FE-02 · FE-03)
+
+Estáticos, sobre **AST real** de `.js/.jsx/.ts/.tsx` (tree-sitter, gramáticas
+javascript e tsx). O material de fundação do frontend propõe `grep -rn`; grep
+serve para achar *onde olhar* e nunca como check — é literalmente o D-01, a
+menção passando por fato.
+
+| Check | Pilar | Dispara | Não dispara |
+|---|---|---|---|
+| **FE-01** consentimento pré-marcado (CRÍTICO) | privacy | `<input type="checkbox" name="consent_x" checked />` sem handler | `checked={estado} onChange={...}` — escolha registrada; toggle que nasce desligado; `// consent default on` em comentário |
+| **FE-02** PII no cliente ou na URL (CRÍTICO) | privacy | `localStorage.setItem("cpf", user.cpf)`; `"?email=" + user.email` | valor mascarado (`mask(user.cpf)`); identificador opaco |
+| **FE-03** token no cliente (ALTO) | security | `localStorage.setItem("token", jwt)`; `document.cookie = "token=…"` | sessão em cookie HttpOnly+Secure emitido pelo servidor, com `credentials: "include"` |
+
+Arquivo que **não parseia** vira `CheckIndeterminado` com a linha do erro
+(exit 20), jamais verde: sem AST não há decisão pelo fato. O mesmo vale se a
+gramática não estiver instalada no ambiente — a suite declara a limitação e
+bloqueia, em vez de fingir cobertura.
+
+FE-01 e FE-02 são CRÍTICOs, então **falso-positivo aqui custa o pack inteiro**:
+o time de frontend aprende a ignorá-lo no primeiro dia. Por isso os testes que
+provam que o caso correto **não** dispara vêm antes dos que provam a violação.

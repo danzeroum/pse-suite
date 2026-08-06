@@ -726,3 +726,67 @@ checks:
         third_party_manifest: tp.yml
       espera_severidade: ALTO
 
+  # --- Dominio FRONTEND (FE-*) --------------------------------------------
+  # Primeiro estrato onde o ID codifica o DOMINIO, nao o pilar: cada FE-*
+  # declara `pack` explicitamente. Ver ressalva de nomenclatura no relatorio.
+  # Os tres nascem sobre AST real (tree-sitter); o grep do material de
+  # fundacao serve para achar ONDE olhar, jamais como check (D-01).
+  FE-01:
+    pack: privacy
+    domain: [frontend]
+    titulo: Controle de consentimento pre-marcado
+    base_legal: LGPD Art. 7o V e Art. 8o §1o (consentimento inequivoco)
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [P-07]
+    canonical_mutation:
+      descricao: checkbox de consentimento com checked literal e sem handler
+      arquivos:
+        C.jsx: |
+          export const C = () => (
+            <label>
+              Aceito receber marketing
+              <input type="checkbox" name="consent_ads" checked />
+            </label>
+          );
+      espera_severidade: CRITICO
+  FE-02:
+    pack: privacy
+    domain: [frontend]
+    titulo: PII no armazenamento do cliente ou na URL
+    base_legal: LGPD Art. 46 + Art. 6o VII (seguranca e prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [P-01, P-06]
+    canonical_mutation:
+      descricao: CPF gravado no localStorage e e-mail montado em query string
+      arquivos:
+        a.js: |
+          export function salvar(user) {
+            localStorage.setItem("cpf", user.cpf);
+            return fetch("/r?email=" + user.email);
+          }
+      espera_severidade: CRITICO
+  FE-03:
+    pack: security
+    domain: [frontend]
+    titulo: Token sensivel persistido no cliente
+    base_legal: LGPD Art. 46 (seguranca) + OWASP A07
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [S-06, E-13]
+    canonical_mutation:
+      descricao: token de sessao guardado no localStorage
+      arquivos:
+        a.js: |
+          export function login(jwt) {
+            localStorage.setItem("token", jwt);
+          }
+      espera_severidade: ALTO
+

@@ -53,7 +53,10 @@ def test_a_matriz_cruza_de_verdade():
 
 
 @pytest.mark.parametrize("flags,esperado", [
-    (["--pilar", "privacy"], lambda ids: all(i.startswith("P-") for i in ids)),
+    # FE-01/FE-02 sao do pilar privacy com prefixo de DOMINIO: a partir da
+    # matriz, o prefixo do ID nao responde mais pelo pilar — o catalogo responde.
+    (["--pilar", "privacy"],
+     lambda ids: {"P-01", "FE-01", "FE-02"} <= set(ids) and "S-06" not in ids),
     (["--domain", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
     (["--packs", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
     (["--pilar", "privacy", "--domain", "data"],
@@ -91,8 +94,9 @@ def test_selecao_vazia_nao_compra_um_verde(tmp_path):
     """Pedir um recorte que não alcança check nenhum não pode sair conforme:
     seria verde por não ter olhado, com o agravante de o consumidor achar
     que pediu uma auditoria."""
+    # ethics x frontend continua vazio (FE-* sao privacy e security).
     rc = main(["--path", str(RUIM), "--config", str(CFG),
-               "--pilar", "security", "--domain", "frontend"])
+               "--pilar", "ethics", "--domain", "frontend"])
     assert rc == 30
 
 

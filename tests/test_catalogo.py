@@ -12,7 +12,8 @@ from pse.engine.runner import _carregar_checks, executar
 FIX = Path(__file__).parent / "fixtures"
 
 # Os 29 do plano §3 + E-00 (guarda de escopo) + E-11/E-12/E-13 (IA e cadeia
-# de terceiros, acrescentados depois do plano original).
+# de terceiros) + FE-01/FE-02/FE-03 (dominio frontend). Os tres ultimos sao o
+# primeiro estrato cujo ID codifica o DOMINIO, nao o pilar.
 PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
          [f"S-{i:02d}" for i in range(1, 9)] +
          [f"E-{i:02d}" for i in range(1, 11)])
@@ -22,7 +23,8 @@ def test_catalogo_cobre_os_29_do_plano():
     assert set(PLANO) <= set(catalogo.CATALOGO), (
         f"faltam no catalogo: {sorted(set(PLANO) - set(catalogo.CATALOGO))}")
     assert {"E-00", "E-11", "E-12", "E-13"} <= set(catalogo.CATALOGO)
-    assert len(catalogo.CATALOGO) == len(PLANO) + 4
+    assert {"FE-01", "FE-02", "FE-03"} <= set(catalogo.CATALOGO)
+    assert len(catalogo.CATALOGO) == len(PLANO) + 7
 
 
 def test_registro_e_catalogo_nao_derivam():
@@ -75,8 +77,8 @@ def test_laudo_carrega_cobertura(tmp_path):
           "--config", str(FIX / "consumidor_bom" / "pse-config.yaml"),
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
-    assert laudo["cobertura"]["catalogo_total"] == 33
-    assert laudo["cobertura"]["implementados_nos_packs"] == 33
+    assert laudo["cobertura"]["catalogo_total"] == 36
+    assert laudo["cobertura"]["implementados_nos_packs"] == 36
     # O campo continua no laudo mesmo vazio: some-lo quando nao ha previstos
     # faria o consumidor perder a diferenca entre "nenhum pendente" e
     # "esta versao nem sabe responder isso".

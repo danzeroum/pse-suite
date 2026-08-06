@@ -47,6 +47,29 @@ quando a trilha atravessa terceiro.
   **alcança** as tabelas com dado pessoal — existir trilha não basta se ela não
   cobre o que existe. Um README afirmando rastreabilidade não conta.
 
+## A matriz: pilar × domínio
+
+Cada check declara também um **domínio** técnico. O pilar responde *que valor
+está em jogo*; o domínio, *onde ele se manifesta no sistema*.
+
+| | frontend | api | backend | data | ai |
+|---|---|---|---|---|---|
+| **privacy** | FE-01 FE-02 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | — |
+| **security** | FE-03 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | — |
+| **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
+
+<sub>* E-13 é do pilar ethics; a coluna mostra o estrato que ele examina.</sub>
+
+```bash
+pse --pilar privacy                 # o DPO, atravessando todos os estratos
+pse --domain frontend               # o time de front, nos três pilares
+pse --pilar privacy --domain data   # o cruzamento
+```
+
+Recorte que não alcança check nenhum é **exit 30**, não "conforme" — seria
+verde por não ter olhado. `cobertura.por_dominio` mostra estrato com zero
+checks como zero, em vez de omiti-lo.
+
 ## Os dois trabalhos
 
 | Trabalho | Marcador | Checks |
@@ -144,7 +167,7 @@ de um achado é `arquivo:linha`, nunca o literal.
 
 Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
-(exit 30), não `0.5.0-dev`.
+(exit 30), não `0.6.0-dev`.
 
 ## Autoprova — a régua obedece ao que receita
 
