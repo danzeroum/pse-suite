@@ -13,7 +13,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from pse import fingerprint
+from pse import catalogo, fingerprint
 from pse.model import (EXIT_CONFORME, EXIT_INDETERMINADO, EXIT_VIOLACAO_ALTA,
                        EXIT_VIOLACAO_CRITICA, Severidade, Veredito,
                        VersaoIrresolvivel)
@@ -91,9 +91,19 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
             "total_findings": len(resultados["findings"]),
             "por_severidade": por_sev,
         },
+        "cobertura": {
+            "catalogo_total": len(catalogo.CATALOGO),
+            "implementados_nos_packs": len(catalogo.implementados(packs)),
+            "executados": len(resultados["checks_executados"]),
+        },
         "checks_executados": resultados["checks_executados"],
         "checks_pulados": resultados["checks_pulados"],
         "checks_indeterminados": indeterminados,
+        # Previsto e ausente: declarado no catalogo, ainda nao implementado.
+        # Nunca silencio — e o que fara um check runtime sem alvo declarado
+        # aparecer no laudo com motivo, na Fase 2.
+        "checks_previstos": resultados.get("checks_previstos", []),
+        "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
         # Choke point da sanitizacao: nenhum caminho serializa um finding
         # sem passar por aqui.
         "findings": [sanitizar_finding(f.to_dict()) for f in resultados["findings"]],
