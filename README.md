@@ -16,16 +16,18 @@ externo e versionado consumido pela harness de `danzeroum/project`.
 |---|---|---|
 | Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção · P-03 soft-delete · P-04 catálogo · P-05 minimização · P-06 chave no código · P-07 consentimento · P-08 sensível+legítimo interesse · P-09 k-anonimato · P-10 portabilidade · P-11 oráculo |
 | Segurança | `pse_security` | S-01 BOLA/IDOR · S-02 rate limit · S-03 PII em erro · S-04 terceiro sem DPA · S-05 payload de egresso · S-06 credencial hardcoded · S-07 finalidade e log · S-08 transferência internacional |
-| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-06 disparidade · E-07 Model Card · E-09 kill switch · E-10 incerteza · **E-11 PII em prompt de LLM** · **E-12 derivado tratado como anônimo** · **E-13 dependência que exfiltra** |
+| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-06 disparidade · E-07 Model Card · **E-08 lineage** · E-09 kill switch · E-10 incerteza · **E-11 PII em prompt de LLM** · **E-12 derivado tratado como anônimo** · **E-13 dependência que exfiltra** |
 
-32 dos 33 checks do catálogo. E-08 (lineage) sai no laudo em
-`checks_previstos`, com motivo — previsto e ausente nunca é silêncio.
+**33 de 33.** O catálogo do plano está inteiro implementado — `checks_previstos`
+sai vazio no laudo, e o campo continua lá: sumir com ele faria o consumidor
+perder a diferença entre "nenhum pendente" e "esta versão nem sabe responder isso".
 
-### IA e cadeia de terceiros (E-11 · E-12 · E-13)
+### Os quatro últimos: IA, cadeia de terceiros e rastreabilidade
 
-Três buracos que os checks anteriores não viam, todos carregando **Art. 42**
-(responsabilidade solidária) junto da base específica — perante o titular, quem
-escolheu o operador responde pelo que ele faz.
+Quatro buracos que os checks anteriores não viam. E-11, E-12 e E-13 carregam
+**Art. 42** (responsabilidade solidária) junto da base específica — perante o
+titular, quem escolheu o operador responde pelo que ele faz; E-08 o carrega
+quando a trilha atravessa terceiro.
 
 - **E-11** — E-05 e E-06 olham o *viés* do modelo; nenhum dos dois olha o que
   **entra** nele. Um prompt é transferência a terceiro, com o agravante de que
@@ -39,12 +41,17 @@ escolheu o operador responde pelo que ele faz.
   um dia adicionou telemetria nunca aparece no manifesto, porque ninguém
   escreveu aquela URL. E-13 é o único check que entra nesses diretórios, e
   nomeia o pacote que trouxe o host.
+- **E-08** — a pergunta que ninguém consegue responder depois de um incidente:
+  *este dado veio de onde, passou por quê e foi parar aonde?* Exige o artefato
+  de trilha (`lineage.jsonl` ou equivalente declarado) e confere que ele
+  **alcança** as tabelas com dado pessoal — existir trilha não basta se ela não
+  cobre o que existe. Um README afirmando rastreabilidade não conta.
 
 ## Os dois trabalhos
 
 | Trabalho | Marcador | Checks |
 |---|---|---|
-| **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/05/06/08 · E-00/04/05/06/07/10/11/12/13 |
+| **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/05/06/08 · E-00/04/05/06/07/08/10/11/12/13 |
 | **A passivo** — leitura com a própria identidade | `--modo pse_passive` | S-03 · E-01 · E-02 |
 | **A ativo** — sonda de autorização, só `workflow_dispatch` | `--modo pse_active` | S-01 · S-02 · S-07 · P-05 · P-07 · P-09 · P-10 · P-11 · E-03 · E-09 |
 
@@ -137,7 +144,7 @@ de um achado é `arquivo:linha`, nunca o literal.
 
 Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
-(exit 30), não `0.4.0-dev`.
+(exit 30), não `0.5.0-dev`.
 
 ## Autoprova — a régua obedece ao que receita
 

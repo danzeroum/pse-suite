@@ -1,0 +1,2 @@
+{"dataset": "clientes", "origem": "formulario_cadastro_web", "transformacao": "validacao + pseudonimizacao do cpf (HMAC, chave em KMS)", "destino": "postgres.clientes", "campos": ["cpf", "email", "genero"], "atualizado_em": "2026-08-06"}
+{"dataset": "clientes_agregado", "origem": "postgres.clientes", "transformacao": "agregacao por regiao com supressao de celula < k", "destino": "bi.relatorio_regional", "campos": ["genero"], "atualizado_em": "2026-08-06"}

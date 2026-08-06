@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.4.0
+pse-suite==0.5.0
 ```
 
 ## 2. Config declarativa
@@ -19,6 +19,7 @@ pse_suite:
   catalog_path: tests/qa/catalog.yaml
   third_party_manifest: .privacy/third-party-manifest.yml
   consent_model_path: tests/qa/consent-model.yaml
+  lineage_path: lineage.jsonl              # E-08 (opcional: ha candidatos padrao)
   decision_making: automated               # none | assistive | automated
   thresholds:                              # a suite valida a faixa (§10)
     k_anonymity_min: 5
@@ -314,3 +315,34 @@ llm, cdn) entre nela.
 O teto de varredura é da suite (4000 arquivos). Quando é atingido, o laudo diz
 em `relatorios.cobertura_parcial` — truncamento silencioso leria como
 "varri tudo".
+
+## 13. E-08 — trilha de proveniência (o último check do catálogo)
+
+Estático. Só roda quando há o que rastrear: se o catálogo não declara nenhum
+campo `personal`/`sensitive`, o check é **pulado com motivo** — N/A declarado,
+não verde.
+
+```jsonl
+{"dataset": "clientes", "origem": "formulario_web", "transformacao": "validacao + pseudonimizacao", "destino": "postgres.clientes", "campos": ["cpf","email"], "atualizado_em": "2026-08-06"}
+```
+
+Três coisas são cobradas, nesta ordem:
+
+1. **O artefato existe.** `lineage_path` declarado vence; sem declaração a
+   suite procura candidatos padrão (`lineage.jsonl`, `docs/lineage.jsonl`,
+   `.privacy/lineage.jsonl`, …). Declaração que não resolve **é** o achado —
+   não motivo para sair procurando outro arquivo.
+2. **Cada registro fecha o ciclo**: `origem`, `transformacao` e `destino`.
+   Trilha que para no meio não rastreia até o fim, e o fim é justamente o que
+   interessa quando se pergunta para onde o dado foi.
+3. **A trilha alcança o que existe**: toda tabela com campo pessoal precisa de
+   registro. Cobertura aparente esconde buraco.
+
+Arquivo ilegível é **indeterminado** (exit 20), não "sem trilha": quebrado não
+é ausente. E documentação afirmando rastreabilidade não conta — a busca só
+olha `.jsonl`/`.json`/`.yaml`, nunca `.md`. Se afirmação bastasse, a trava
+seria desligável escrevendo um parágrafo.
+
+Base legal: rastreabilidade (Art. 37), com **Art. 42** junto quando o
+manifesto declara terceiros — a trilha que atravessa operador carrega a
+responsabilidade solidária.

@@ -46,26 +46,41 @@ def test_base_legal_tem_fonte_unica():
         assert meta["base_legal"], f"{cid} sem base legal declarada"
 
 
-def test_previsto_e_ausente_e_dizivel():
-    """O laudo tinha de saber dizer 'previsto e ausente' — nao so
-    'executado' ou 'pulado'. E pre-requisito da Fase 2."""
-    previstos = {c["id"] for c in catalogo.previstos()}
-    # E-08 (provenance/lineage) nao estava na lista pedida para a Fase 3.
-    # Previsto e ausente, com motivo — nao silencio.
-    assert previstos == {"E-08"}
-    for c in catalogo.previstos():
+def test_catalogo_nao_tem_mais_previstos():
+    """33/33. O catalogo do plano esta inteiro implementado."""
+    assert catalogo.previstos() == [], (
+        f"previstos: {[c['id'] for c in catalogo.previstos()]}")
+
+
+def test_previsto_e_ausente_continua_dizivel(monkeypatch):
+    """O MECANISMO tem de sobreviver ao catalogo ficar completo.
+
+    Hoje nao ha check previsto — mas o dia em que o plano crescer, o laudo
+    precisa continuar sabendo dizer 'declarado e ainda nao implementado'.
+    Sem este teste, a capacidade morreria em silencio no primeiro refactor,
+    e so alguem descobriria ao adicionar o check 34.
+    """
+    futuro = {**catalogo.meta("E-08"), "status": "previsto-fase-3"}
+    monkeypatch.setitem(catalogo.CATALOGO, "E-08", futuro)
+    previstos = catalogo.previstos()
+    assert {c["id"] for c in previstos} == {"E-08"}
+    for c in previstos:
         assert c["motivo"] and c["status"] and c["modo"]
+    assert "E-08" not in catalogo.implementados()
 
 
-def test_laudo_carrega_cobertura_e_previstos(tmp_path):
+def test_laudo_carrega_cobertura(tmp_path):
     out = tmp_path / "l.json"
     main(["--path", str(FIX / "consumidor_bom"),
           "--config", str(FIX / "consumidor_bom" / "pse-config.yaml"),
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
     assert laudo["cobertura"]["catalogo_total"] == 33
-    assert laudo["cobertura"]["implementados_nos_packs"] == 32
-    assert {c["id"] for c in laudo["checks_previstos"]}
+    assert laudo["cobertura"]["implementados_nos_packs"] == 33
+    # O campo continua no laudo mesmo vazio: some-lo quando nao ha previstos
+    # faria o consumidor perder a diferenca entre "nenhum pendente" e
+    # "esta versao nem sabe responder isso".
+    assert laudo["checks_previstos"] == []
 
 
 # ------------------------------------------------------------------ E-00

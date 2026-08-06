@@ -540,11 +540,31 @@ checks:
   E-08:
     pack: ethics
     titulo: Provenance/lineage — origem, transformacao e destino rastreaveis
-    base_legal: rastreabilidade
+    base_legal: rastreabilidade (LGPD Art. 37)
     tipo: estatico
     modo: inventory
     fase: 3
-    status: previsto-fase-3
+    supports: [P-04, S-04, E-12]
+    status: implementado
+    canonical_mutation:
+      descricao: catalogo com dado pessoal e nenhuma trilha de proveniencia
+      arquivos:
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: financeiro
+                  purpose: cobranca
+                  legal_basis: contrato
+                  retention_years: 5
+        README.md: |
+          # Governanca
+          Temos rastreabilidade de lineage completa e auditavel.
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
   E-09:
     pack: ethics
     titulo: Kill switch / modo degradado digno, documentado e testavel
