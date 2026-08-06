@@ -58,7 +58,11 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 | **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | — |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
-<sub>* E-13 é do pilar ethics; a coluna mostra o estrato que ele examina.</sub>
+O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
+que é univalorada. Um check pertence a *um* pilar e pode pertencer a *vários*
+domínios (S-07 é api+backend), então o domínio vive em `domain`, que é lista,
+e nunca no prefixo. Mapa completo e os buracos em
+[`docs/matriz-dominio.md`](docs/matriz-dominio.md), gerado do catálogo.
 
 ```bash
 pse --pilar privacy                 # o DPO, atravessando todos os estratos
@@ -167,7 +171,7 @@ de um achado é `arquivo:linha`, nunca o literal.
 
 Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
-(exit 30), não `0.6.0-dev`.
+(exit 30), não `0.7.0-dev`.
 
 ## Autoprova — a régua obedece ao que receita
 

@@ -204,3 +204,37 @@ def test_dominio_e_multivalorado_e_o_pilar_nao():
     for cid in catalogo.CATALOGO:
         assert isinstance(catalogo.meta(cid)["pack"], str), (
             f"{cid}: pilar virou lista — a regra do prefixo deixa de valer")
+
+
+# ==================================================== o mapa não pode envelhecer
+def test_matriz_versionada_bate_com_o_catalogo():
+    """`docs/matriz-dominio.md` é gerado. Um mapa mantido à mão diverge do
+    território no primeiro check novo — e mapa errado é pior que mapa nenhum,
+    porque parece confiável."""
+    from pse import matriz
+    versionado = (Path(__file__).resolve().parent.parent /
+                  "docs" / "matriz-dominio.md").read_text(encoding="utf-8")
+    assert versionado == matriz.gerar(), (
+        "matriz-dominio.md desatualizada: rode "
+        "`python -m pse.matriz > docs/matriz-dominio.md`")
+
+
+def test_toda_celula_vazia_tem_leitura_declarada():
+    """Buraco sem resposta é buraco escondido. Dizer 'não se aplica' ou
+    'falta check' é julgamento, e julgamento tem de estar assinado."""
+    from pse import matriz
+    vazias = [(p, d) for p in matriz.PILARES for d in catalogo.DOMINIOS
+              if not catalogo.implementados({p}, [d])]
+    sem_leitura = [c for c in vazias if c not in matriz.LEITURA_DOS_BURACOS]
+    assert not sem_leitura, (
+        f"célula(s) vazia(s) sem leitura declarada em pse/matriz.py: "
+        f"{sem_leitura}")
+
+
+def test_nenhum_dominio_do_vocabulario_fica_sem_check():
+    """Domínio declarado e sem nenhum check é pior que domínio inexistente:
+    o consumidor filtra por ele e recebe exit 30 sem entender por quê."""
+    vazios = [d for d in catalogo.DOMINIOS if not catalogo.implementados(None, [d])]
+    assert not vazios, (
+        f"domínio(s) no vocabulário sem nenhum check: {vazios}. Ou nascem "
+        f"checks fundadores, ou o domínio sai do vocabulário.")
