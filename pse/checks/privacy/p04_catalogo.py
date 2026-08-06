@@ -7,7 +7,7 @@ OBRIGATORIOS = ["class", "owner", "purpose", "legal_basis", "retention_years"]
 @check("P-04", "privacy", "Catalogo vivo de dados", base_legal="LGPD Art. 37")
 def catalogo(ctx):
     cat = ctx.catalog()
-    caminho = ctx.config.get("catalog_path", "tests/qa/catalog.yaml")
+    caminho = ctx.catalog_path()
     if cat is None:
         return [Finding(
             check_id="P-04", pack="privacy", severidade=Severidade.ALTO,
@@ -30,7 +30,8 @@ def catalogo(ctx):
                     titulo=f"Campo {tabela}.{campo} com metadados incompletos",
                     descricao=f"Metadados ausentes no catalogo: {', '.join(faltando)}.",
                     recomendacao="Completar classe, dono, finalidade, base legal e retencao.",
-                    base_legal="LGPD Art. 37", arquivo=caminho))
+                    base_legal="LGPD Art. 37", arquivo=caminho,
+                    linha=ctx.linha_no_catalogo("tables", tabela, "fields", campo)))
             if campo in sensiveis and props.get("class") != "sensitive":
                 findings.append(Finding(
                     check_id="P-04", pack="privacy", severidade=Severidade.ALTO,
@@ -38,5 +39,6 @@ def catalogo(ctx):
                     descricao="Campo consta na lista curada de dados sensiveis "
                               "(Art. 5o II) mas nao esta classificado como sensitive.",
                     recomendacao="Reclassificar como sensitive e revisar base legal.",
-                    base_legal="LGPD Art. 5o II", arquivo=caminho))
+                    base_legal="LGPD Art. 5o II", arquivo=caminho,
+                    linha=ctx.linha_no_catalogo("tables", tabela, "fields", campo)))
     return findings

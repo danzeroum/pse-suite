@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://danzeroum.github.io/pse-suite/schemas/trabalho-a-config-1.0.json",
+  "title": "Contrato de autorizacao do Trabalho A",
+  "description": "Declaracao do consumidor para auditoria runtime. Definido ANTES de qualquer check runtime existir: sem contrato, um check de sonda nasce sem saber contra o que pode disparar. O `inherits: tests/qa/config.yaml` do plano §4 caiu — acoplar a PSE a um schema nao publicado da WebQA Suite recriaria a deriva que a doutrina combate.",
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "object",
+      "required": ["base_url", "environment"],
+      "properties": {
+        "base_url": {
+          "type": "string",
+          "pattern": "^https://",
+          "description": "TLS obrigatorio: uma sonda de autorizacao em texto claro vaza o proprio token de teste."
+        },
+        "environment": {
+          "enum": ["staging", "production"],
+          "description": "pse_active contra production e RECUSADO na v1 (exit 30). Sonda ativa so em staging ate haver dupla atestacao."
+        },
+        "healthcheck": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "GET; resposta != 200 torna o Trabalho A inteiro indeterminado (exit 20), nunca conforme."
+        }
+      }
+    },
+    "identities": {
+      "type": "object",
+      "description": "NOMES de variaveis de ambiente, nunca valores. Os segredos vivem no cofre do CI; o YAML do consumidor e versionado.",
+      "properties": {
+        "titular_a": {"$ref": "#/$defs/identidade"},
+        "titular_b": {"$ref": "#/$defs/identidade"}
+      }
+    },
+    "resources_titular_b": {
+      "type": "array",
+      "description": "Caminhos concretos de recursos da conta sintetica B. A suite NAO enumera recursos no alvo: descobrir recurso alheio e executar a violacao que S-01 existe para impedir.",
+      "items": {"type": "string", "pattern": "^/"}
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["attested_by", "scope", "target_fingerprint", "expires"],
+      "description": "Ausente, vencida, sem o modo no scope, ou com fingerprint divergente da base_url: todos os checks de Trabalho A vao para checks_indeterminados com o motivo especifico (exit 20). Nunca verde.",
+      "properties": {
+        "attested_by": {
+          "type": "string",
+          "minLength": 3,
+          "description": "Humano responsavel, identificavel. Nao aceita 'ci', 'bot' ou equipe."
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["pse_passive", "pse_active"]},
+          "description": "Granularidade POR MODO. Autorizar o passivo nao autoriza a sonda ativa."
+        },
+        "target_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256(base_url). Amarra a atestacao a ESTE alvo: apontar a suite para outro host invalida a autorizacao."
+        },
+        "expires": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Obrigatoria. Autorizacao sem prazo e autorizacao permanente, que ninguem revisa."
+        },
+        "synthetic_identities": {
+          "type": "boolean",
+          "description": "Obrigatoria e true para pse_active: ambas as identidades sao contas de teste, sem titular real por tras. E declaracao atestada, nao verificavel pela suite."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identidade": {
+      "type": "object",
+      "required": ["token_env"],
+      "properties": {
+        "token_env": {
+          "type": "string",
+          "pattern": "^PSE_[A-Z0-9_]+$",
+          "description": "Prefixo PSE_ fixo, para que o fiscal de higiene de ambiente do consumidor prove que a familia inteira esta coberta pela denylist. Variavel declarada e ausente no ambiente: Trabalho A indeterminado com motivo."
+        }
+      }
+    }
+  }
+}

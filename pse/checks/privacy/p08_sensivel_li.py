@@ -9,7 +9,7 @@ def sensivel_legitimo_interesse(ctx):
     cat = ctx.catalog()
     if cat is None:
         raise SkipCheck("catalogo de dados ausente — cobrado por P-04")
-    caminho = ctx.config.get("catalog_path", "tests/qa/catalog.yaml")
+    caminho = ctx.catalog_path()
     findings = []
     for tabela, tmeta in (cat.get("tables") or {}).items():
         for campo, props in ((tmeta or {}).get("fields") or {}).items():
@@ -23,5 +23,6 @@ def sensivel_legitimo_interesse(ctx):
                               "base legal — trava estrutural, sem excecao.",
                     recomendacao="Usar consentimento especifico e destacado (Art. 11) "
                                  "ou outra hipotese legal valida; senao, nao tratar.",
-                    base_legal="LGPD Art. 11", arquivo=caminho))
+                    base_legal="LGPD Art. 11", arquivo=caminho,
+                    linha=ctx.linha_no_catalogo("tables", tabela, "fields", campo)))
     return findings

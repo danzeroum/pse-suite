@@ -2,6 +2,7 @@
 from pathlib import Path
 import yaml
 
+from pse.engine import yamlloc
 from pse.model import EntradaInvalida
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -29,13 +30,28 @@ class Contexto:
             for f in sorted(DATA_DIR.glob("*.yaml"))
         }
 
+    def catalog_path(self) -> str:
+        return self.config.get("catalog_path", "tests/qa/catalog.yaml")
+
     def catalog(self):
         """Catalogo vivo de dados do consumidor (declarativo)."""
-        rel = self.config.get("catalog_path", "tests/qa/catalog.yaml")
-        p = self.repo / rel
+        p = self.repo / self.catalog_path()
         if not p.exists():
             return None
         return _ler_yaml(p, "catalogo de dados")
+
+    def linha_no_catalogo(self, *caminho) -> int | None:
+        """Linha de uma chave do catalogo, para o `arquivo:linha` do finding."""
+        return yamlloc.localizar_em(self.repo / self.catalog_path(), caminho)
+
+    def manifesto_path(self) -> str:
+        return self.config.get("third_party_manifest",
+                               ".privacy/third-party-manifest.yml")
+
+    def linha_da_integracao(self, nome) -> int | None:
+        """Entrada de lista no manifesto: localizada pelo par `name: <valor>`."""
+        return yamlloc.localizar_valor_em(
+            self.repo / self.manifesto_path(), "name", nome)
 
     def manifest_terceiros(self):
         rel = self.config.get("third_party_manifest",

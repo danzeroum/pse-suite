@@ -1,0 +1,10 @@
+# P-08 CRITICO: dado sensivel nao admite legitimo interesse (Art. 11).
+tables:
+  users:
+    fields:
+      genero:
+        class: sensitive
+        owner: marketing
+        purpose: segmentacao
+        legal_basis: legitimo_interesse
+        retention_years: 2

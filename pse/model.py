@@ -74,6 +74,20 @@ class Finding:
     linha: Optional[int] = None
     snippet: Optional[str] = None
 
+    def __post_init__(self):
+        """O literal nao sobrevive ao check que o encontrou (D-02).
+
+        `evidence.montar_laudo` continua sendo o choke point da serializacao,
+        mas sanitizar so ali deixava o segredo vivo no objeto em memoria — e
+        qualquer outro consumidor de `executar()` (um gravador de trace do
+        Trabalho A, por exemplo) o receberia em claro. A autoprova embarcada
+        detectou exatamente isso. O mascaramento e idempotente, entao aplicar
+        aqui e no laudo nao degrada o texto duas vezes.
+        """
+        if self.snippet:
+            from pse.sanitize import sanitizar
+            self.snippet = sanitizar(self.snippet)
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["severidade"] = self.severidade.value

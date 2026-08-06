@@ -52,10 +52,11 @@ def retencao(ctx):
     cat = ctx.catalog()
     if cat is None:
         raise SkipCheck("catalogo de dados ausente — cobrado por P-04")
-    declara = any(
-        (props or {}).get("retention_years")
-        for t in (cat.get("tables") or {}).values()
-        for props in ((t or {}).get("fields") or {}).values())
+    declara = [
+        (tabela, campo)
+        for tabela, t in (cat.get("tables") or {}).items()
+        for campo, props in ((t or {}).get("fields") or {}).items()
+        if (props or {}).get("retention_years")]
     if not declara:
         raise SkipCheck("nenhum campo declara retention_years no catalogo")
     if _job_de_purga(ctx):
@@ -69,4 +70,5 @@ def retencao(ctx):
         recomendacao="Implementar job periodico que elimine dados expirados e "
                      "registre evidencia de eliminacao para auditoria.",
         base_legal="LGPD Art. 15-16",
-        arquivo=ctx.config.get("catalog_path", "tests/qa/catalog.yaml"))]
+        arquivo=ctx.catalog_path(),
+        linha=ctx.linha_no_catalogo("tables", declara[0][0], "fields", declara[0][1]))]

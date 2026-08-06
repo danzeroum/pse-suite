@@ -20,5 +20,7 @@ def transferencia_internacional(ctx):
                           "(SCC, adequacao, consentimento especifico...).",
                 recomendacao="Declarar transfer_basis valida no manifesto ou "
                              "rotear para regiao nacional.",
-                base_legal="LGPD Art. 33"))
+                base_legal="LGPD Art. 33",
+                arquivo=ctx.manifesto_path(),
+                linha=ctx.linha_da_integracao(item.get("name"))))
     return findings
