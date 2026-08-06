@@ -14,11 +14,11 @@ externo e versionado consumido pela harness de `danzeroum/project`.
 
 | Pacote | Marcador pytest | Checks |
 |---|---|---|
-| Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção sem purga · P-03 soft-delete · P-04 catálogo vivo · P-05 minimização · P-06 chave no código · P-08 sensível+legítimo interesse · P-11 oráculo de existência |
-| Segurança | `pse_security` | S-01 BOLA/IDOR · S-02 rate limit · S-03 PII em erro · S-04 terceiro sem manifesto/DPA · S-06 credencial hardcoded · S-08 transferência internacional |
-| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-07 Model Card |
+| Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção · P-03 soft-delete · P-04 catálogo · P-05 minimização · P-06 chave no código · P-07 consentimento · P-08 sensível+legítimo interesse · P-09 k-anonimato · P-10 portabilidade · P-11 oráculo |
+| Segurança | `pse_security` | S-01 BOLA/IDOR · S-02 rate limit · S-03 PII em erro · S-04 terceiro sem DPA · S-05 payload de egresso · S-06 credencial hardcoded · S-07 finalidade e log · S-08 transferência internacional |
+| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-06 disparidade · E-07 Model Card · E-09 kill switch · E-10 incerteza |
 
-21 dos 30 checks do catálogo. Os 9 restantes saem no laudo em
+29 dos 30 checks do catálogo. E-08 (lineage) sai no laudo em
 `checks_previstos`, com motivo — previsto e ausente nunca é silêncio.
 
 ## Os dois trabalhos
@@ -27,7 +27,7 @@ externo e versionado consumido pela harness de `danzeroum/project`.
 |---|---|---|
 | **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/06/08 · E-00/04/05/07 |
 | **A passivo** — leitura com a própria identidade | `--modo pse_passive` | S-03 · E-01 · E-02 |
-| **A ativo** — sonda de autorização, só `workflow_dispatch` | `--modo pse_active` | S-01 · P-05 · P-11 · S-02 · E-03 |
+| **A ativo** — sonda de autorização, só `workflow_dispatch` | `--modo pse_active` | S-01 · S-02 · S-07 · P-05 · P-07 · P-09 · P-10 · P-11 · E-03 · E-09 |
 
 O Trabalho A **não emite um byte** antes de a atestação passar: modo habilitado
 → atestação válida para este modo e este alvo → tokens no ambiente →
@@ -76,6 +76,26 @@ Três destinos possíveis para um check, todos visíveis no laudo:
 - `checks_nao_habilitados` — **previsto e não pedido**: o consumidor não pediu
   Trabalho A, ou pediu num modo que não inclui este check. Não bloqueia;
 - `checks_previstos` — **declarado no catálogo e ainda não implementado**.
+
+## Thresholds: o consumidor aperta, nunca afrouxa
+
+`k_anonymity_min` tem piso 5 e `dpd_max_delta` tem teto 0,10 — **na suite**.
+Declarar fora da faixa não vira achado: vira recusa de execução (exit 30).
+Achado o operador aprende a ignorar; recusa, não.
+
+## Dois riscos que a própria auditoria carrega
+
+**E-09 nunca aciona o kill switch de verdade.** Só envia a simulação, e o
+parâmetro de dry-run é constante — não há ramo de código que o omita, nem
+retentativa "sem dry-run" quando o alvo recusa. Alvo que não expõe simulação
+vira indeterminado, que é infinitamente mais barato que descobrir o switch
+funcionando porque a auditoria o puxou.
+
+**E-06 nunca roda inferência.** Não carrega o dataset nem executa o modelo:
+isso significaria processar dado sensível de titular real dentro de uma
+ferramenta de auditoria, para produzir um número que o consumidor já tem. Ele
+exige que a medição exista, esteja fresca (fingerprint do dataset) e traga as
+condições — número sem condições de medição não entra.
 
 ## Laudo
 

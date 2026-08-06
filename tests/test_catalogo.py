@@ -49,11 +49,9 @@ def test_previsto_e_ausente_e_dizivel():
     """O laudo tinha de saber dizer 'previsto e ausente' — nao so
     'executado' ou 'pulado'. E pre-requisito da Fase 2."""
     previstos = {c["id"] for c in catalogo.previstos()}
-    assert len(previstos) == 9
-    # S-07 segue previsto-fase-2 por escopo: nao estava na lista de checks
-    # pedidos para esta fase. Previsto e ausente, com motivo — nao silencio.
-    assert {"S-07", "P-07", "P-09", "P-10", "S-05",
-            "E-06", "E-08", "E-09", "E-10"} == previstos
+    # E-08 (provenance/lineage) nao estava na lista pedida para a Fase 3.
+    # Previsto e ausente, com motivo — nao silencio.
+    assert previstos == {"E-08"}
     for c in catalogo.previstos():
         assert c["motivo"] and c["status"] and c["modo"]
 
@@ -65,7 +63,7 @@ def test_laudo_carrega_cobertura_e_previstos(tmp_path):
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
     assert laudo["cobertura"]["catalogo_total"] == 30
-    assert laudo["cobertura"]["implementados_nos_packs"] == 21
+    assert laudo["cobertura"]["implementados_nos_packs"] == 29
     assert {c["id"] for c in laudo["checks_previstos"]}
 
 

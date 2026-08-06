@@ -7,7 +7,10 @@
   "properties": {
     "target": {
       "type": "object",
-      "required": ["base_url", "environment"],
+      "required": [
+        "base_url",
+        "environment"
+      ],
       "properties": {
         "base_url": {
           "type": "string",
@@ -15,7 +18,10 @@
           "description": "TLS obrigatorio: uma sonda de autorizacao em texto claro vaza o proprio token de teste."
         },
         "environment": {
-          "enum": ["staging", "production"],
+          "enum": [
+            "staging",
+            "production"
+          ],
           "description": "pse_active contra production e RECUSADO na v1 (exit 30), antes de qualquer requisicao."
         },
         "healthcheck": {
@@ -23,35 +29,100 @@
           "pattern": "^/",
           "description": "GET, uma unica vez por execucao. Resposta != 200 torna o Trabalho A inteiro indeterminado (exit 20) e nenhuma sonda e enviada depois."
         },
-        "timeout_s": {"type": "number", "minimum": 1, "maximum": 60},
+        "timeout_s": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 60
+        },
         "identities": {
           "type": "object",
           "description": "NOMES de variaveis de ambiente, nunca valores. Os segredos vivem no cofre do CI; o YAML do consumidor e versionado.",
           "properties": {
-            "titular_a": {"$ref": "#/$defs/identidade"},
-            "titular_b": {"$ref": "#/$defs/identidade"}
+            "titular_a": {
+              "$ref": "#/$defs/identidade"
+            },
+            "titular_b": {
+              "$ref": "#/$defs/identidade"
+            }
           }
         },
         "resources_titular_b": {
           "type": "array",
           "description": "Caminhos concretos de recursos da conta sintetica B. A suite NAO enumera recursos no alvo: descobrir recurso alheio e executar a violacao que S-01 existe para impedir. Vazio com pse_active habilitado = indeterminado, jamais tentativa de descoberta.",
-          "items": {"type": "string", "pattern": "^/"}
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          }
         },
         "endpoints": {
           "type": "object",
           "description": "Superficies declaradas por check. Endpoint nao declarado torna o check indeterminado — a suite nunca sai procurando qual rota testar.",
           "properties": {
-            "listagem": {"type": "string", "pattern": "^/", "description": "S-02: paginacao ate o bloqueio."},
-            "erro": {"type": "string", "pattern": "^/", "description": "S-03: payload de erro nao pode carregar PII."},
-            "escrita": {"type": "string", "pattern": "^/", "description": "P-05: POST com campo fora da allowlist deve ser rejeitado. ATENCAO: e escrita real no alvo."},
-            "decisao": {"type": "string", "pattern": "^/", "description": "E-01/E-02: explicacao e decision log da decisao automatizada."},
-            "contestacao": {"type": "string", "pattern": "^/", "description": "E-03: abertura de recurso; gera protocolo real."},
-            "inexistente": {"type": "string", "pattern": "^/", "description": "P-11: recurso que comprovadamente nao existe, para comparar com o recurso alheio."}
+            "listagem": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "S-02: paginacao ate o bloqueio."
+            },
+            "erro": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "S-03: payload de erro nao pode carregar PII."
+            },
+            "escrita": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "P-05: POST com campo fora da allowlist deve ser rejeitado. ATENCAO: e escrita real no alvo."
+            },
+            "decisao": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "E-01/E-02: explicacao e decision log da decisao automatizada."
+            },
+            "contestacao": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "E-03: abertura de recurso; gera protocolo real."
+            },
+            "inexistente": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "P-11: recurso que comprovadamente nao existe, para comparar com o recurso alheio."
+            },
+            "kill_switch_dry_run": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "E-09: aciona a SIMULACAO do kill switch. A suite jamais envia acionamento real, e nao ha retentativa sem dry-run."
+            },
+            "exportacao": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "P-10: pacote de portabilidade. Unico endpoint cujo corpo e OMITIDO do trace — o pacote e o conjunto dos dados do titular."
+            },
+            "log_auditoria": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "S-07: amostra do log estruturado (ator, acao, timestamp, recurso, finalidade)."
+            },
+            "consentimento_protegido": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "P-07: rota que so deve responder com consentimento vigente para a finalidade."
+            },
+            "agregacao": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "P-09: relatorio agregado; celula abaixo do piso de k e achado."
+            }
           }
         },
         "authorization": {
           "type": "object",
-          "required": ["attested_by", "scope", "target_fingerprint", "expires"],
+          "required": [
+            "attested_by",
+            "scope",
+            "target_fingerprint",
+            "expires"
+          ],
           "description": "Ausente, vencida, sem o modo no scope, ou com fingerprint divergente da base_url: todos os checks de Trabalho A vao para checks_indeterminados com o motivo especifico (exit 20). Nunca verde, e nenhuma requisicao e emitida.",
           "properties": {
             "attested_by": {
@@ -63,7 +134,12 @@
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
-              "items": {"enum": ["pse_passive", "pse_active"]},
+              "items": {
+                "enum": [
+                  "pse_passive",
+                  "pse_active"
+                ]
+              },
               "description": "Granularidade POR MODO. Autorizar o passivo nao autoriza a sonda ativa."
             },
             "target_fingerprint": {
@@ -88,7 +164,9 @@
   "$defs": {
     "identidade": {
       "type": "object",
-      "required": ["token_env"],
+      "required": [
+        "token_env"
+      ],
       "properties": {
         "token_env": {
           "type": "string",

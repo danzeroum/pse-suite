@@ -22,7 +22,7 @@ from pathlib import Path
 
 import yaml
 
-from pse import catalogo, fingerprint
+from pse import catalogo, fingerprint, limites
 from pse.engine.runner import executar
 from pse.evidence import montar_laudo, versao_suite
 from pse.model import (EXIT_ENTRADA_INVALIDA, EXIT_VIOLACAO_CRITICA,
@@ -153,6 +153,9 @@ def main(argv=None) -> int:
         # Recusas do Trabalho A acontecem AQUI, antes de o runner existir:
         # pse_active contra production nao pode chegar nem ao healthcheck.
         autorizacao.validar_config(config, args.modo)
+        # Threshold fora da faixa nao vira achado: vira recusa de
+        # execucao. Achado o operador aprende a ignorar; recusa, nao.
+        limites.validar(config)
         efetivos, desabilitados = _packs_efetivos(packs, config)
         resultados = executar(alvo, efetivos, config, modo=args.modo)
         resultados["packs_desabilitados"] = desabilitados

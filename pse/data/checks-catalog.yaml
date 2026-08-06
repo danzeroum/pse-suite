@@ -140,7 +140,18 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: rota protegida por consentimento responde 200 sem consentimento
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          consentimento_protegido: /api/perfil
+        respostas:
+          - status: 200
+            corpo: '{"perfil":{}}'
+      espera_severidade: CRITICO
   P-08:
     pack: privacy
     titulo: Dado sensivel nunca com base legal legitimo interesse
@@ -172,7 +183,18 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: agregacao exposta devolve celula com 2 titulares
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          agregacao: /api/relatorios/bairro
+        respostas:
+          - status: 200
+            corpo: '{"linhas":[{"bairro":"X","count":2}]}'
+      espera_severidade: ALTO
   P-10:
     pack: privacy
     titulo: Portabilidade — endpoint de exportacao existe e responde
@@ -180,7 +202,18 @@ checks:
     tipo: runtime
     modo: active
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: exportacao responde sem hash e sem estrutura declarada
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          exportacao: /api/exportacao
+        respostas:
+          - status: 200
+            corpo: '{"itens":[{"a":1}]}'
+      espera_severidade: ALTO
   P-11:
     pack: privacy
     titulo: Oraculo de existencia — 403 vs 404 distinguivel
@@ -288,7 +321,18 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: integracao no manifesto sem egress_fields declarados
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: analytics
+              hosts: [a.example.net]
+              dpa_signed: true
+      config:
+        {third_party_manifest: tp.yml}
+      espera_severidade: ALTO
   S-06:
     pack: security
     titulo: Chave por parceiro — nenhuma API key global/hardcoded
@@ -308,9 +352,21 @@ checks:
     titulo: Propagacao de finalidade (X-Purpose) + log de auditoria estruturado
     base_legal: LGPD Art. 37
     tipo: estatico+runtime
-    modo: passive
+    modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: requisicao sem X-Purpose e atendida com 200
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          listagem: /api/clientes
+          log_auditoria: /api/logs
+        respostas:
+          - status: 200
+            corpo: '[{"ator":"u1","acao":"read","timestamp":"2026-08-06","recurso":"c1","finalidade":"cobranca"}]'
+      espera_severidade: ALTO
   S-08:
     pack: security
     titulo: Transferencia internacional exige base declarada no manifesto
@@ -452,7 +508,17 @@ checks:
     tipo: ci
     modo: inventory
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: dataset de avaliacao declarado sem relatorio de fairness
+      arquivos:
+        eval.csv: |
+          grupo,alvo
+          A,1
+          B,0
+      config:
+        {packs: {ethics: {fairness_dataset: eval.csv}}}
+      espera_severidade: ALTO
   E-07:
     pack: ethics
     titulo: Model Card + Datasheet presentes, versionados e validos
@@ -483,10 +549,21 @@ checks:
     pack: ethics
     titulo: Kill switch / modo degradado digno, documentado e testavel
     base_legal: controle humano
-    tipo: ci
-    modo: inventory
+    tipo: runtime
+    modo: active
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: kill switch aceita e confirma simulacao, mas nao declara o efeito
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          kill_switch_dry_run: /api/kill-switch
+        respostas:
+          - status: 200
+            corpo: '{"dry_run":true,"status":"simulado"}'
+      espera_severidade: ALTO
   E-10:
     pack: ethics
     titulo: Incerteza quantificada em decisoes pontuais
@@ -494,4 +571,11 @@ checks:
     tipo: estatico
     modo: inventory
     fase: 3
-    status: previsto-fase-3
+    status: implementado
+    canonical_mutation:
+      descricao: inferencia pontual sem nenhuma medida de confianca
+      arquivos:
+        score.py: |
+          def decidir(modelo, x):
+              return modelo.predict(x)
+      espera_severidade: MEDIO

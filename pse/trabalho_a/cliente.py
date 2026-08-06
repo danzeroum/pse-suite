@@ -72,9 +72,19 @@ class Cliente:
     def _url(self, rota):
         return f"{self.base_url}{rota if rota.startswith('/') else '/' + rota}"
 
-    def requisitar(self, metodo, rota, token=None, corpo=None, identidade=None):
+    def requisitar(self, metodo, rota, token=None, corpo=None, identidade=None,
+                   extra_headers=None, sem_corpo_no_trace=False):
+        """`sem_corpo_no_trace` omite a amostra da resposta no trace.
+
+        Existe para P-10: o pacote de portabilidade E os dados do titular, e
+        arquivar 8 KB dele em `harness/runs/` seria vazar exatamente o que o
+        check prova que o titular tem direito de receber — em outro lugar.
+        Mascarar nao basta; aqui a resposta certa e nao gravar.
+        """
         headers = {"Accept": "application/json",
                    "User-Agent": "pse-suite/trabalho-a"}
+        if extra_headers:
+            headers.update(extra_headers)
         if corpo is not None:
             headers["Content-Type"] = "application/json"
         if token:
@@ -92,10 +102,17 @@ class Cliente:
                 # O valor do token nao e gravado nem mascarado.
                 "autenticada": bool(token),
                 "corpo": sanitizar_profundo(corpo) if corpo is not None else None,
+                # Cabecalhos declarados pelo check (ex.: X-Purpose). Authorization
+                # nunca entra aqui: ele e removido antes, nao mascarado.
+                "headers": sanitizar_profundo(
+                    {k: v for k, v in headers.items() if k != "Authorization"}),
             },
             "resposta": {
                 "status": resposta.status,
-                "corpo_amostra": sanitizar(resposta.corpo[:CORPO_MAX]),
+                "corpo_amostra": (
+                    f"<omitido: {len(resposta.corpo)} bytes contendo dados do "
+                    f"titular>" if sem_corpo_no_trace
+                    else sanitizar(resposta.corpo[:CORPO_MAX])),
             },
         }
         self.traces.append(trace)

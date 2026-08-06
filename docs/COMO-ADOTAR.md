@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.2.0
+pse-suite==0.3.0
 ```
 
 ## 2. Config declarativa
@@ -18,11 +18,18 @@ pse_suite:
   version_source: requirements-qa.txt      # nunca restate a versão
   catalog_path: tests/qa/catalog.yaml
   third_party_manifest: .privacy/third-party-manifest.yml
+  consent_model_path: tests/qa/consent-model.yaml
   decision_making: automated               # none | assistive | automated
+  thresholds:                              # a suite valida a faixa (§10)
+    k_anonymity_min: 5
+    dpd_max_delta: 0.05
   packs:
     privacy:  {enabled: true}
     security: {enabled: true}
-    ethics:   {enabled: true}
+    ethics:
+      enabled: true
+      fairness_dataset: tests/qa/fixtures/eval.parquet   # E-06 exige
+      fairness_report: tests/qa/fairness-report.yaml
 ```
 
 `packs.*.enabled: false` é **obedecido** e aparece no laudo em
@@ -92,10 +99,15 @@ pse_suite:
     endpoints:                              # superfícies declaradas por check
       inexistente: /api/clientes/00000000-0000-4000-8000-000000000000  # P-11
       erro:        /api/nao-existe          # S-03
-      listagem:    /api/clientes            # S-02
+      listagem:    /api/clientes            # S-02, S-07
       escrita:     /api/clientes            # P-05 — escreve de verdade
       decisao:     /api/decisoes/ultima     # E-01, E-02
       contestacao: /api/contestacoes        # E-03 — gera protocolo real
+      log_auditoria: /api/logs              # S-07
+      exportacao:  /api/exportacao          # P-10 — corpo OMITIDO do trace
+      agregacao:   /api/relatorios/bairro   # P-09
+      consentimento_protegido: /api/perfil  # P-07
+      kill_switch_dry_run: /api/kill-switch # E-09 — SÓ simulação
 
     authorization:
       attested_by: nome@dominio             # humano identificável
@@ -124,15 +136,26 @@ sonda deliberada, e ser só-leitura não a torna passiva.
 |---|---|---|
 | `pse_inventory` (B, padrão) | os 13 estáticos | automático; agente pode |
 | `pse_passive` (A) | S-03, E-01, E-02 | automático, com atestação de escopo `pse_passive` |
-| `pse_active` (A) | **S-01**, P-11, S-02, P-05, E-03 — mais todos os passivos | só `workflow_dispatch` com revisores + escopo `pse_active` |
+| `pse_active` (A) | **S-01**, S-02, S-07, P-05, P-07, P-09, P-10, P-11, E-03, E-09 — mais todos os passivos | só `workflow_dispatch` com revisores + escopo `pse_active` |
 
 Um check `passive` também roda em `pse_active`; um `active` **nunca** roda em
 `pse_passive`. S-07 segue `previsto-fase-2`: aparece em `checks_previstos` com
 motivo, não em silêncio.
 
-Dois checks ativos **escrevem no alvo**: P-05 faz `POST` na rota de escrita e
-E-03 abre uma contestação real. Por isso `synthetic_identities: true` é
-obrigatório no escopo ativo, e por isso produção é recusada.
+**S-07 foi reclassificado de passivo para ativo** na Fase 3: ele envia uma
+requisição sem `X-Purpose` esperando recusa, e sonda que espera rejeição é
+ativa — ser somente-leitura não a torna passiva. Reclassificação na direção
+conservadora, conforme a regra.
+
+Três checks ativos **escrevem ou acionam no alvo**: P-05 faz `POST` na rota de
+escrita, E-03 abre uma contestação real e E-09 dispara o **dry-run** do kill
+switch. Por isso `synthetic_identities: true` é obrigatório no escopo ativo, e
+por isso produção é recusada.
+
+**E-09 nunca aciona o switch de verdade.** O parâmetro de simulação é constante
+no código; se o alvo recusar o dry-run, o check fica indeterminado e **não há
+retentativa sem a marca de simulação**. A suite não descobre "na marra" se o
+interruptor funciona.
 
 `pse_active` contra `environment: production` é **recusado** pela suite na v1
 (exit 30). Revisável em versão futura com dupla atestação.
@@ -235,3 +258,27 @@ schema_version)`. O `catalog_hash` cobre `pse/data/` e o código dos checks: doi
 laudos que declaram a mesma versão mas divergem no hash foram produzidos por
 réguas diferentes. `pse --manifesto` emite o mesmo conjunto no release, com o
 resultado da autoprova.
+
+## 10. Thresholds — o consumidor aperta, nunca afrouxa
+
+| Threshold | Faixa da suite | O consumidor pode |
+|---|---|---|
+| `k_anonymity_min` | piso **5** | aumentar |
+| `dpd_max_delta` | teto **0,10** | diminuir |
+
+Declarar fora da faixa não vira achado: vira **recusa de execução** (exit 30).
+Achado o operador aprende a ignorar; recusa de execução, não. Threshold que a
+suite não conhece também é recusado — um threshold que ela não valida é um
+campo de configuração com nome de régua.
+
+## 11. E-06 — o dataset é insumo declarado
+
+`fairness_dataset` ausente deixa E-06 em `checks_indeterminados` (exit 20),
+nunca verde. A suite **não sai procurando** qual arquivo seria o dataset, e
+**não roda inferência**: carregar os dados e executar o modelo significaria
+processar dado sensível de titular real dentro da ferramenta de auditoria,
+para produzir um número que o consumidor já tem.
+
+O que ela cobra é o relatório (`fairness-report-1.0`): DPD por grupo, ancorado
+à versão do modelo, com o `dataset_fingerprint` que prova o frescor e as
+**condições de medição**. Número sem condições não entra.
