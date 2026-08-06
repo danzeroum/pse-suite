@@ -1,0 +1,26 @@
+# Artefatos de build e cache — nunca versionados.
+# Motivo doutrinario (D-13): um `git add -A` acidental que versionasse
+# build/ ou *.egg-info criaria uma copia-sombra de pse/data/ dentro do
+# repositorio. A regua tem UM lugar; copia e o comeco da deriva.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+wheelhouse/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Segredos reais nunca entram. As fixtures abaixo sao valores FALSOS,
+# plantados de proposito para provar que a suite os encontra (D-03/D-02).
+.env
+.env.*
+!tests/fixtures/**/.env
+!tests/fixtures/**/.env.*
+!pse/fixtures/**/.env
+!pse/fixtures/**/.env.*

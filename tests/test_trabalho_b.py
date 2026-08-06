@@ -1,4 +1,4 @@
-"""Trabalho B contra fixture com violacoes + mordida do gate fail-closed."""
+"""Trabalho B contra fixture com violacoes + contrato de veredito."""
 import json
 from pathlib import Path
 
@@ -6,8 +6,11 @@ import pytest
 
 from pse.cli import main
 from pse.engine.runner import executar
+from pse.model import (EXIT_CONFORME, EXIT_INDETERMINADO, EXIT_VIOLACAO_ALTA,
+                       EXIT_VIOLACAO_CRITICA)
 
 FIX = Path(__file__).parent / "fixtures" / "consumidor_ruim"
+BOM = Path(__file__).parent / "fixtures" / "consumidor_bom"
 CFG = {"catalog_path": "catalog.yaml"}
 
 
@@ -45,21 +48,83 @@ def test_pack_ethics_encontra_violacoes():
     assert {"E-04", "E-05", "E-07"} <= ids(res)
 
 
+# ------------------------------------------------- contrato de veredito
 @pytest.mark.mordida
-def test_mordida_critico_aborta(tmp_path):
-    """A trava morde: CRITICO -> exit 1, laudo com procedencia gravado."""
+def test_critico_sai_10(tmp_path):
+    """A trava morde: CRITICO -> exit 10, laudo com procedencia completa."""
     out = tmp_path / "laudo.json"
     rc = main(["--path", str(FIX), "--config", str(FIX / "pse-config.yaml"),
                "--output", str(out)])
-    assert rc == 1
-    laudo = json.loads(out.read_text())
+    assert rc == EXIT_VIOLACAO_CRITICA
+    laudo = json.loads(out.read_text(encoding="utf-8"))
     assert laudo["schema"] == "laudo-pse-1.0"
-    assert laudo["resumo"]["por_severidade"]["CRITICO"] >= 3  # P-06, P-08, S-06, E-04
-    assert laudo["artifact"]["suite_version"]
-    assert laudo["artifact"]["config_fingerprint"]
+    assert laudo["veredito"] == "violacao"
+    assert laudo["resumo"]["por_severidade"]["CRITICO"] >= 3
+    art = laudo["artifact"]
+    assert art["suite_version"] and art["config_fingerprint"]
+    assert art["catalog_hash"] and art["schema_version"]   # Gap 3: a quintupla
 
 
 @pytest.mark.mordida
-def test_repo_sem_critico_nao_aborta(tmp_path):
-    (tmp_path / "app.py").write_text("def ok():\n    return 1\n")
-    assert main(["--path", str(tmp_path)]) == 0
+def test_alto_sem_critico_sai_11(tmp_path):
+    """ALTO nao e silencio nem CRITICO: codigo proprio (D-11).
+
+    A suite reporta a verdade em codigos distintos e nao possui flag que
+    rebaixe o gate; a politica 'ALTO bloqueia em main' vive no CI do
+    consumidor, protegida por CODEOWNERS.
+    """
+    (tmp_path / "models.py").write_text("class User:\n    deleted_at = None\n")
+    rc = main(["--path", str(tmp_path), "--output", str(tmp_path / "l.json")])
+    assert rc == EXIT_VIOLACAO_ALTA
+    laudo = json.loads((tmp_path / "l.json").read_text(encoding="utf-8"))
+    assert "CRITICO" not in laudo["resumo"]["por_severidade"]
+    assert laudo["resumo"]["por_severidade"]["ALTO"] >= 1
+
+
+@pytest.mark.mordida
+def test_conforme_sai_0(tmp_path):
+    rc = main(["--path", str(BOM), "--config", str(BOM / "pse-config.yaml"),
+               "--output", str(tmp_path / "l.json")])
+    assert rc == EXIT_CONFORME
+
+
+@pytest.mark.mordida
+def test_indeterminacao_bloqueia(tmp_path):
+    """Fato nao decidivel nunca degrada para verde (exit 20).
+
+    Arquivo Python que nao parseia: a suite nao consegue olhar, e isso
+    bloqueia igual a uma violacao.
+    """
+    (tmp_path / "quebrado.py").write_text("def f(:\n    pass\n")
+    (tmp_path / "catalog.yaml").write_text(
+        "tables:\n  t:\n    fields:\n      cpf:\n        class: personal\n"
+        "        owner: o\n        purpose: p\n        legal_basis: contrato\n"
+        "        retention_years: 5\n")
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("pse_suite:\n  catalog_path: catalog.yaml\n")
+    out = tmp_path / "l.json"
+    rc = main(["--path", str(tmp_path), "--config", str(cfg), "--output", str(out)])
+    laudo = json.loads(out.read_text(encoding="utf-8"))
+    assert laudo["checks_indeterminados"], "arquivo ilegivel virou silencio"
+    assert all(c["motivo"] for c in laudo["checks_indeterminados"])
+    assert rc == EXIT_INDETERMINADO
+    assert laudo["veredito"] == "indeterminado"
+
+
+@pytest.mark.mordida
+def test_catalogo_ilegivel_sai_30(tmp_path):
+    """YAML quebrado e entrada invalida, nunca 'catalogo ausente'."""
+    (tmp_path / "catalog.yaml").write_text("tables: [isto: nao: e: yaml\n")
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("pse_suite:\n  catalog_path: catalog.yaml\n")
+    assert main(["--path", str(tmp_path), "--config", str(cfg)]) == 30
+
+
+@pytest.mark.mordida
+def test_config_inexistente_sai_30(tmp_path):
+    assert main(["--path", str(tmp_path), "--config", str(tmp_path / "nada.yaml")]) == 30
+
+
+@pytest.mark.mordida
+def test_packs_invalidos_saem_30(tmp_path):
+    assert main(["--path", str(tmp_path), "--packs", "privacidade"]) == 30

@@ -1,0 +1,7 @@
+pse_suite:
+  catalog_path: catalog.yaml
+  decision_making: automated
+  packs:
+    privacy: {enabled: true}
+    security: {enabled: true}
+    ethics: {enabled: true}

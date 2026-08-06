@@ -1,0 +1,10 @@
+# Retencao declarada -> P-02 exige job de purga EXECUTAVEL (nao a palavra).
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: financeiro
+        purpose: cobranca
+        legal_basis: contrato
+        retention_years: 5
