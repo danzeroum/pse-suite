@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.3.0
+pse-suite==0.4.0
 ```
 
 ## 2. Config declarativa
@@ -282,3 +282,35 @@ para produzir um número que o consumidor já tem.
 O que ela cobra é o relatório (`fairness-report-1.0`): DPD por grupo, ancorado
 à versão do modelo, com o `dataset_fingerprint` que prova o frescor e as
 **condições de medição**. Número sem condições não entra.
+
+## 12. IA e cadeia de terceiros (E-11 · E-12 · E-13)
+
+Estáticos, rodam no `pse_inventory` — sem rede, agente pode disparar. Todos
+carregam **Art. 42** junto da base específica.
+
+**E-11 · PII em prompt de LLM.** Os fornecedores reconhecidos saem da régua
+(`third-party-endpoints.yaml`, categoria `llm`); os termos de PII saem de
+`pii-patterns.yaml`. Nada é hardcoded no check — se um fornecedor entra na
+régua, o check passa a reconhecê-lo sem tocar em código.
+
+```python
+llm.complete(f"cliente {user.cpf}")          # CRÍTICO
+llm.complete(redact(prompt))                 # conforme — a chamada executa
+# TODO: redact  ...  llm.complete(user.cpf)  # CRÍTICO: comentário não redige
+```
+
+**E-12 · derivado tratado como anônimo.** Exportar `embedding`/`hash`/`vetor`
+de um campo que o catálogo **não** classifica como `personal`/`sensitive` é
+achado. Classifique a origem e o check silencia — o objetivo é a coerência do
+inventário, não proibir derivados. Sem catálogo: indeterminado (20).
+
+**E-13 · dependência que exfiltra.** Cruza os hosts encontrados dentro de
+`node_modules`/`site-packages`/`vendor` contra o manifesto. Sem manifesto o
+check é pulado com motivo (a ausência é de S-04). Hosts de registro, licença e
+documentação ficam em `ignorar_em_dependencias` — lista própria e estreita, e
+um teste-guarda proíbe que qualquer host de categoria conhecida (analytics,
+llm, cdn) entre nela.
+
+O teto de varredura é da suite (4000 arquivos). Quando é atingido, o laudo diz
+em `relatorios.cobertura_parcial` — truncamento silencioso leria como
+"varri tudo".

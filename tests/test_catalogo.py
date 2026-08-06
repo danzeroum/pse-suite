@@ -11,7 +11,8 @@ from pse.engine.runner import _carregar_checks, executar
 
 FIX = Path(__file__).parent / "fixtures"
 
-# Os 29 do plano §3 + E-00, a guarda que o plano v1 chama de EBD-000.
+# Os 29 do plano §3 + E-00 (guarda de escopo) + E-11/E-12/E-13 (IA e cadeia
+# de terceiros, acrescentados depois do plano original).
 PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
          [f"S-{i:02d}" for i in range(1, 9)] +
          [f"E-{i:02d}" for i in range(1, 11)])
@@ -20,8 +21,8 @@ PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
 def test_catalogo_cobre_os_29_do_plano():
     assert set(PLANO) <= set(catalogo.CATALOGO), (
         f"faltam no catalogo: {sorted(set(PLANO) - set(catalogo.CATALOGO))}")
-    assert "E-00" in catalogo.CATALOGO
-    assert len(catalogo.CATALOGO) == len(PLANO) + 1
+    assert {"E-00", "E-11", "E-12", "E-13"} <= set(catalogo.CATALOGO)
+    assert len(catalogo.CATALOGO) == len(PLANO) + 4
 
 
 def test_registro_e_catalogo_nao_derivam():
@@ -62,8 +63,8 @@ def test_laudo_carrega_cobertura_e_previstos(tmp_path):
           "--config", str(FIX / "consumidor_bom" / "pse-config.yaml"),
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
-    assert laudo["cobertura"]["catalogo_total"] == 30
-    assert laudo["cobertura"]["implementados_nos_packs"] == 29
+    assert laudo["cobertura"]["catalogo_total"] == 33
+    assert laudo["cobertura"]["implementados_nos_packs"] == 32
     assert {c["id"] for c in laudo["checks_previstos"]}
 
 

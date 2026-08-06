@@ -72,3 +72,39 @@ def test_ignorar_nao_engole_host_real(regua):
     assert not excedente, (
         f"hosts fora da lista de exemplos entraram em `ignorar`: {sorted(excedente)}"
     )
+
+
+def test_ignorar_em_dependencias_nao_silencia_destino_real(regua):
+    """E-13 tem lista propria de hosts ignorados (registro, licenca, doc).
+
+    A trava: nenhum host das categorias conhecidas — analytics, llm, cdn —
+    pode entrar nela. Senao bastaria mover `api.openai.com` para ca para o
+    egresso de uma dependencia sumir do laudo sem ninguem notar.
+    """
+    dados = regua["third-party-endpoints"]
+    dep = {h.lower() for h in dados.get("ignorar_em_dependencias", [])}
+    assert dep, "lista de ignorados em dependencia vazia: E-13 vira ruido puro"
+    conhecidos = {h.lower() for hosts in dados["categorias"].values() for h in hosts}
+    intruso = dep & conhecidos
+    assert not intruso, (
+        f"host de categoria conhecida silenciado em ignorar_em_dependencias: "
+        f"{sorted(intruso)}")
+
+
+def test_llm_da_regua_alimenta_o_reconhecimento_do_e11(regua):
+    """E-11 deriva os fornecedores que reconhece da categoria `llm`.
+
+    Remover a categoria (ou esvazia-la) cega o check em silencio — por isso
+    ela e vigiada aqui, e nao so no check.
+    """
+    from pse.checks.ethics import _llm
+
+    class _Ctx:
+        data = regua
+
+    fornecedores = _llm.fornecedores(_Ctx())
+    assert {"openai", "anthropic"} <= fornecedores, (
+        f"fornecedores derivados da regua: {sorted(fornecedores)}")
+    assert _llm.e_chamada_llm("openai.chat.completions.create", _Ctx(), False)
+    assert _llm.e_chamada_llm("llm.complete", _Ctx(), False)
+    assert not _llm.e_chamada_llm("db.create", _Ctx(), False)
