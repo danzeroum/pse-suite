@@ -80,21 +80,34 @@ pse_suite:
     base_url: https://staging.exemplo.com   # TLS obrigatório
     environment: staging                    # staging | production
     healthcheck: /health                    # != 200 -> Trabalho A indeterminado (20)
+    timeout_s: 10
 
-  identities:                               # NOMES de variáveis, nunca valores
-    titular_a: {token_env: PSE_TOKEN_A}
-    titular_b: {token_env: PSE_TOKEN_B}
+    identities:                             # NOMES de variáveis, nunca valores
+      titular_a: {token_env: PSE_TOKEN_A}
+      titular_b: {token_env: PSE_TOKEN_B}
 
-  resources_titular_b:                      # recursos da conta sintética B
-    - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
+    resources_titular_b:                    # recursos da conta sintética B
+      - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
 
-  authorization:
-    attested_by: nome@dominio               # humano identificável
-    scope: [pse_passive]                    # granularidade POR MODO
-    target_fingerprint: <sha256(base_url)>  # amarra a atestação a ESTE alvo
-    expires: "2026-09-30"                   # obrigatória
-    synthetic_identities: true              # obrigatória para pse_active
+    endpoints:                              # superfícies declaradas por check
+      inexistente: /api/clientes/00000000-0000-4000-8000-000000000000  # P-11
+      erro:        /api/nao-existe          # S-03
+      listagem:    /api/clientes            # S-02
+      escrita:     /api/clientes            # P-05 — escreve de verdade
+      decisao:     /api/decisoes/ultima     # E-01, E-02
+      contestacao: /api/contestacoes        # E-03 — gera protocolo real
+
+    authorization:
+      attested_by: nome@dominio             # humano identificável
+      scope: [pse_passive]                  # granularidade POR MODO
+      target_fingerprint: <sha256(base_url)>  # amarra a atestação a ESTE alvo
+      expires: "2026-09-30"                 # obrigatória
+      synthetic_identities: true            # obrigatória para pse_active
 ```
+
+Tudo aninhado sob `target`: identidades, recursos e atestação são propriedades
+**do alvo auditado**. Separá-las convidaria a apontar uma atestação para outro
+alvo — e é exatamente isso que o `target_fingerprint` existe para impedir.
 
 Os segredos vivem no cofre do CI; o YAML versionado carrega só o **nome** da
 variável. Prefixo `PSE_` fixo, para que o fiscal de higiene de ambiente do

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://danzeroum.github.io/pse-suite/schemas/trabalho-a-config-1.0.json",
   "title": "Contrato de autorizacao do Trabalho A",
-  "description": "Declaracao do consumidor para auditoria runtime. Definido ANTES de qualquer check runtime existir: sem contrato, um check de sonda nasce sem saber contra o que pode disparar. O `inherits: tests/qa/config.yaml` do plano §4 caiu — acoplar a PSE a um schema nao publicado da WebQA Suite recriaria a deriva que a doutrina combate.",
+  "description": "Declaracao do consumidor para auditoria runtime. Definido ANTES de qualquer check runtime existir: sem contrato, um check de sonda nasce sem saber contra o que pode disparar. Tudo aninhado sob `target` — identidades, recursos e atestacao sao propriedades DO ALVO auditado, e separa-las convida a apontar uma atestacao para outro alvo.",
   "type": "object",
   "properties": {
     "target": {
@@ -16,59 +16,71 @@
         },
         "environment": {
           "enum": ["staging", "production"],
-          "description": "pse_active contra production e RECUSADO na v1 (exit 30). Sonda ativa so em staging ate haver dupla atestacao."
+          "description": "pse_active contra production e RECUSADO na v1 (exit 30), antes de qualquer requisicao."
         },
         "healthcheck": {
           "type": "string",
           "pattern": "^/",
-          "description": "GET; resposta != 200 torna o Trabalho A inteiro indeterminado (exit 20), nunca conforme."
-        }
-      }
-    },
-    "identities": {
-      "type": "object",
-      "description": "NOMES de variaveis de ambiente, nunca valores. Os segredos vivem no cofre do CI; o YAML do consumidor e versionado.",
-      "properties": {
-        "titular_a": {"$ref": "#/$defs/identidade"},
-        "titular_b": {"$ref": "#/$defs/identidade"}
-      }
-    },
-    "resources_titular_b": {
-      "type": "array",
-      "description": "Caminhos concretos de recursos da conta sintetica B. A suite NAO enumera recursos no alvo: descobrir recurso alheio e executar a violacao que S-01 existe para impedir.",
-      "items": {"type": "string", "pattern": "^/"}
-    },
-    "authorization": {
-      "type": "object",
-      "required": ["attested_by", "scope", "target_fingerprint", "expires"],
-      "description": "Ausente, vencida, sem o modo no scope, ou com fingerprint divergente da base_url: todos os checks de Trabalho A vao para checks_indeterminados com o motivo especifico (exit 20). Nunca verde.",
-      "properties": {
-        "attested_by": {
-          "type": "string",
-          "minLength": 3,
-          "description": "Humano responsavel, identificavel. Nao aceita 'ci', 'bot' ou equipe."
+          "description": "GET, uma unica vez por execucao. Resposta != 200 torna o Trabalho A inteiro indeterminado (exit 20) e nenhuma sonda e enviada depois."
         },
-        "scope": {
+        "timeout_s": {"type": "number", "minimum": 1, "maximum": 60},
+        "identities": {
+          "type": "object",
+          "description": "NOMES de variaveis de ambiente, nunca valores. Os segredos vivem no cofre do CI; o YAML do consumidor e versionado.",
+          "properties": {
+            "titular_a": {"$ref": "#/$defs/identidade"},
+            "titular_b": {"$ref": "#/$defs/identidade"}
+          }
+        },
+        "resources_titular_b": {
           "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {"enum": ["pse_passive", "pse_active"]},
-          "description": "Granularidade POR MODO. Autorizar o passivo nao autoriza a sonda ativa."
+          "description": "Caminhos concretos de recursos da conta sintetica B. A suite NAO enumera recursos no alvo: descobrir recurso alheio e executar a violacao que S-01 existe para impedir. Vazio com pse_active habilitado = indeterminado, jamais tentativa de descoberta.",
+          "items": {"type": "string", "pattern": "^/"}
         },
-        "target_fingerprint": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$",
-          "description": "sha256(base_url). Amarra a atestacao a ESTE alvo: apontar a suite para outro host invalida a autorizacao."
+        "endpoints": {
+          "type": "object",
+          "description": "Superficies declaradas por check. Endpoint nao declarado torna o check indeterminado — a suite nunca sai procurando qual rota testar.",
+          "properties": {
+            "listagem": {"type": "string", "pattern": "^/", "description": "S-02: paginacao ate o bloqueio."},
+            "erro": {"type": "string", "pattern": "^/", "description": "S-03: payload de erro nao pode carregar PII."},
+            "escrita": {"type": "string", "pattern": "^/", "description": "P-05: POST com campo fora da allowlist deve ser rejeitado. ATENCAO: e escrita real no alvo."},
+            "decisao": {"type": "string", "pattern": "^/", "description": "E-01/E-02: explicacao e decision log da decisao automatizada."},
+            "contestacao": {"type": "string", "pattern": "^/", "description": "E-03: abertura de recurso; gera protocolo real."},
+            "inexistente": {"type": "string", "pattern": "^/", "description": "P-11: recurso que comprovadamente nao existe, para comparar com o recurso alheio."}
+          }
         },
-        "expires": {
-          "type": "string",
-          "format": "date",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-          "description": "Obrigatoria. Autorizacao sem prazo e autorizacao permanente, que ninguem revisa."
-        },
-        "synthetic_identities": {
-          "type": "boolean",
-          "description": "Obrigatoria e true para pse_active: ambas as identidades sao contas de teste, sem titular real por tras. E declaracao atestada, nao verificavel pela suite."
+        "authorization": {
+          "type": "object",
+          "required": ["attested_by", "scope", "target_fingerprint", "expires"],
+          "description": "Ausente, vencida, sem o modo no scope, ou com fingerprint divergente da base_url: todos os checks de Trabalho A vao para checks_indeterminados com o motivo especifico (exit 20). Nunca verde, e nenhuma requisicao e emitida.",
+          "properties": {
+            "attested_by": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Humano responsavel, identificavel. Nao aceita 'ci', 'bot' ou equipe."
+            },
+            "scope": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"enum": ["pse_passive", "pse_active"]},
+              "description": "Granularidade POR MODO. Autorizar o passivo nao autoriza a sonda ativa."
+            },
+            "target_fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "sha256(base_url). Amarra a atestacao a ESTE alvo: apontar a suite para outro host invalida a autorizacao."
+            },
+            "expires": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "description": "Obrigatoria. Autorizacao sem prazo e autorizacao permanente, que ninguem revisa."
+            },
+            "synthetic_identities": {
+              "type": "boolean",
+              "description": "Obrigatoria e true para pse_active: ambas as identidades sao contas de teste, sem titular real por tras. E declaracao atestada, nao verificavel pela suite."
+            }
+          }
         }
       }
     }
