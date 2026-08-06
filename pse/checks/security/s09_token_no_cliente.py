@@ -1,4 +1,4 @@
-"""FE-03 — token de sessao vivendo no cliente.
+"""S-09 — token de sessao vivendo no cliente.
 
 Token em `localStorage` e legivel por qualquer script da pagina: um XSS, ou
 uma dependencia que um dia adicionou telemetria (o mesmo buraco do E-13),
@@ -14,7 +14,7 @@ guardar token no cliente": ela simplesmente NAO guarda — usa
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade
-from . import _ast
+from pse.engine import jsast as _ast
 
 BASE_LEGAL = "LGPD Art. 46 (seguranca) + OWASP A07"
 
@@ -38,7 +38,7 @@ def _cheira_a_segredo(no, fonte: bytes, segredos: set) -> str | None:
     return None
 
 
-@check("FE-03", "security", "Token sensivel no cliente", base_legal=BASE_LEGAL)
+@check("S-09", "security", "Token sensivel no cliente", base_legal=BASE_LEGAL)
 def token_no_cliente(ctx):
     segredos = _segredos(ctx)
     stores = _armazenamento(ctx)
@@ -59,7 +59,7 @@ def token_no_cliente(ctx):
             if not achado:
                 continue
             findings.append(Finding(
-                check_id="FE-03", pack="security", severidade=Severidade.ALTO,
+                check_id="S-09", pack="security", severidade=Severidade.ALTO,
                 titulo="Token de sessao persistido no armazenamento do cliente",
                 descricao=f"`{nome}` guarda '{achado}' no navegador. Qualquer "
                           f"script da pagina le esse valor: um XSS, ou uma "
@@ -85,7 +85,7 @@ def token_no_cliente(ctx):
             if not achado:
                 continue
             findings.append(Finding(
-                check_id="FE-03", pack="security", severidade=Severidade.ALTO,
+                check_id="S-09", pack="security", severidade=Severidade.ALTO,
                 titulo="Token escrito em cookie pelo JavaScript",
                 descricao=f"`document.cookie` recebe '{achado}'. Cookie escrito "
                           f"pelo cliente nao pode ser HttpOnly — o que "

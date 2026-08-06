@@ -20,6 +20,16 @@ IMPLEMENTADO = "implementado"
 # QUE VALOR esta em jogo, o dominio diz ONDE ele se manifesta no sistema.
 DOMINIOS = ("frontend", "api", "backend", "data", "ai")
 
+# O prefixo do ID codifica o PILAR, sempre e apenas. E a unica dimensao
+# univalorada das duas: um check pertence a um pilar e pode pertencer a
+# varios dominios. O lugar rigido (prefixo) tem de carregar o que tambem e
+# rigido; o multivalorado vive em `domain`, que e lista.
+#
+# Esta regra mora AQUI e em nenhum outro lugar. Cada check nao a repete: o
+# registro a consulta no momento em que o check se declara.
+PREFIXO_DO_PILAR = {"privacy": "P", "security": "S", "ethics": "E"}
+PILAR_DO_PREFIXO = {v: k for k, v in PREFIXO_DO_PILAR.items()}
+
 
 def _carregar() -> dict:
     dados = yaml.safe_load(_ARQUIVO.read_text(encoding="utf-8")) or {}
@@ -39,6 +49,29 @@ def existe(check_id: str) -> bool:
 
 def base_legal(check_id: str):
     return meta(check_id).get("base_legal")
+
+
+def prefixo(check_id: str) -> str:
+    return str(check_id).split("-")[0]
+
+
+def pilar_esperado(check_id: str):
+    """Pilar que o prefixo declara — ou None se o prefixo nao e do vocabulario."""
+    return PILAR_DO_PREFIXO.get(prefixo(check_id))
+
+
+def incoerencias_de_prefixo() -> list:
+    """(check, prefixo, pack) para todo ID cujo prefixo nao case com o pilar.
+
+    Prefixo fora de P/S/E entra aqui tambem: e como `FE-*` seria barrado se
+    alguem tentar codificar dominio no prefixo de novo.
+    """
+    saida = []
+    for cid, m in sorted(CATALOGO.items()):
+        esperado = pilar_esperado(cid)
+        if esperado is None or esperado != m.get("pack"):
+            saida.append((cid, prefixo(cid), m.get("pack")))
+    return saida
 
 
 def dominios(check_id: str) -> list:

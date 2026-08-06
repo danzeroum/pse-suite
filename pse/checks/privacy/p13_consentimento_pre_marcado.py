@@ -1,4 +1,4 @@
-"""FE-01 — controle de consentimento que nasce ligado.
+"""P-13 — controle de consentimento que nasce ligado.
 
 "Privacy by default" traduzido para a interface e uma frase so: o toggle
 nasce DESLIGADO. Um checkbox de consentimento pre-marcado inverte o onus —
@@ -20,7 +20,7 @@ time de frontend a ignorar o pack no primeiro dia.
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade
-from . import _ast
+from pse.engine import jsast as _ast
 
 BASE_LEGAL = "LGPD Art. 7o V e Art. 8o §1o (consentimento inequivoco)"
 
@@ -63,7 +63,7 @@ def _tem_handler(attrs: dict, handlers: set) -> bool:
     return any(n.lower() in handlers for n in attrs)
 
 
-@check("FE-01", "privacy", "Consentimento pre-marcado", base_legal=BASE_LEGAL)
+@check("P-13", "privacy", "Consentimento pre-marcado", base_legal=BASE_LEGAL)
 def consentimento_pre_marcado(ctx):
     consent = _termos(ctx, "consentimento")
     handlers = _termos(ctx, "handlers_de_mudanca")
@@ -89,7 +89,7 @@ def consentimento_pre_marcado(ctx):
                 continue                       # a escolha e do usuario
             linha = _ast.linha_de(elem)
             findings.append(Finding(
-                check_id="FE-01", pack="privacy", severidade=Severidade.CRITICO,
+                check_id="P-13", pack="privacy", severidade=Severidade.CRITICO,
                 titulo="Controle de consentimento nasce marcado",
                 descricao=f"<{tag}> tem `{ligado}` com valor literal ligado e "
                           f"nenhum handler de mudanca. O titular passa a ter de "

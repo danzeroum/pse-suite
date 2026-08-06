@@ -131,7 +131,7 @@ def tag_de(no, fonte: bytes) -> str:
 
 def atributos(no, fonte: bytes) -> dict:
     """{nome: valor_bruto_ou_None}. `checked` sem valor -> None (literal true
-    em JSX, que e exatamente o caso que FE-01 procura)."""
+    em JSX, que e exatamente o caso que P-13 procura)."""
     saida = {}
     for filho in no.children:
         if filho.type != "jsx_attribute":

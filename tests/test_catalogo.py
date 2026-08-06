@@ -12,7 +12,7 @@ from pse.engine.runner import _carregar_checks, executar
 FIX = Path(__file__).parent / "fixtures"
 
 # Os 29 do plano §3 + E-00 (guarda de escopo) + E-11/E-12/E-13 (IA e cadeia
-# de terceiros) + FE-01/FE-02/FE-03 (dominio frontend). Os tres ultimos sao o
+# de terceiros) + P-13/P-14/S-09 (dominio frontend). Os tres ultimos sao o
 # primeiro estrato cujo ID codifica o DOMINIO, nao o pilar.
 PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
          [f"S-{i:02d}" for i in range(1, 9)] +
@@ -23,7 +23,7 @@ def test_catalogo_cobre_os_29_do_plano():
     assert set(PLANO) <= set(catalogo.CATALOGO), (
         f"faltam no catalogo: {sorted(set(PLANO) - set(catalogo.CATALOGO))}")
     assert {"E-00", "E-11", "E-12", "E-13"} <= set(catalogo.CATALOGO)
-    assert {"FE-01", "FE-02", "FE-03"} <= set(catalogo.CATALOGO)
+    assert {"P-13", "P-14", "S-09"} <= set(catalogo.CATALOGO)
     assert len(catalogo.CATALOGO) == len(PLANO) + 7
 
 

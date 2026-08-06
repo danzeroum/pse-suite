@@ -731,7 +731,7 @@ checks:
   # declara `pack` explicitamente. Ver ressalva de nomenclatura no relatorio.
   # Os tres nascem sobre AST real (tree-sitter); o grep do material de
   # fundacao serve para achar ONDE olhar, jamais como check (D-01).
-  FE-01:
+  P-13:
     pack: privacy
     domain: [frontend]
     titulo: Controle de consentimento pre-marcado
@@ -752,7 +752,7 @@ checks:
             </label>
           );
       espera_severidade: CRITICO
-  FE-02:
+  P-14:
     pack: privacy
     domain: [frontend]
     titulo: PII no armazenamento do cliente ou na URL
@@ -771,7 +771,7 @@ checks:
             return fetch("/r?email=" + user.email);
           }
       espera_severidade: CRITICO
-  FE-03:
+  S-09:
     pack: security
     domain: [frontend]
     titulo: Token sensivel persistido no cliente

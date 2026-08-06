@@ -1,4 +1,4 @@
-"""FE-02 — dado pessoal no armazenamento do navegador ou na URL.
+"""P-14 — dado pessoal no armazenamento do navegador ou na URL.
 
 O analogo frontend do P-01, e a mesma logica de argumentos: nao se pergunta
 "a palavra cpf aparece?", pergunta-se "o que esta chamada RECEBE?".
@@ -21,7 +21,7 @@ from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade
 from pse.sanitize import RX_CPF, RX_EMAIL, RX_TELEFONE
-from . import _ast
+from pse.engine import jsast as _ast
 
 BASE_LEGAL = "LGPD Art. 46 + Art. 6o VII (seguranca e prevencao)"
 RX_QUERY = re.compile(r"[?&][A-Za-z0-9_\-]+=")
@@ -68,7 +68,7 @@ def _storage(ctx, raiz, fonte, p, termos, stores, findings):
         if not achado:
             continue
         findings.append(Finding(
-            check_id="FE-02", pack="privacy", severidade=Severidade.CRITICO,
+            check_id="P-14", pack="privacy", severidade=Severidade.CRITICO,
             titulo="Dado pessoal gravado no armazenamento do navegador",
             descricao=f"`{nome}` recebe dado pessoal ({achado}) sem "
                       f"mascaramento. O storage do cliente sobrevive a sessao, e "
@@ -101,7 +101,7 @@ def _url(ctx, raiz, fonte, p, termos, findings):
             continue
         vistos.add(linha)
         findings.append(Finding(
-            check_id="FE-02", pack="privacy", severidade=Severidade.CRITICO,
+            check_id="P-14", pack="privacy", severidade=Severidade.CRITICO,
             titulo="Dado pessoal na URL",
             descricao=f"A URL e montada com dado pessoal ({achado}). Query "
                       f"param vaza em historico do navegador, log de servidor, "
@@ -115,7 +115,7 @@ def _url(ctx, raiz, fonte, p, termos, findings):
             snippet=bruto[:200]))
 
 
-@check("FE-02", "privacy", "PII no cliente ou na URL", base_legal=BASE_LEGAL)
+@check("P-14", "privacy", "PII no cliente ou na URL", base_legal=BASE_LEGAL)
 def pii_no_cliente(ctx):
     termos = _termos_pii(ctx)
     stores = _armazenamento(ctx)

@@ -373,7 +373,7 @@ para que um estrato com zero checks apareça como zero, e não seja omitido.
 Marcadores pytest acompanham: `-m pse_frontend`, `-m pse_api`, `-m pse_backend`,
 `-m pse_data`, `-m pse_ai`, ao lado dos de pilar.
 
-## 15. Domínio frontend (FE-01 · FE-02 · FE-03)
+## 15. Domínio frontend (P-13 · P-14 · S-09)
 
 Estáticos, sobre **AST real** de `.js/.jsx/.ts/.tsx` (tree-sitter, gramáticas
 javascript e tsx). O material de fundação do frontend propõe `grep -rn`; grep
@@ -382,15 +382,15 @@ menção passando por fato.
 
 | Check | Pilar | Dispara | Não dispara |
 |---|---|---|---|
-| **FE-01** consentimento pré-marcado (CRÍTICO) | privacy | `<input type="checkbox" name="consent_x" checked />` sem handler | `checked={estado} onChange={...}` — escolha registrada; toggle que nasce desligado; `// consent default on` em comentário |
-| **FE-02** PII no cliente ou na URL (CRÍTICO) | privacy | `localStorage.setItem("cpf", user.cpf)`; `"?email=" + user.email` | valor mascarado (`mask(user.cpf)`); identificador opaco |
-| **FE-03** token no cliente (ALTO) | security | `localStorage.setItem("token", jwt)`; `document.cookie = "token=…"` | sessão em cookie HttpOnly+Secure emitido pelo servidor, com `credentials: "include"` |
+| **P-13** consentimento pré-marcado (CRÍTICO) | privacy | `<input type="checkbox" name="consent_x" checked />` sem handler | `checked={estado} onChange={...}` — escolha registrada; toggle que nasce desligado; `// consent default on` em comentário |
+| **P-14** PII no cliente ou na URL (CRÍTICO) | privacy | `localStorage.setItem("cpf", user.cpf)`; `"?email=" + user.email` | valor mascarado (`mask(user.cpf)`); identificador opaco |
+| **S-09** token no cliente (ALTO) | security | `localStorage.setItem("token", jwt)`; `document.cookie = "token=…"` | sessão em cookie HttpOnly+Secure emitido pelo servidor, com `credentials: "include"` |
 
 Arquivo que **não parseia** vira `CheckIndeterminado` com a linha do erro
 (exit 20), jamais verde: sem AST não há decisão pelo fato. O mesmo vale se a
 gramática não estiver instalada no ambiente — a suite declara a limitação e
 bloqueia, em vez de fingir cobertura.
 
-FE-01 e FE-02 são CRÍTICOs, então **falso-positivo aqui custa o pack inteiro**:
+P-13 e P-14 são CRÍTICOs, então **falso-positivo aqui custa o pack inteiro**:
 o time de frontend aprende a ignorá-lo no primeiro dia. Por isso os testes que
 provam que o caso correto **não** dispara vêm antes dos que provam a violação.

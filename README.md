@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | FE-01 FE-02 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | — |
-| **security** | FE-03 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | — |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | — |
+| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | — |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 <sub>* E-13 é do pilar ethics; a coluna mostra o estrato que ele examina.</sub>

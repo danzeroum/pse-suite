@@ -53,10 +53,10 @@ def test_a_matriz_cruza_de_verdade():
 
 
 @pytest.mark.parametrize("flags,esperado", [
-    # FE-01/FE-02 sao do pilar privacy com prefixo de DOMINIO: a partir da
+    # P-13/P-14 sao do pilar privacy com prefixo de DOMINIO: a partir da
     # matriz, o prefixo do ID nao responde mais pelo pilar — o catalogo responde.
     (["--pilar", "privacy"],
-     lambda ids: {"P-01", "FE-01", "FE-02"} <= set(ids) and "S-06" not in ids),
+     lambda ids: {"P-01", "P-13", "P-14"} <= set(ids) and "S-06" not in ids),
     (["--domain", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
     (["--packs", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
     (["--pilar", "privacy", "--domain", "data"],
@@ -141,3 +141,66 @@ def test_frontend_existe_como_estrato_declarado():
     que permite ao laudo dizer `frontend: 0` em vez de omitir o estrato e
     deixar o time achar que foi auditado."""
     assert "frontend" in catalogo.DOMINIOS
+
+
+# ==================================================== o prefixo responde pelo pilar
+def test_prefixo_do_id_codifica_o_pilar():
+    """Regra estrutural, não estética: das duas dimensões, só o pilar é
+    univalorado. Um check pertence a UM pilar e pode pertencer a VÁRIOS
+    domínios (S-07 é api+backend). O prefixo é rígido e único, então tem de
+    carregar o que também é único; o multivalorado vive em `domain`, que é
+    lista. Codificar domínio no prefixo — como `FE-*` fazia — é errar qual
+    das duas vai no lugar rígido, e o erro só aparece no primeiro check que
+    pertencer a dois estratos.
+    """
+    assert catalogo.incoerencias_de_prefixo() == [], (
+        "ID com prefixo que não corresponde ao pilar declarado: "
+        f"{catalogo.incoerencias_de_prefixo()}")
+
+
+def test_nenhum_prefixo_fora_de_pse():
+    fora = sorted({catalogo.prefixo(cid) for cid in catalogo.CATALOGO}
+                  - set(catalogo.PREFIXO_DO_PILAR.values()))
+    assert not fora, (
+        f"prefixo(s) fora do vocabulário de pilares: {fora}. Domínio nunca "
+        f"vai no prefixo — vai em `domain`.")
+
+
+@pytest.mark.mordida
+@pytest.mark.parametrize("id_hipotetico,pack", [
+    ("FE-99", "privacy"),   # domínio no prefixo, a tentação que já aconteceu
+    ("AP-01", "security"),  # a próxima tentação: pacote de API
+    ("MB-01", "privacy"),   # e a seguinte: mobile
+    ("P-99", "security"),   # prefixo certo, pilar errado
+])
+def test_prefixo_de_dominio_e_barrado(monkeypatch, id_hipotetico, pack):
+    """A trava tem de IMPEDIR a regressão, não só corrigi-la uma vez. Sem
+    isto, `AP-*` volta no pacote de API e ninguém percebe até o consumidor
+    referenciar o ID errado num relatório."""
+    monkeypatch.setitem(catalogo.CATALOGO, id_hipotetico,
+                        {"pack": pack, "domain": ["api"], "titulo": "t",
+                         "status": "implementado"})
+    incoerentes = {c for c, _, _ in catalogo.incoerencias_de_prefixo()}
+    assert id_hipotetico in incoerentes
+
+
+@pytest.mark.mordida
+def test_registro_recusa_prefixo_de_dominio(monkeypatch):
+    """A regra mora num lugar só (o validador do catálogo), e o registro a
+    consulta — nenhum check a repete."""
+    from pse.engine.registry import CheckNaoCatalogado, check
+    monkeypatch.setitem(catalogo.CATALOGO, "FE-99",
+                        {"pack": "privacy", "domain": ["frontend"],
+                         "titulo": "t", "status": "implementado"})
+    with pytest.raises(CheckNaoCatalogado) as e:
+        check("FE-99", "privacy", "t")(lambda ctx: [])
+    assert "prefixo" in str(e.value).lower()
+
+
+def test_dominio_e_multivalorado_e_o_pilar_nao():
+    """A assimetria que justifica a regra, verificada no catálogo real."""
+    multi = [cid for cid in catalogo.CATALOGO if len(catalogo.dominios(cid)) > 1]
+    assert multi, "nenhum check multi-domínio: a premissa da regra sumiu"
+    for cid in catalogo.CATALOGO:
+        assert isinstance(catalogo.meta(cid)["pack"], str), (
+            f"{cid}: pilar virou lista — a regra do prefixo deixa de valer")

@@ -1,4 +1,4 @@
-"""FE-01, FE-02, FE-03 — o domínio frontend, ancorado em AST de verdade.
+"""P-13, P-14, S-09 — o domínio frontend, ancorado em AST de verdade.
 
 O material de fundação do frontend propõe `grep -rn "consent\\|token\\|..."`.
 Grep é ótimo para achar ONDE olhar e péssimo como check: é literalmente o
@@ -8,7 +8,7 @@ casaria; um `<input checked />` sem handler, escrito em três linhas, não.
 Por isso os três nascem sobre uma AST real (tree-sitter, gramáticas
 javascript e tsx). E por isso o risco desta virada não é errar um veredito:
 é (a) reintroduzir o grep-de-menção num domínio inteiro e (b) falso-positivo
-CRÍTICO em FE-01/FE-02 ensinar o time de frontend a ignorar o pack inteiro no
+CRÍTICO em P-13/P-14 ensinar o time de frontend a ignorar o pack inteiro no
 primeiro dia. Os testes que provam que o caso CORRETO não dispara vêm
 primeiro, e são os que mais importam.
 """
@@ -47,57 +47,57 @@ def test_fixture_conforme_nao_dispara_nenhum_dos_tres():
     """O teste que mais importa: falso-positivo em CRÍTICO num pack novo
     ensina o time a ignorá-lo antes de ele provar qualquer valor."""
     res = rodar(BOM)
-    for cid in ("FE-01", "FE-02", "FE-03"):
+    for cid in ("P-13", "P-14", "S-09"):
         assert not acha(res, cid), [
             (f.arquivo, f.linha, f.snippet) for f in acha(res, cid)]
         assert cid in res["checks_executados"]
 
 
-# ==================================================== FE-01
-def test_fe01_checkbox_pre_marcado_sem_handler(tmp_path):
+# ==================================================== P-13 (consentimento)
+def test_p13_checkbox_pre_marcado_sem_handler(tmp_path):
     res = escrever(tmp_path, "C.jsx",
                    'export const C = () => <label>Aceito o marketing'
                    '<input type="checkbox" name="consent_ads" checked /></label>;')
-    fe = acha(res, "FE-01")
+    fe = acha(res, "P-13")
     assert fe and fe[0].severidade.value == "CRITICO"
     assert fe[0].arquivo == "C.jsx" and fe[0].linha
     assert "Art. 7" in fe[0].base_legal or "Art. 8" in fe[0].base_legal
 
 
-def test_fe01_escolha_registrada_nao_dispara(tmp_path):
+def test_p13_escolha_registrada_nao_dispara(tmp_path):
     """Nasce ligado porque REFLETE escolha do titular, com handler. Este é o
     padrão correto — puni-lo seria punir quem acertou."""
     res = escrever(tmp_path, "C.jsx",
                    'export const C = ({c, set}) => <label>Aceito o marketing'
                    '<input type="checkbox" name="consent_ads" '
                    'checked={c.marketing} onChange={set} /></label>;')
-    assert not acha(res, "FE-01")
+    assert not acha(res, "P-13")
 
 
-def test_fe01_comentario_nao_liga_nem_desliga(tmp_path):
+def test_p13_comentario_nao_liga_nem_desliga(tmp_path):
     """`// consent default on` é exatamente o que um grep casaria."""
     res = escrever(tmp_path, "C.jsx",
                    "// consent default on\n"
                    "// <input type='checkbox' checked /> consentimento\n"
                    "export const C = () => <div>oi</div>;")
-    assert not acha(res, "FE-01"), "comentário virou achado — grep entrou pela porta"
+    assert not acha(res, "P-13"), "comentário virou achado — grep entrou pela porta"
 
 
-def test_fe01_checkbox_nao_relacionado_a_consentimento_nao_dispara(tmp_path):
+def test_p13_checkbox_nao_relacionado_a_consentimento_nao_dispara(tmp_path):
     res = escrever(tmp_path, "C.jsx",
                    'export const C = () => <input type="checkbox" '
                    'name="lembrar_filtro" checked />;')
-    assert not acha(res, "FE-01")
+    assert not acha(res, "P-13")
 
 
-def test_fe01_desligado_por_default_e_conforme(tmp_path):
+def test_p13_desligado_por_default_e_conforme(tmp_path):
     res = escrever(tmp_path, "C.jsx",
                    'export const C = () => <label>Aceito cookies'
                    '<input type="checkbox" name="consentimento" /></label>;')
-    assert not acha(res, "FE-01")
+    assert not acha(res, "P-13")
 
 
-# ==================================================== FE-02
+# ==================================================== P-14
 @pytest.mark.parametrize("codigo,esperado", [
     ('localStorage.setItem("cpf", user.cpf);', True),
     ('sessionStorage.setItem("email", u.email);', True),
@@ -107,27 +107,27 @@ def test_fe01_desligado_por_default_e_conforme(tmp_path):
     ('localStorage.setItem("tema", "escuro");', False),
     ('const url = base + "?ref=" + user.idPseudonimo;', False),
 ])
-def test_fe02_limites(tmp_path, codigo, esperado):
+def test_p14_limites(tmp_path, codigo, esperado):
     res = escrever(tmp_path, "a.js", f"export function f(user, u, base) {{ {codigo} }}")
-    assert bool(acha(res, "FE-02")) is esperado, codigo
+    assert bool(acha(res, "P-14")) is esperado, codigo
 
 
-def test_fe02_e_critico_com_endereco(tmp_path):
+def test_p14_e_critico_com_endereco(tmp_path):
     res = escrever(tmp_path, "a.js",
                    'export function f(user) {\n  localStorage.setItem("cpf", user.cpf);\n}')
-    fe = acha(res, "FE-02")
+    fe = acha(res, "P-14")
     assert fe and fe[0].severidade.value == "CRITICO"
     assert fe[0].arquivo == "a.js" and fe[0].linha == 2
 
 
-def test_fe02_string_em_comentario_nao_conta(tmp_path):
+def test_p14_string_em_comentario_nao_conta(tmp_path):
     res = escrever(tmp_path, "a.js",
                    '// localStorage.setItem("cpf", user.cpf) -- nunca faca isso\n'
                    'export const f = () => null;')
-    assert not acha(res, "FE-02")
+    assert not acha(res, "P-14")
 
 
-# ==================================================== FE-03
+# ==================================================== S-09
 @pytest.mark.parametrize("codigo,esperado", [
     ('localStorage.setItem("token", jwt);', True),
     ('sessionStorage.setItem("refresh_token", r);', True),
@@ -135,14 +135,14 @@ def test_fe02_string_em_comentario_nao_conta(tmp_path):
     ('localStorage.setItem("tema", "escuro");', False),
     ('fetch(url, { credentials: "include" });', False),
 ])
-def test_fe03_limites(tmp_path, codigo, esperado):
+def test_s09_limites(tmp_path, codigo, esperado):
     res = escrever(tmp_path, "a.js", f"export function f(jwt, r, url) {{ {codigo} }}")
-    assert bool(acha(res, "FE-03")) is esperado, codigo
+    assert bool(acha(res, "S-09")) is esperado, codigo
 
 
-def test_fe03_e_alto(tmp_path):
+def test_s09_e_alto(tmp_path):
     res = escrever(tmp_path, "a.js", 'export const f = jwt => localStorage.setItem("token", jwt);')
-    fe = acha(res, "FE-03")
+    fe = acha(res, "S-09")
     assert fe and fe[0].severidade.value == "ALTO"
     assert "Art. 46" in fe[0].base_legal
 
@@ -155,7 +155,7 @@ def test_arquivo_que_nao_parseia_e_indeterminado(tmp_path):
         "export const C = () => <div><span></div>;\n", encoding="utf-8")
     res = rodar(tmp_path)
     motivos = {c["id"]: c["motivo"] for c in res["checks_indeterminados"]}
-    assert {"FE-01", "FE-02", "FE-03"} <= set(motivos)
+    assert {"P-13", "P-14", "S-09"} <= set(motivos)
     assert all("quebrado.tsx" in m for m in motivos.values())
     assert not res["findings"]
 
@@ -173,17 +173,17 @@ def test_parser_cobre_as_quatro_extensoes(tmp_path):
             'export function f(u) { localStorage.setItem("cpf", u.cpf); }\n',
             encoding="utf-8")
     res = rodar(tmp_path)
-    arquivos = {f.arquivo for f in acha(res, "FE-02")}
+    arquivos = {f.arquivo for f in acha(res, "P-14")}
     assert arquivos == {"a.js", "a.jsx", "a.ts", "a.tsx"}, arquivos
 
 
 # ==================================================== integração
 def test_fixture_ruim_dispara_os_tres():
     res = rodar(RUIM)
-    for cid in ("FE-01", "FE-02", "FE-03"):
+    for cid in ("P-13", "P-14", "S-09"):
         assert acha(res, cid), cid
     assert all(f.arquivo.startswith("src/") and f.linha
-               for cid in ("FE-01", "FE-02", "FE-03") for f in acha(res, cid))
+               for cid in ("P-13", "P-14", "S-09") for f in acha(res, cid))
 
 
 @pytest.mark.mordida
@@ -202,8 +202,8 @@ def test_catalogo_36_completo():
     assert len(catalogo.CATALOGO) == 36
     assert catalogo.previstos() == []
     assert catalogo.por_dominio()["frontend"] == 3
-    for cid, pilar in (("FE-01", "privacy"), ("FE-02", "privacy"),
-                       ("FE-03", "security")):
+    for cid, pilar in (("P-13", "privacy"), ("P-14", "privacy"),
+                       ("S-09", "security")):
         m = catalogo.meta(cid)
         assert m["pack"] == pilar and m["domain"] == ["frontend"]
         assert m["canonical_mutation"] and m["base_legal"]
