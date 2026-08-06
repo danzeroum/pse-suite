@@ -40,6 +40,12 @@ RX_BEARER = re.compile(r"\b(Bearer|Basic)\s+([A-Za-z0-9._\-+/=]{8,})", re.I)
 RX_CPF = re.compile(r"\b(\d{2})\d\.?\d{3}\.?\d{3}-?\d{2}\b")
 RX_EMAIL = re.compile(r"\b([A-Za-z0-9._%+-]{1,})@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b")
 RX_TELEFONE = re.compile(r"(?<![\w.])(\(?\d{2}\)?[\s-]?)(9?\d{4})[\s-]?(\d{4})(?![\w.])")
+# Identificador de recurso em URL de trace (Fase 2). Mascarar o UUID e nao a
+# rota preserva a leitura do trace ("GET /api/clientes/<id> -> 200") sem
+# publicar QUAL recurso do titular B foi sondado.
+RX_UUID = re.compile(
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I)
+RX_HEX_LONGO = re.compile(r"\b[0-9a-f]{24,}\b", re.I)
 
 
 def _borda(valor: str) -> str:
@@ -62,7 +68,24 @@ def sanitizar(texto):
     t = RX_CPF.sub(lambda m: f"{m.group(1)}*.***.***-**", t)
     t = RX_EMAIL.sub(lambda m: f"{_borda(m.group(1))}@***", t)
     t = RX_TELEFONE.sub(lambda m: f"{m.group(1)}****-****", t)
+    t = RX_UUID.sub(lambda m: _borda(m.group(0)), t)
+    t = RX_HEX_LONGO.sub(lambda m: _borda(m.group(0)), t)
     return t
+
+
+def sanitizar_profundo(valor):
+    """Sanitiza recursivamente dict/list/str — a forma de um trace.
+
+    Chaves nao sao tocadas (sao nomes de campo, nao conteudo do alvo);
+    valores sao, em qualquer profundidade.
+    """
+    if isinstance(valor, dict):
+        return {k: sanitizar_profundo(v) for k, v in valor.items()}
+    if isinstance(valor, list):
+        return [sanitizar_profundo(v) for v in valor]
+    if isinstance(valor, str):
+        return sanitizar(valor)
+    return valor
 
 
 def sanitizar_finding(d: dict) -> dict:
@@ -74,4 +97,6 @@ def sanitizar_finding(d: dict) -> dict:
     saida = dict(d)
     if saida.get("snippet"):
         saida["snippet"] = sanitizar(saida["snippet"])
+    if saida.get("trace"):
+        saida["trace"] = sanitizar_profundo(saida["trace"])
     return saida

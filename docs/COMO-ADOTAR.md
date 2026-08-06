@@ -120,19 +120,28 @@ consumidor prove que a família inteira está coberta pela denylist.
 tentativa que espera rejeição. S-01 envia o token de A contra recurso de B: é
 sonda deliberada, e ser só-leitura não a torna passiva.
 
-| Modo | Checks | Dispara |
+| Modo (`--modo`) | Checks | Dispara |
 |---|---|---|
-| `pse_inventory` (B) | todos os estáticos | automático; agente pode |
-| `pse_passive` (A) | S-03, S-07, E-01, E-02 | automático, com atestação de escopo `pse_passive` |
-| `pse_active` (A) | **S-01**, P-05, P-11, S-02, E-03 | só `workflow_dispatch` com revisores + escopo `pse_active` |
+| `pse_inventory` (B, padrão) | os 13 estáticos | automático; agente pode |
+| `pse_passive` (A) | S-03, E-01, E-02 | automático, com atestação de escopo `pse_passive` |
+| `pse_active` (A) | **S-01**, P-11, S-02, P-05, E-03 — mais todos os passivos | só `workflow_dispatch` com revisores + escopo `pse_active` |
+
+Um check `passive` também roda em `pse_active`; um `active` **nunca** roda em
+`pse_passive`. S-07 segue `previsto-fase-2`: aparece em `checks_previstos` com
+motivo, não em silêncio.
+
+Dois checks ativos **escrevem no alvo**: P-05 faz `POST` na rota de escrita e
+E-03 abre uma contestação real. Por isso `synthetic_identities: true` é
+obrigatório no escopo ativo, e por isso produção é recusada.
 
 `pse_active` contra `environment: production` é **recusado** pela suite na v1
 (exit 30). Revisável em versão futura com dupla atestação.
 
 ### Ausência de autorização nunca é verde
 
-- Trabalho A **não habilitado** → checks aparecem em `checks_previstos`
-  (previsto e ausente). Não bloqueia: omissão declarada.
+- Trabalho A **não habilitado** (sem `target`) → checks A aparecem em
+  `checks_nao_habilitados` com motivo. Não bloqueia: o exit segue o Trabalho B.
+- Modo que não dispara o check (ativo pedido em `pse_passive`) → idem.
 - Trabalho A **habilitado** com atestação ausente, vencida, sem o modo no
   `scope`, ou com `target_fingerprint` divergente da `base_url` → todos os
   checks A em `checks_indeterminados` com o motivo específico, **exit 20**.
@@ -182,10 +191,30 @@ pse-inventory:
     - name: laudo PSE (fail-closed)
       run: pse --path . --config tests/qa/pse-config.yaml
                 --output harness/reports/laudo-pse.json
-    - name: mordida — prova que a trava aborta
+    - name: mordida — prova que a trava aborta (inclui as 21 mutações canônicas)
       # A fixture viaja DENTRO do wheel: este passo não depende de clonar a
       # suite. Se a trava parar de morder, o consumidor descobre aqui.
       run: pse --self-test
+
+pse-passive:                     # Trabalho A somente-leitura, automático
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - run: pip install -r requirements-qa.txt
+    - run: pse --path . --config tests/qa/pse-config.yaml --modo pse_passive
+      env: {PSE_TOKEN_A: "${{ secrets.PSE_TOKEN_A }}"}
+
+pse-active:                      # sonda de autorização — NUNCA automático
+  if: github.event_name == 'workflow_dispatch'
+  environment: pse-active        # exige revisores aprovarem o deploy
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - run: pip install -r requirements-qa.txt
+    - run: pse --path . --config tests/qa/pse-config.yaml --modo pse_active
+      env:
+        PSE_TOKEN_A: "${{ secrets.PSE_TOKEN_A }}"
+        PSE_TOKEN_B: "${{ secrets.PSE_TOKEN_B }}"
 ```
 
 ## 8. Rastreabilidade no grafo do projeto

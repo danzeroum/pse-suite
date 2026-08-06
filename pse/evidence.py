@@ -82,6 +82,9 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
             "repo_commit": _commit(repo),
             "config_fingerprint": fingerprint.fingerprint_config(config_path),
             "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "modo": resultados.get("modo", "pse_inventory"),
+            # Quem autorizou, o que, ate quando — nunca os segredos.
+            "autorizacao": resultados.get("autorizacao"),
         },
         "veredito": vered.value,
         "exit_code": codigo,
@@ -103,6 +106,9 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         # Nunca silencio — e o que fara um check runtime sem alvo declarado
         # aparecer no laudo com motivo, na Fase 2.
         "checks_previstos": resultados.get("checks_previstos", []),
+        # Trabalho A previsto e NAO habilitado nesta execucao: omissao
+        # declarada, com motivo, que nao bloqueia.
+        "checks_nao_habilitados": resultados.get("checks_nao_habilitados", []),
         "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
         # Estado, nao defeito: o consumidor precisa saber o quanto ja esta
         # certo, nao so o que esta errado.

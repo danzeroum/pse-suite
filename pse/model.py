@@ -49,6 +49,17 @@ class CheckIndeterminado(Exception):
     """
 
 
+class NaoHabilitado(Exception):
+    """Check existe e nao foi habilitado nesta execucao.
+
+    Distinto dos outros tres: nao ha pre-condicao faltando (SkipCheck) nem
+    tentativa frustrada (CheckIndeterminado) — o consumidor simplesmente nao
+    pediu o Trabalho A, ou pediu num modo que nao inclui este check. Nao
+    bloqueia, e aparece no laudo em checks_nao_habilitados com o motivo:
+    omissao declarada continua sendo declarada.
+    """
+
+
 class VersaoIrresolvivel(Exception):
     """A suite nao consegue dizer que versao e. Ambiente quebrado -> exit 30.
 
@@ -73,6 +84,9 @@ class Finding:
     arquivo: Optional[str] = None
     linha: Optional[int] = None
     snippet: Optional[str] = None
+    # Trabalho A: requisicao/resposta que provam o achado. Sanitizado aqui,
+    # na origem — nunca so na serializacao.
+    trace: Optional[dict] = None
 
     def __post_init__(self):
         """O literal nao sobrevive ao check que o encontrou (D-02).
@@ -84,9 +98,11 @@ class Finding:
         detectou exatamente isso. O mascaramento e idempotente, entao aplicar
         aqui e no laudo nao degrada o texto duas vezes.
         """
+        from pse.sanitize import sanitizar, sanitizar_profundo
         if self.snippet:
-            from pse.sanitize import sanitizar
             self.snippet = sanitizar(self.snippet)
+        if self.trace:
+            self.trace = sanitizar_profundo(self.trace)
 
     def to_dict(self) -> dict:
         d = asdict(self)

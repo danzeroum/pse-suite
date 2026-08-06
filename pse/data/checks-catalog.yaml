@@ -107,7 +107,18 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: POST com campo fora da allowlist e aceito
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          escrita: /api/clientes
+        respostas:
+          - status: 201
+            corpo: '{"id":"novo"}'
+      espera_severidade: ALTO
   P-06:
     pack: privacy
     titulo: Pseudonimizacao com chave segregada
@@ -177,7 +188,22 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: recurso alheio responde 403 e inexistente responde 404
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        recursos_b:
+          - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
+        endpoints:
+          inexistente: /api/clientes/00000000-0000-4000-8000-000000000000
+        respostas:
+          - status: 404
+            corpo: '{}'
+          - status: 403
+            corpo: '{}'
+      espera_severidade: CRITICO
 
   # -------------------------------------------------- Pacote S — Seguranca
   S-01:
@@ -187,7 +213,18 @@ checks:
     tipo: estatico+runtime
     modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: token de A obtem 200 num recurso declarado do titular B
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        recursos_b:
+          - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
+        respostas:
+          - status: 200
+            corpo: '{"id":"9f1c2e3a-0000-4000-8000-000000000000","cpf":"529.982.247-25"}'
+      espera_severidade: CRITICO
   S-02:
     pack: security
     titulo: Rate limit + paginacao por cursor (anti-extracao em massa)
@@ -195,7 +232,18 @@ checks:
     tipo: runtime
     modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: listagem responde 200 indefinidamente, sem bloqueio
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          listagem: /api/clientes
+        respostas:
+          - status: 200
+            corpo: '{"itens":[]}'
+      espera_severidade: ALTO
   S-03:
     pack: security
     titulo: Erros e webhooks sem PII no payload
@@ -203,7 +251,18 @@ checks:
     tipo: estatico+runtime
     modo: passive
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: payload de erro devolve CPF e e-mail do titular
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          erro: /api/nao-existe
+        respostas:
+          - status: 500
+            corpo: '{"erro":"falha ao salvar cpf=529.982.247-25 de maria@empresa.com.br"}'
+      espera_severidade: ALTO
   S-04:
     pack: security
     titulo: Manifesto de terceiros — host externo registrado com DPA
@@ -300,7 +359,18 @@ checks:
     tipo: estatico+runtime
     modo: passive
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: decisao devolvida sem motivo nem fatores
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          decisao: /api/decisoes/ultima
+        respostas:
+          - status: 200
+            corpo: '{"aprovado":false}'
+      espera_severidade: ALTO
   E-02:
     pack: ethics
     titulo: Decision log estruturado (modelo_v, features, score, limiar, revisor)
@@ -308,7 +378,18 @@ checks:
     tipo: estatico+runtime
     modo: passive
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: decisao sem modelo, features, score, limiar e revisor
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          decisao: /api/decisoes/ultima
+        respostas:
+          - status: 200
+            corpo: '{"aprovado":false,"motivo":"score baixo"}'
+      espera_severidade: ALTO
   E-03:
     pack: ethics
     titulo: Contestacao — endpoint de recurso com protocolo e SLA
@@ -316,7 +397,18 @@ checks:
     tipo: runtime
     modo: active
     fase: 2
-    status: previsto-fase-2
+    status: implementado
+    canonical_mutation:
+      descricao: contestacao aceita sem protocolo e sem prazo
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          contestacao: /api/contestacoes
+        respostas:
+          - status: 201
+            corpo: '{"status":"recebido"}'
+      espera_severidade: ALTO
   E-04:
     pack: ethics
     titulo: HITL — decisoes criticas com rota de revisao humana

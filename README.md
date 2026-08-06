@@ -14,13 +14,28 @@ externo e versionado consumido pela harness de `danzeroum/project`.
 
 | Pacote | Marcador pytest | Checks |
 |---|---|---|
-| Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção sem purga · P-03 soft-delete · P-04 catálogo vivo · P-06 chave no código · P-08 sensível+legítimo interesse |
-| Segurança | `pse_security` | S-04 terceiro sem manifesto/DPA · S-06 credencial hardcoded · S-08 transferência internacional sem base |
-| Ética | `pse_ethics` | E-04 decisão crítica sem rota humana · E-05 proxy de discriminação · E-07 Model Card ausente |
+| Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção sem purga · P-03 soft-delete · P-04 catálogo vivo · P-05 minimização · P-06 chave no código · P-08 sensível+legítimo interesse · P-11 oráculo de existência |
+| Segurança | `pse_security` | S-01 BOLA/IDOR · S-02 rate limit · S-03 PII em erro · S-04 terceiro sem manifesto/DPA · S-06 credencial hardcoded · S-08 transferência internacional |
+| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-07 Model Card |
 
-Cobre o **Trabalho B** (inventário estático — sem rede, sem autorização, agente
-pode disparar). O Trabalho A (auditoria runtime do alvo publicado) entra na
-Fase 2, com o contrato de autorização de `docs/COMO-ADOTAR.md`.
+21 dos 30 checks do catálogo. Os 9 restantes saem no laudo em
+`checks_previstos`, com motivo — previsto e ausente nunca é silêncio.
+
+## Os dois trabalhos
+
+| Trabalho | Marcador | Checks |
+|---|---|---|
+| **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/06/08 · E-00/04/05/07 |
+| **A passivo** — leitura com a própria identidade | `--modo pse_passive` | S-03 · E-01 · E-02 |
+| **A ativo** — sonda de autorização, só `workflow_dispatch` | `--modo pse_active` | S-01 · P-05 · P-11 · S-02 · E-03 |
+
+O Trabalho A **não emite um byte** antes de a atestação passar: modo habilitado
+→ atestação válida para este modo e este alvo → tokens no ambiente →
+healthcheck. Atestação ausente, vencida, com escopo errado ou com
+`target_fingerprint` de outro alvo deixa todos os checks A em
+`checks_indeterminados` (exit 20) — nunca verde, nunca uma requisição.
+`pse_active` contra `environment: production` é recusado (exit 30) antes até do
+healthcheck. Contrato completo em `docs/COMO-ADOTAR.md` §5.
 
 ## Uso
 
@@ -57,7 +72,10 @@ Três destinos possíveis para um check, todos visíveis no laudo:
   (sem manifesto de terceiros não há o que conferir em S-08). Não bloqueia, mas
   o motivo é obrigatório;
 - `checks_indeterminados` — **tentei e não decidi**: fato não decidível
-  estaticamente, arquivo ilegível, erro inesperado. Bloqueia.
+  estaticamente, arquivo ilegível, alvo caído, atestação inválida. Bloqueia;
+- `checks_nao_habilitados` — **previsto e não pedido**: o consumidor não pediu
+  Trabalho A, ou pediu num modo que não inclui este check. Não bloqueia;
+- `checks_previstos` — **declarado no catálogo e ainda não implementado**.
 
 ## Laudo
 

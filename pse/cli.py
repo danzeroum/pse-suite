@@ -28,6 +28,7 @@ from pse.evidence import montar_laudo, versao_suite
 from pse.model import (EXIT_ENTRADA_INVALIDA, EXIT_VIOLACAO_CRITICA,
                        EntradaInvalida, VersaoIrresolvivel)
 from pse.schemas_validate import LaudoInvalido, validar_laudo
+from pse.trabalho_a import autorizacao
 from pse.selftest import autoprova
 
 PACKS_VALIDOS = {"privacy", "security", "ethics"}
@@ -119,6 +120,8 @@ def main(argv=None) -> int:
     ap.add_argument("--output", default=None, help="arquivo do laudo JSON")
     ap.add_argument("--self-test", action="store_true", dest="self_test",
                     help="audita a fixture embarcada e exige vermelho (mordida)")
+    ap.add_argument("--modo", default="pse_inventory", choices=list(autorizacao.MODOS),
+                    help="pse_inventory (B, padrao) | pse_passive | pse_active (A)")
     ap.add_argument("--manifesto", action="store_true",
                     help="emite o manifesto de release (versao, catalog_hash, autoprova)")
     args = ap.parse_args(argv)
@@ -147,9 +150,15 @@ def main(argv=None) -> int:
 
     try:
         config = _carregar_config(args.config)
+        # Recusas do Trabalho A acontecem AQUI, antes de o runner existir:
+        # pse_active contra production nao pode chegar nem ao healthcheck.
+        autorizacao.validar_config(config, args.modo)
         efetivos, desabilitados = _packs_efetivos(packs, config)
-        resultados = executar(alvo, efetivos, config)
+        resultados = executar(alvo, efetivos, config, modo=args.modo)
         resultados["packs_desabilitados"] = desabilitados
+        if args.modo in autorizacao.MODOS_A and autorizacao.habilitado(config):
+            att = (autorizacao.alvo_de(config).get("authorization") or {})
+            resultados["autorizacao"] = autorizacao.resumo_publicavel(att) if att else None
         laudo = montar_laudo(alvo, resultados, efetivos, args.config)
         validar_laudo(laudo)
     except EntradaInvalida as e:

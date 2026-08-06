@@ -16,7 +16,8 @@ import pkgutil
 import time
 
 from pse import catalogo
-from pse.model import CheckIndeterminado, EntradaInvalida, SkipCheck
+from pse.model import (CheckIndeterminado, EntradaInvalida, NaoHabilitado,
+                       SkipCheck)
 from .context import Contexto
 from .registry import CHECKS
 
@@ -40,6 +41,11 @@ def _executar_um(cid, meta, ctx, res):
         # Declaracao do consumidor quebrada e problema do processo, nao do
         # check: sobe para o CLI virar exit 30.
         raise
+    except NaoHabilitado as e:
+        # Nem pre-condicao faltando nem tentativa frustrada: o consumidor nao
+        # pediu este check nesta execucao. Nao bloqueia, mas fica declarado.
+        res["checks_nao_habilitados"].append({"id": cid, "motivo": str(e)})
+        return False
     except CheckIndeterminado as e:
         # Tentei e nao consegui decidir. Bloqueia igual a violacao.
         res["checks_indeterminados"].append({"id": cid, "motivo": str(e)})
@@ -55,12 +61,13 @@ def _executar_um(cid, meta, ctx, res):
     return True
 
 
-def executar(repo_path, packs: set, config: dict | None = None) -> dict:
+def executar(repo_path, packs: set, config: dict | None = None,
+             modo: str = "pse_inventory", transporte=None) -> dict:
     _carregar_checks()
-    ctx = Contexto(repo_path, config)
+    ctx = Contexto(repo_path, config, modo=modo, transporte=transporte)
     inicio = time.time()
-    res = {"findings": [], "checks_executados": [],
-           "checks_pulados": [], "checks_indeterminados": []}
+    res = {"findings": [], "checks_executados": [], "checks_pulados": [],
+           "checks_indeterminados": [], "checks_nao_habilitados": []}
 
     fora_de_escopo = {}
     for pack in sorted(packs):
@@ -91,5 +98,7 @@ def executar(repo_path, packs: set, config: dict | None = None) -> dict:
     # Previsto e ausente: o catalogo torna dizivel o que o registro nao sabe.
     res["checks_previstos"] = catalogo.previstos(packs)
     res["relatorios"] = ctx.relatorios
+    res["modo"] = modo
+    res["traces"] = getattr(ctx._cliente, "traces", []) if ctx._cliente else []
     res["duracao_s"] = round(time.time() - inicio, 2)
     return res
