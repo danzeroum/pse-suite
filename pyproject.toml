@@ -26,5 +26,10 @@ markers = [
   "pse_privacy: checks do pacote P (Privacidade)",
   "pse_security: checks do pacote S (Seguranca)",
   "pse_ethics: checks do pacote E (Etica)",
+  "pse_frontend: dominio frontend (interface e cliente)",
+  "pse_api: dominio api (borda e contrato)",
+  "pse_backend: dominio backend (servico e integracao)",
+  "pse_data: dominio data (catalogo, retencao, agregacao)",
+  "pse_ai: dominio ai (modelo e decisao automatizada)",
   "mordida: testes negativos que provam que o gate aborta",
 ]

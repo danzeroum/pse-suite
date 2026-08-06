@@ -33,6 +33,7 @@ def check(check_id: str, pack: str, titulo: str, base_legal: str | None = None):
             # Fonte unica: o catalogo. O argumento do decorator fica como
             # fallback para nao quebrar checks em desenvolvimento.
             "base_legal": meta.get("base_legal", base_legal),
+            "domain": catalogo.dominios(check_id),
             "guarda_de_pack": bool(meta.get("guarda_de_pack")),
             "fn": fn,
         }

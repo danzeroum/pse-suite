@@ -11,6 +11,17 @@
 #   previsto-fase-2   — Trabalho A (runtime), roadmap Fase 2
 #   previsto-fase-3   — roadmap Fase 3
 #
+# `domain` e a segunda dimensao: o ESTRATO TECNICO que o check examina
+# (frontend | api | backend | data | ai). Pode ser lista — S-07 olha a borda
+# e a trilha, entao vale para api e backend.
+#
+# Pilar e dominio sao ortogonais de proposito. O pilar responde "que valor
+# esta em jogo" (privacidade, seguranca, etica); o dominio responde "onde
+# isso se manifesta no sistema". Um consumidor de time de frontend quer
+# `--domain frontend` sem deixar de ser auditado nos tres pilares; um DPO
+# quer `--pilar privacy` atravessando todos os estratos. A matriz serve aos
+# dois sem duplicar check nenhum.
+#
 # `modo` diz onde o check pode rodar (contrato de autorizacao, COMO-ADOTAR §5):
 #   inventory — Trabalho B, sem rede, agente pode disparar
 #   passive   — Trabalho A somente-leitura, com a propria identidade
@@ -23,6 +34,7 @@ checks:
   # -------------------------------------------------- Pacote P — Privacidade
   P-01:
     pack: privacy
+    domain: [backend]
     titulo: PII em logs/prints sem mascaramento
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -42,6 +54,7 @@ checks:
       espera_severidade: CRITICO
   P-02:
     pack: privacy
+    domain: [data]
     titulo: Retencao declarada sem job de purga
     base_legal: LGPD Art. 15-16
     tipo: estatico
@@ -66,6 +79,7 @@ checks:
       espera_severidade: ALTO
   P-03:
     pack: privacy
+    domain: [data]
     titulo: Soft-delete sem eliminacao fisica / crypto-shredding
     base_legal: LGPD Art. 18 VI
     tipo: estatico
@@ -81,6 +95,7 @@ checks:
       espera_severidade: ALTO
   P-04:
     pack: privacy
+    domain: [data]
     titulo: Catalogo vivo de dados
     base_legal: LGPD Art. 37
     tipo: estatico
@@ -102,6 +117,7 @@ checks:
       espera_severidade: MEDIO
   P-05:
     pack: privacy
+    domain: [api]
     titulo: Minimizacao por jornada — DTO rejeita campo fora da allowlist
     base_legal: LGPD Art. 6o III
     tipo: estatico+runtime
@@ -121,6 +137,7 @@ checks:
       espera_severidade: ALTO
   P-06:
     pack: privacy
+    domain: [backend]
     titulo: Pseudonimizacao com chave segregada
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -135,6 +152,7 @@ checks:
       espera_severidade: CRITICO
   P-07:
     pack: privacy
+    domain: [api, data]
     titulo: Consentimento granular por finalidade, opt-in, com registro
     base_legal: LGPD Art. 7o-8o
     tipo: estatico+runtime
@@ -154,6 +172,7 @@ checks:
       espera_severidade: CRITICO
   P-08:
     pack: privacy
+    domain: [data]
     titulo: Dado sensivel nunca com base legal legitimo interesse
     base_legal: LGPD Art. 11
     tipo: estatico
@@ -178,6 +197,7 @@ checks:
       espera_severidade: CRITICO
   P-09:
     pack: privacy
+    domain: [data, api]
     titulo: k-anonimato em agregacoes de BI
     base_legal: reidentificacao
     tipo: estatico+runtime
@@ -197,6 +217,7 @@ checks:
       espera_severidade: ALTO
   P-10:
     pack: privacy
+    domain: [api]
     titulo: Portabilidade — endpoint de exportacao existe e responde
     base_legal: LGPD Art. 18 V
     tipo: runtime
@@ -216,6 +237,7 @@ checks:
       espera_severidade: ALTO
   P-11:
     pack: privacy
+    domain: [api]
     titulo: Oraculo de existencia — 403 vs 404 distinguivel
     base_legal: profiling
     tipo: estatico+runtime
@@ -241,6 +263,7 @@ checks:
   # -------------------------------------------------- Pacote S — Seguranca
   S-01:
     pack: security
+    domain: [api]
     titulo: BOLA/IDOR — recurso de titular sem assertOwnership
     base_legal: OWASP API1
     tipo: estatico+runtime
@@ -260,6 +283,7 @@ checks:
       espera_severidade: CRITICO
   S-02:
     pack: security
+    domain: [api]
     titulo: Rate limit + paginacao por cursor (anti-extracao em massa)
     base_legal: OWASP API4
     tipo: runtime
@@ -279,6 +303,7 @@ checks:
       espera_severidade: ALTO
   S-03:
     pack: security
+    domain: [api]
     titulo: Erros e webhooks sem PII no payload
     base_legal: LGPD Art. 46
     tipo: estatico+runtime
@@ -298,6 +323,7 @@ checks:
       espera_severidade: ALTO
   S-04:
     pack: security
+    domain: [backend]
     titulo: Manifesto de terceiros — host externo registrado com DPA
     base_legal: LGPD Art. 39
     tipo: estatico
@@ -316,6 +342,7 @@ checks:
       espera_severidade: ALTO
   S-05:
     pack: security
+    domain: [backend, data]
     titulo: Payload minimo de egresso — schema por destino, PII proibida
     base_legal: LGPD Art. 6o III
     tipo: estatico+runtime
@@ -335,6 +362,7 @@ checks:
       espera_severidade: ALTO
   S-06:
     pack: security
+    domain: [backend]
     titulo: Chave por parceiro — nenhuma API key global/hardcoded
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -349,6 +377,7 @@ checks:
       espera_severidade: CRITICO
   S-07:
     pack: security
+    domain: [api, backend]
     titulo: Propagacao de finalidade (X-Purpose) + log de auditoria estruturado
     base_legal: LGPD Art. 37
     tipo: estatico+runtime
@@ -369,6 +398,7 @@ checks:
       espera_severidade: ALTO
   S-08:
     pack: security
+    domain: [data, backend]
     titulo: Transferencia internacional exige base declarada no manifesto
     base_legal: LGPD Art. 33
     tipo: estatico
@@ -391,6 +421,7 @@ checks:
   # -------------------------------------------------- Pacote E — Etica
   E-00:
     pack: ethics
+    domain: [ai]
     titulo: Escopo do pack de etica (guarda) — ha decisao automatizada sobre pessoas?
     base_legal: EbD-AI
     tipo: estatico
@@ -410,6 +441,7 @@ checks:
       espera_severidade: ALTO
   E-01:
     pack: ethics
+    domain: [ai, api]
     titulo: Decisao automatizada sem explicacao (motivo/fatores/reason_code)
     base_legal: LGPD Art. 20
     tipo: estatico+runtime
@@ -429,6 +461,7 @@ checks:
       espera_severidade: ALTO
   E-02:
     pack: ethics
+    domain: [ai, backend]
     titulo: Decision log estruturado (modelo_v, features, score, limiar, revisor)
     base_legal: LGPD Art. 20/37
     tipo: estatico+runtime
@@ -448,6 +481,7 @@ checks:
       espera_severidade: ALTO
   E-03:
     pack: ethics
+    domain: [api]
     titulo: Contestacao — endpoint de recurso com protocolo e SLA
     base_legal: LGPD Art. 18
     tipo: runtime
@@ -467,6 +501,7 @@ checks:
       espera_severidade: ALTO
   E-04:
     pack: ethics
+    domain: [ai, backend]
     titulo: HITL — decisoes criticas com rota de revisao humana
     base_legal: LGPD Art. 20 §3
     tipo: estatico
@@ -486,6 +521,7 @@ checks:
       espera_severidade: CRITICO
   E-05:
     pack: ethics
+    domain: [ai]
     titulo: Proxy de discriminacao — feature proibida no pipeline
     base_legal: LGPD Art. 6o IX
     tipo: estatico
@@ -503,6 +539,7 @@ checks:
       espera_severidade: ALTO
   E-06:
     pack: ethics
+    domain: [ai, data]
     titulo: Drift de disparidade — DPD por grupo vs baseline
     base_legal: nao-discriminacao
     tipo: ci
@@ -521,6 +558,7 @@ checks:
       espera_severidade: ALTO
   E-07:
     pack: ethics
+    domain: [ai]
     titulo: Model Card + Datasheet presentes, versionados e validos
     base_legal: EbD-AI / LGPD Art. 20
     tipo: estatico
@@ -539,6 +577,7 @@ checks:
       espera_severidade: ALTO
   E-08:
     pack: ethics
+    domain: [data]
     titulo: Provenance/lineage — origem, transformacao e destino rastreaveis
     base_legal: rastreabilidade (LGPD Art. 37)
     tipo: estatico
@@ -567,6 +606,7 @@ checks:
       espera_severidade: ALTO
   E-09:
     pack: ethics
+    domain: [ai, api]
     titulo: Kill switch / modo degradado digno, documentado e testavel
     base_legal: controle humano
     tipo: runtime
@@ -586,6 +626,7 @@ checks:
       espera_severidade: ALTO
   E-10:
     pack: ethics
+    domain: [ai]
     titulo: Incerteza quantificada em decisoes pontuais
     base_legal: robustez
     tipo: estatico
@@ -609,6 +650,7 @@ checks:
   # E-11 entra no conjunto CRITICO (fail-closed), ratificado no pedido.
   E-11:
     pack: ethics
+    domain: [ai, backend]
     titulo: PII em prompt de LLM sem redacao
     base_legal: LGPD Art. 46 + Art. 42 (responsabilidade solidaria)
     tipo: estatico
@@ -629,6 +671,7 @@ checks:
       espera_severidade: CRITICO
   E-12:
     pack: ethics
+    domain: [ai, data]
     titulo: Embedding/hash exportado como se fosse anonimo
     base_legal: LGPD Art. 12 + Art. 42 (responsabilidade solidaria)
     tipo: estatico
@@ -658,6 +701,7 @@ checks:
       espera_severidade: ALTO
   E-13:
     pack: ethics
+    domain: [backend]
     titulo: Dependencia com host nao declarado no manifesto
     base_legal: LGPD Art. 39 + Art. 42 (responsabilidade solidaria)
     tipo: estatico

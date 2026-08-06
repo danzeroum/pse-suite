@@ -89,6 +89,7 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         "veredito": vered.value,
         "exit_code": codigo,
         "packs": sorted(packs),
+        "dominios": resultados.get("dominios", list(catalogo.DOMINIOS)),
         "packs_desabilitados": resultados.get("packs_desabilitados", []),
         "resumo": {
             "total_findings": len(resultados["findings"]),
@@ -98,6 +99,10 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
             "catalogo_total": len(catalogo.CATALOGO),
             "implementados_nos_packs": len(catalogo.implementados(packs)),
             "executados": len(resultados["checks_executados"]),
+            # A matriz vista pela segunda dimensao: quantos checks cada
+            # estrato tecnico tem. Um time de frontend que ve `frontend: 0`
+            # sabe na hora que aquele laudo nao fala com ele.
+            "por_dominio": catalogo.por_dominio(packs),
         },
         "checks_executados": resultados["checks_executados"],
         "checks_pulados": resultados["checks_pulados"],
@@ -115,6 +120,10 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         "relatorios": resultados.get("relatorios", {}),
         # Choke point da sanitizacao: nenhum caminho serializa um finding
         # sem passar por aqui.
-        "findings": [sanitizar_finding(f.to_dict()) for f in resultados["findings"]],
+        # O dominio e enriquecido a partir do catalogo, nao pedido ao check:
+        # a virada para multi-dominio nao pode obrigar 33 checks a mudar.
+        "findings": [{**sanitizar_finding(f.to_dict()),
+                      "domain": catalogo.dominios(f.check_id)}
+                     for f in resultados["findings"]],
         "duracao_s": resultados["duracao_s"],
     }

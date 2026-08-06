@@ -62,7 +62,7 @@ def _executar_um(cid, meta, ctx, res):
 
 
 def executar(repo_path, packs: set, config: dict | None = None,
-             modo: str = "pse_inventory", transporte=None) -> dict:
+             modo: str = "pse_inventory", transporte=None, doms=None) -> dict:
     _carregar_checks()
     ctx = Contexto(repo_path, config, modo=modo, transporte=transporte)
     inicio = time.time()
@@ -71,6 +71,13 @@ def executar(repo_path, packs: set, config: dict | None = None,
 
     fora_de_escopo = {}
     for pack in sorted(packs):
+        # A guarda decide o ESCOPO do pack; rodar uma guarda de um pack que
+        # nao tem nenhum check no dominio pedido e ruido puro — o consumidor
+        # que pede `--domain frontend` nao quer saber se o alvo tem IA.
+        alvos = [c for c in catalogo.implementados({pack}, doms)
+                 if not catalogo.meta(c).get("guarda_de_pack")]
+        if not alvos:
+            continue
         for gid in catalogo.guardas_de(pack):
             meta = CHECKS.get(gid)
             if not meta:
@@ -84,6 +91,8 @@ def executar(repo_path, packs: set, config: dict | None = None,
     for cid, meta in sorted(CHECKS.items()):
         if meta["pack"] not in packs or meta["guarda_de_pack"]:
             continue
+        if not catalogo._casa_dominio(cid, doms):
+            continue
         if meta["pack"] in fora_de_escopo:
             res["checks_pulados"].append({
                 "id": cid,
@@ -96,7 +105,8 @@ def executar(repo_path, packs: set, config: dict | None = None,
     res["packs_fora_de_escopo"] = [
         {"pack": p, "motivo": m} for p, m in sorted(fora_de_escopo.items())]
     # Previsto e ausente: o catalogo torna dizivel o que o registro nao sabe.
-    res["checks_previstos"] = catalogo.previstos(packs)
+    res["checks_previstos"] = catalogo.previstos(packs, doms)
+    res["dominios"] = sorted(doms) if doms else list(catalogo.DOMINIOS)
     res["relatorios"] = ctx.relatorios
     res["modo"] = modo
     res["traces"] = getattr(ctx._cliente, "traces", []) if ctx._cliente else []
