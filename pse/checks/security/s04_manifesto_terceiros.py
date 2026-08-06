@@ -33,7 +33,9 @@ def manifesto_terceiros(ctx):
                               "— deploy nao pode prosseguir.",
                     recomendacao="Assinar e homologar o DPA antes do proximo deploy; "
                                  "registrar dpa_path no manifesto.",
-                    base_legal="LGPD Art. 39"))
+                    base_legal="LGPD Art. 39",
+                    arquivo=ctx.manifesto_path(),
+                    linha=ctx.linha_da_integracao(item.get("name"))))
 
     detectados = {}
     for p in scan.arquivos(ctx.repo, EXTS):

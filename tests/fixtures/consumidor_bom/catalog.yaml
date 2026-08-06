@@ -1,0 +1,22 @@
+# Catalogo completo: todo campo com classe, dono, finalidade, base legal e retencao.
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: financeiro
+        purpose: cobranca
+        legal_basis: contrato
+        retention_years: 5
+      email:
+        class: personal
+        owner: relacionamento
+        purpose: contato
+        legal_basis: consentimento
+        retention_years: 3
+      genero:
+        class: sensitive
+        owner: dpo
+        purpose: relatorio_de_diversidade
+        legal_basis: consentimento   # sensivel NUNCA com legitimo interesse (P-08)
+        retention_years: 2

@@ -7,13 +7,27 @@ RX_ML = re.compile(r"^(import|from)\s+(sklearn|torch|tensorflow|xgboost|lightgbm
 RX_CARD = re.compile(r"model[-_]card", re.I)
 
 
+def _onde_usa_ml(ctx):
+    """O import que cria a obrigacao — e o endereco do achado (D-07).
+
+    Um finding de AUSENCIA tambem precisa de `arquivo:linha`: aponta para o
+    fato que exige o artefato, nao para o artefato que nao existe.
+    """
+    for p in scan.arquivos(ctx.repo, {".py"}):
+        texto = scan.ler(p)
+        m = RX_ML.search(scan.codigo_efetivo(texto, ".py", sem_literais=True))
+        if m:
+            return p, texto[:m.start()].count("\n") + 1, m.group(0).strip()
+    return None, None, None
+
+
 @check("E-07", "ethics", "Model Card ausente", base_legal="EbD-AI / LGPD Art. 20")
 def model_card(ctx):
-    usa_ml = any(RX_ML.search(scan.ler(p)) for p in scan.arquivos(ctx.repo, {".py"}))
-    if not usa_ml:
+    p, linha, snippet = _onde_usa_ml(ctx)
+    if p is None:
         return []
-    tem_card = any(RX_CARD.search(p.name)
-                   for p in scan.arquivos(ctx.repo, {".md", ".yaml", ".yml", ".json"}))
+    tem_card = any(RX_CARD.search(f.name)
+                   for f in scan.arquivos(ctx.repo, {".md", ".yaml", ".yml", ".json"}))
     if tem_card:
         return []
     return [Finding(
@@ -23,4 +37,5 @@ def model_card(ctx):
                   "proposito, limitacoes, dados de treino e metricas de fairness.",
         recomendacao="Criar model-card.yaml (Mitchell et al., 2019) versionado "
                      "com o codigo; validar no CI.",
-        base_legal="EbD-AI / LGPD Art. 20")]
+        base_legal="EbD-AI / LGPD Art. 20",
+        arquivo=scan.rel(ctx.repo, p), linha=linha, snippet=snippet)]

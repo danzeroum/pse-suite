@@ -1,0 +1,14 @@
+pse_suite:
+  catalog_path: catalog.yaml
+  consent_model_path: consent-model.yaml
+  decision_making: automated
+  thresholds:
+    k_anonymity_min: 5
+    dpd_max_delta: 0.05
+  packs:
+    privacy: {enabled: true}
+    security: {enabled: true}
+    ethics:
+      enabled: true
+      fairness_dataset: eval.csv
+      fairness_report: fairness-report.yaml

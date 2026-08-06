@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://danzeroum.github.io/pse-suite/schemas/fairness-report-1.0.json",
+  "title": "Relatorio de disparidade por grupo",
+  "description": "O artefato que E-06 cobra. A suite nao roda inferencia: ela exige que a medicao exista, esteja fresca e traga as CONDICOES. Numero sem condicoes de medicao nao entra — sem saber sobre que dados, com que corte e em que versao do modelo a disparidade foi medida, o valor nao e verificavel por ninguem.",
+  "type": "object",
+  "required": ["modelo_versao", "dataset_fingerprint", "medido_em",
+               "condicoes", "grupos"],
+  "properties": {
+    "modelo_versao": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Metrica ancorada a versao do modelo: numero de versao anterior nao vale para a atual."
+    },
+    "dataset_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 do dataset de avaliacao. E o que torna o relatorio verificavelmente fresco."
+    },
+    "medido_em": {"type": "string", "minLength": 4},
+    "condicoes": {
+      "type": "object",
+      "required": ["metrica", "limiar_decisao", "n_amostras"],
+      "description": "As condicoes de medicao, sem as quais o numero e opiniao.",
+      "properties": {
+        "metrica": {"type": "string", "minLength": 2},
+        "limiar_decisao": {"type": "number"},
+        "n_amostras": {"type": "integer", "minimum": 1},
+        "intervalo_confianca": {"type": ["number", "null"]},
+        "observacoes": {"type": "string"}
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "properties": {
+        "modelo_versao": {"type": "string"},
+        "medido_em": {"type": "string"}
+      }
+    },
+    "grupos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["nome", "n", "dpd"],
+        "properties": {
+          "nome": {"type": "string", "minLength": 1},
+          "n": {"type": "integer", "minimum": 1},
+          "dpd": {
+            "type": "number",
+            "description": "Demographic parity difference contra o grupo de referencia."
+          },
+          "taxa_positiva": {"type": ["number", "null"]}
+        }
+      }
+    }
+  }
+}

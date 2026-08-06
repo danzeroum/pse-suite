@@ -1,0 +1,18 @@
+# E-06 conforme: numero COM condicoes de medicao, ancorado ao dataset atual.
+# Gerado no mesmo job de CI que avalia o modelo — nunca a mao.
+modelo_versao: "3.1.0"
+dataset_fingerprint: 7b21aa053b75857bbc8c029532a8de3048e657ebadaa14819a0515e196418cb3
+medido_em: "2026-08-06T09:00:00Z"
+condicoes:
+  metrica: demographic_parity_difference
+  limiar_decisao: 0.5
+  n_amostras: 6
+  intervalo_confianca: 0.03
+  observacoes: avaliacao sobre coorte estratificada por grupo declarado
+baseline:
+  modelo_versao: "3.0.0"
+  medido_em: "2026-07-01T09:00:00Z"
+grupos:
+  - {nome: A, n: 2, dpd: 0.0, taxa_positiva: 0.5}
+  - {nome: B, n: 2, dpd: 0.01, taxa_positiva: 0.5}
+  - {nome: C, n: 2, dpd: -0.02, taxa_positiva: 0.5}

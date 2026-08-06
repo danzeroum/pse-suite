@@ -14,6 +14,12 @@ def cadastrar(cpf, email):
                   json={"event": "signup"})
 
 
+def auditar(usuario):
+    # P-01 + D-02: literal de PII no proprio codigo. O laudo tem de ACHAR
+    # esta linha e, ao mesmo tempo, NAO republicar o valor em claro.
+    logger.warning("falha ao validar cpf=529.982.247-25 de %s", usuario)
+
+
 def negar_credito(user, score):                        # E-04 (sem rota humana)
     if score < 500:
         return {"aprovado": False}

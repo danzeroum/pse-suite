@@ -1,0 +1,581 @@
+# Catalogo dos checks da PSE Suite — a declaracao autoritativa (D-12).
+#
+# Sem este arquivo o laudo so sabia dizer "executado" ou "pulado"; nao sabia
+# dizer "previsto e ausente". E dizer isso e pre-requisito da Fase 2: e o que
+# faz um check runtime sem alvo declarado aparecer no laudo com motivo, em vez
+# de simplesmente nao existir — e o que torna calculavel a metrica de cobertura
+# do plano §8.
+#
+# `status` e o estado nesta versao do pacote:
+#   implementado      — registrado e executavel
+#   previsto-fase-2   — Trabalho A (runtime), roadmap Fase 2
+#   previsto-fase-3   — roadmap Fase 3
+#
+# `modo` diz onde o check pode rodar (contrato de autorizacao, COMO-ADOTAR §5):
+#   inventory — Trabalho B, sem rede, agente pode disparar
+#   passive   — Trabalho A somente-leitura, com a propria identidade
+#   active    — Trabalho A com sonda de autorizacao; workflow_dispatch + revisores
+#
+# O conjunto CRITICO (fail-closed) e ratificado no plano §4 + Etapa 3 §2.4:
+#   P-01, P-06, P-08, P-11, S-01, S-04(dpa), S-06, E-04
+
+checks:
+  # -------------------------------------------------- Pacote P — Privacidade
+  P-01:
+    pack: privacy
+    titulo: PII em logs/prints sem mascaramento
+    base_legal: LGPD Art. 46
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: valor de PII vai cru para a chamada de log
+      arquivos:
+        app.py: |
+          import logging
+          logger = logging.getLogger(__name__)
+
+
+          def f(cpf):
+              logger.info("cadastro cpf=%s", cpf)
+      espera_severidade: CRITICO
+  P-02:
+    pack: privacy
+    titulo: Retencao declarada sem job de purga
+    base_legal: LGPD Art. 15-16
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: catalogo declara retencao e nao ha job de purga que apague
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                cpf:
+                  class: personal
+                  owner: o
+                  purpose: p
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  P-03:
+    pack: privacy
+    titulo: Soft-delete sem eliminacao fisica / crypto-shredding
+    base_legal: LGPD Art. 18 VI
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: soft-delete sem eliminacao definitiva
+      arquivos:
+        models.py: |
+          class User:
+              deleted_at = None
+      espera_severidade: ALTO
+  P-04:
+    pack: privacy
+    titulo: Catalogo vivo de dados
+    base_legal: LGPD Art. 37
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: campo do catalogo sem dono, base legal e retencao
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                email:
+                  class: personal
+                  purpose: contato
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: MEDIO
+  P-05:
+    pack: privacy
+    titulo: Minimizacao por jornada — DTO rejeita campo fora da allowlist
+    base_legal: LGPD Art. 6o III
+    tipo: estatico+runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: POST com campo fora da allowlist e aceito
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          escrita: /api/clientes
+        respostas:
+          - status: 201
+            corpo: '{"id":"novo"}'
+      espera_severidade: ALTO
+  P-06:
+    pack: privacy
+    titulo: Pseudonimizacao com chave segregada
+    base_legal: LGPD Art. 46
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: chave de pseudonimizacao em texto claro na fonte
+      arquivos:
+        app.py: |
+          hmac_key = "segredo-plantado-1234567890"
+      espera_severidade: CRITICO
+  P-07:
+    pack: privacy
+    titulo: Consentimento granular por finalidade, opt-in, com registro
+    base_legal: LGPD Art. 7o-8o
+    tipo: estatico+runtime
+    modo: active
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: rota protegida por consentimento responde 200 sem consentimento
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          consentimento_protegido: /api/perfil
+        respostas:
+          - status: 200
+            corpo: '{"perfil":{}}'
+      espera_severidade: CRITICO
+  P-08:
+    pack: privacy
+    titulo: Dado sensivel nunca com base legal legitimo interesse
+    base_legal: LGPD Art. 11
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: dado sensivel com base legal legitimo interesse
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                genero:
+                  class: sensitive
+                  owner: o
+                  purpose: p
+                  legal_basis: legitimo_interesse
+                  retention_years: 2
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: CRITICO
+  P-09:
+    pack: privacy
+    titulo: k-anonimato em agregacoes de BI
+    base_legal: reidentificacao
+    tipo: estatico+runtime
+    modo: active
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: agregacao exposta devolve celula com 2 titulares
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          agregacao: /api/relatorios/bairro
+        respostas:
+          - status: 200
+            corpo: '{"linhas":[{"bairro":"X","count":2}]}'
+      espera_severidade: ALTO
+  P-10:
+    pack: privacy
+    titulo: Portabilidade — endpoint de exportacao existe e responde
+    base_legal: LGPD Art. 18 V
+    tipo: runtime
+    modo: active
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: exportacao responde sem hash e sem estrutura declarada
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          exportacao: /api/exportacao
+        respostas:
+          - status: 200
+            corpo: '{"itens":[{"a":1}]}'
+      espera_severidade: ALTO
+  P-11:
+    pack: privacy
+    titulo: Oraculo de existencia — 403 vs 404 distinguivel
+    base_legal: profiling
+    tipo: estatico+runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: recurso alheio responde 403 e inexistente responde 404
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        recursos_b:
+          - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
+        endpoints:
+          inexistente: /api/clientes/00000000-0000-4000-8000-000000000000
+        respostas:
+          - status: 404
+            corpo: '{}'
+          - status: 403
+            corpo: '{}'
+      espera_severidade: CRITICO
+
+  # -------------------------------------------------- Pacote S — Seguranca
+  S-01:
+    pack: security
+    titulo: BOLA/IDOR — recurso de titular sem assertOwnership
+    base_legal: OWASP API1
+    tipo: estatico+runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: token de A obtem 200 num recurso declarado do titular B
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        recursos_b:
+          - /api/clientes/9f1c2e3a-0000-4000-8000-000000000000
+        respostas:
+          - status: 200
+            corpo: '{"id":"9f1c2e3a-0000-4000-8000-000000000000","cpf":"529.982.247-25"}'
+      espera_severidade: CRITICO
+  S-02:
+    pack: security
+    titulo: Rate limit + paginacao por cursor (anti-extracao em massa)
+    base_legal: OWASP API4
+    tipo: runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: listagem responde 200 indefinidamente, sem bloqueio
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          listagem: /api/clientes
+        respostas:
+          - status: 200
+            corpo: '{"itens":[]}'
+      espera_severidade: ALTO
+  S-03:
+    pack: security
+    titulo: Erros e webhooks sem PII no payload
+    base_legal: LGPD Art. 46
+    tipo: estatico+runtime
+    modo: passive
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: payload de erro devolve CPF e e-mail do titular
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          erro: /api/nao-existe
+        respostas:
+          - status: 500
+            corpo: '{"erro":"falha ao salvar cpf=529.982.247-25 de maria@empresa.com.br"}'
+      espera_severidade: ALTO
+  S-04:
+    pack: security
+    titulo: Manifesto de terceiros — host externo registrado com DPA
+    base_legal: LGPD Art. 39
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: host de terceiro no codigo sem entrada no manifesto
+      arquivos:
+        app.py: |
+          import requests
+
+
+          def enviar():
+              requests.post("https://analytics.google.com/collect", json={})
+      espera_severidade: ALTO
+  S-05:
+    pack: security
+    titulo: Payload minimo de egresso — schema por destino, PII proibida
+    base_legal: LGPD Art. 6o III
+    tipo: estatico+runtime
+    modo: active
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: integracao no manifesto sem egress_fields declarados
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: analytics
+              hosts: [a.example.net]
+              dpa_signed: true
+      config:
+        {third_party_manifest: tp.yml}
+      espera_severidade: ALTO
+  S-06:
+    pack: security
+    titulo: Chave por parceiro — nenhuma API key global/hardcoded
+    base_legal: LGPD Art. 46
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: credencial de parceiro hardcoded
+      arquivos:
+        app.py: |
+          api_key = "sk-live-plantada-0123456789"
+      espera_severidade: CRITICO
+  S-07:
+    pack: security
+    titulo: Propagacao de finalidade (X-Purpose) + log de auditoria estruturado
+    base_legal: LGPD Art. 37
+    tipo: estatico+runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: requisicao sem X-Purpose e atendida com 200
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          listagem: /api/clientes
+          log_auditoria: /api/logs
+        respostas:
+          - status: 200
+            corpo: '[{"ator":"u1","acao":"read","timestamp":"2026-08-06","recurso":"c1","finalidade":"cobranca"}]'
+      espera_severidade: ALTO
+  S-08:
+    pack: security
+    titulo: Transferencia internacional exige base declarada no manifesto
+    base_legal: LGPD Art. 33
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: destino fora do BR sem base de transferencia declarada
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: parceiro-us
+              hosts: [api.parceiro.example.net]
+              dpa_signed: true
+              data_residency: US
+      config:
+        third_party_manifest: tp.yml
+      espera_severidade: ALTO
+
+  # -------------------------------------------------- Pacote E — Etica
+  E-00:
+    pack: ethics
+    titulo: Escopo do pack de etica (guarda) — ha decisao automatizada sobre pessoas?
+    base_legal: EbD-AI
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    guarda_de_pack: true
+    canonical_mutation:
+      descricao: codigo mostra modelo de ML e o consumidor declara decision_making none
+      arquivos:
+        ml.py: |
+          from sklearn.linear_model import LogisticRegression
+
+          modelo = LogisticRegression()
+      config:
+        decision_making: none
+      espera_severidade: ALTO
+  E-01:
+    pack: ethics
+    titulo: Decisao automatizada sem explicacao (motivo/fatores/reason_code)
+    base_legal: LGPD Art. 20
+    tipo: estatico+runtime
+    modo: passive
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: decisao devolvida sem motivo nem fatores
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          decisao: /api/decisoes/ultima
+        respostas:
+          - status: 200
+            corpo: '{"aprovado":false}'
+      espera_severidade: ALTO
+  E-02:
+    pack: ethics
+    titulo: Decision log estruturado (modelo_v, features, score, limiar, revisor)
+    base_legal: LGPD Art. 20/37
+    tipo: estatico+runtime
+    modo: passive
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: decisao sem modelo, features, score, limiar e revisor
+      runtime:
+        autorizacao_valida: true
+        modo: pse_passive
+        endpoints:
+          decisao: /api/decisoes/ultima
+        respostas:
+          - status: 200
+            corpo: '{"aprovado":false,"motivo":"score baixo"}'
+      espera_severidade: ALTO
+  E-03:
+    pack: ethics
+    titulo: Contestacao — endpoint de recurso com protocolo e SLA
+    base_legal: LGPD Art. 18
+    tipo: runtime
+    modo: active
+    fase: 2
+    status: implementado
+    canonical_mutation:
+      descricao: contestacao aceita sem protocolo e sem prazo
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          contestacao: /api/contestacoes
+        respostas:
+          - status: 201
+            corpo: '{"status":"recebido"}'
+      espera_severidade: ALTO
+  E-04:
+    pack: ethics
+    titulo: HITL — decisoes criticas com rota de revisao humana
+    base_legal: LGPD Art. 20 §3
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: decisao de alto impacto sem nenhuma rota de revisao humana
+      arquivos:
+        app.py: |
+          def negar_credito(user, score):
+              if score < 500:
+                  return {"aprovado": False}
+              return {"aprovado": True}
+      config:
+        decision_making: automated
+      espera_severidade: CRITICO
+  E-05:
+    pack: ethics
+    titulo: Proxy de discriminacao — feature proibida no pipeline
+    base_legal: LGPD Art. 6o IX
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: proxy de discriminacao no score sem ajuste de fairness
+      arquivos:
+        score.py: |
+          def calcular_score(renda, cep):
+              return renda * 0.4 + int(cep[:2]) * 0.1
+      config:
+        decision_making: automated
+      espera_severidade: ALTO
+  E-06:
+    pack: ethics
+    titulo: Drift de disparidade — DPD por grupo vs baseline
+    base_legal: nao-discriminacao
+    tipo: ci
+    modo: inventory
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: dataset de avaliacao declarado sem relatorio de fairness
+      arquivos:
+        eval.csv: |
+          grupo,alvo
+          A,1
+          B,0
+      config:
+        {packs: {ethics: {fairness_dataset: eval.csv}}}
+      espera_severidade: ALTO
+  E-07:
+    pack: ethics
+    titulo: Model Card + Datasheet presentes, versionados e validos
+    base_legal: EbD-AI / LGPD Art. 20
+    tipo: estatico
+    modo: inventory
+    fase: 1
+    status: implementado
+    canonical_mutation:
+      descricao: codigo de ML sem Model Card versionado
+      arquivos:
+        ml.py: |
+          from sklearn.linear_model import LogisticRegression
+
+          modelo = LogisticRegression()
+      config:
+        decision_making: automated
+      espera_severidade: ALTO
+  E-08:
+    pack: ethics
+    titulo: Provenance/lineage — origem, transformacao e destino rastreaveis
+    base_legal: rastreabilidade
+    tipo: estatico
+    modo: inventory
+    fase: 3
+    status: previsto-fase-3
+  E-09:
+    pack: ethics
+    titulo: Kill switch / modo degradado digno, documentado e testavel
+    base_legal: controle humano
+    tipo: runtime
+    modo: active
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: kill switch aceita e confirma simulacao, mas nao declara o efeito
+      runtime:
+        autorizacao_valida: true
+        modo: pse_active
+        endpoints:
+          kill_switch_dry_run: /api/kill-switch
+        respostas:
+          - status: 200
+            corpo: '{"dry_run":true,"status":"simulado"}'
+      espera_severidade: ALTO
+  E-10:
+    pack: ethics
+    titulo: Incerteza quantificada em decisoes pontuais
+    base_legal: robustez
+    tipo: estatico
+    modo: inventory
+    fase: 3
+    status: implementado
+    canonical_mutation:
+      descricao: inferencia pontual sem nenhuma medida de confianca
+      arquivos:
+        score.py: |
+          def decidir(modelo, x):
+              return modelo.predict(x)
+      espera_severidade: MEDIO
