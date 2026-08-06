@@ -1,0 +1,5 @@
+# Regua curada de PII — NUNCA copiada para o consumidor.
+# Remover um termo daqui exige PR neste repositorio, visivel e versionado.
+identificadores: [cpf, rg, cnh, passaporte, cns, titulo_eleitor]
+contato: [email, e_mail, telefone, celular, endereco, cep_residencial]
+credenciais: [password, senha, hashed_password, token, api_secret]

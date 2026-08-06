@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "pse-suite/laudo-pse-1.0",
+  "type": "object",
+  "required": ["schema", "artifact", "packs", "resumo", "checks_executados", "checks_pulados", "findings"],
+  "properties": {
+    "schema": {"const": "laudo-pse-1.0"},
+    "artifact": {
+      "type": "object",
+      "required": ["suite", "suite_version", "timestamp_utc"],
+      "properties": {
+        "suite": {"const": "pse-suite"},
+        "suite_version": {"type": "string"},
+        "repo_commit": {"type": ["string", "null"]},
+        "config_fingerprint": {"type": ["string", "null"]},
+        "timestamp_utc": {"type": "string"}
+      }
+    },
+    "packs": {"type": "array", "items": {"enum": ["privacy", "security", "ethics"]}},
+    "resumo": {
+      "type": "object",
+      "required": ["total_findings", "por_severidade"],
+      "properties": {
+        "total_findings": {"type": "integer"},
+        "por_severidade": {"type": "object"}
+      }
+    },
+    "checks_executados": {"type": "array", "items": {"type": "string"}},
+    "checks_pulados": {
+      "type": "array",
+      "items": {"type": "object", "required": ["id", "motivo"]}
+    },
+    "findings": {"type": "array", "items": {"$ref": "pse-suite/finding-1.0"}}
+  }
+}

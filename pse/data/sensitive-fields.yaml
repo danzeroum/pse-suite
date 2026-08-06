@@ -1,0 +1,4 @@
+# Dados sensiveis — LGPD Art. 5o, II. Base para P-04 (coerencia de classe)
+# e P-08 (Art. 11: sensivel nao admite legitimo interesse).
+sensiveis: [raca, etnia, religiao, biometria, saude, doenca, orientacao_sexual,
+            opiniao_politica, filiacao_sindical, dado_genetico, genero]

@@ -1,0 +1,8 @@
+# Config DECLARATIVA do consumidor — nunca contem checks nem regua.
+pse_suite:
+  catalog_path: catalog.yaml
+  third_party_manifest: .privacy/third-party-manifest.yml
+  packs:
+    privacy: {enabled: true}
+    security: {enabled: true}
+    ethics: {enabled: true}

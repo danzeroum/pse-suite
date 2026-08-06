@@ -1,0 +1,3 @@
+# Proxies de discriminacao: variaveis que discriminam indiretamente
+# quando entram em score/feature sem ajuste de fairness (E-05).
+proxies_discriminacao: [cep, bairro, nome_mae, placa_veiculo, genero, raca, etnia]

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pse-suite"
+version = "0.1.0"
+description = "Suite de evidencias de Privacidade, Seguranca e Etica por Design — padrao externo versionado, consumido por harness (nunca copiado)."
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+pse = "pse.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+include = ["pse*"]
+
+[tool.setuptools.package-data]
+pse = ["data/*.yaml"]
+
+[tool.pytest.ini_options]
+markers = [
+  "pse_privacy: checks do pacote P (Privacidade)",
+  "pse_security: checks do pacote S (Seguranca)",
+  "pse_ethics: checks do pacote E (Etica)",
+  "mordida: testes negativos que provam que o gate aborta",
+]

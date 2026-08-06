@@ -1,0 +1,18 @@
+tables:
+  users:
+    fields:
+      cpf:
+        class: personal
+        owner: financeiro
+        purpose: faturamento
+        legal_basis: contrato
+        retention_years: 5          # P-02: retencao sem job de purga
+      genero:
+        class: sensitive
+        owner: marketing
+        purpose: segmentacao
+        legal_basis: legitimo_interesse   # P-08 CRITICO (Art. 11)
+        retention_years: 2
+      email:
+        class: personal
+        purpose: contato            # P-04: sem owner/legal_basis/retention

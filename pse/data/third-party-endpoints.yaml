@@ -1,0 +1,6 @@
+# Hosts conhecidos, por categoria — usados por S-04 para anotar achados.
+categorias:
+  analytics: [analytics.google.com, api.segment.io, api.mixpanel.com, api.amplitude.com]
+  llm: [api.openai.com, api.anthropic.com, generativelanguage.googleapis.com]
+  cdn: [cdn.jsdelivr.net, cdnjs.cloudflare.com, unpkg.com]
+ignorar: [localhost, 127.0.0.1, example.com, example.org, w3.org, json-schema.org, schema.org]
