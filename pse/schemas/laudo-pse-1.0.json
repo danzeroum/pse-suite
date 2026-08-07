@@ -198,6 +198,12 @@
         },
         "executados": {
           "type": "integer"
+        },
+        "por_dominio": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
         }
       }
     },
@@ -293,7 +299,8 @@
           "status": {
             "enum": [
               "previsto-fase-2",
-              "previsto-fase-3"
+              "previsto-fase-3",
+              "previsto-fase-4"
             ]
           },
           "modo": {
@@ -306,6 +313,12 @@
           "motivo": {
             "type": "string",
             "minLength": 1
+          },
+          "domain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -339,6 +352,19 @@
           }
         }
       }
+    },
+    "dominios": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "frontend",
+          "api",
+          "backend",
+          "data",
+          "ai"
+        ]
+      },
+      "description": "Estratos selecionados nesta execucao."
     }
   }
 }

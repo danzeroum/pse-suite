@@ -1,0 +1,544 @@
+{
+  "schema": "laudo-pse-1.0",
+  "artifact": {
+    "suite": "pse-suite",
+    "suite_version": "0.4.0",
+    "schema_version": "laudo-pse-1.0",
+    "catalog_hash": "0654bdc11bda55e922a5d4f57c55be55adf8a9b78d252995ab6c7f70151c9302",
+    "repo_commit": "f66b977fd56f3bb449fc819eb3c3e78dd65c76a2",
+    "config_fingerprint": null,
+    "timestamp_utc": "2026-08-07T18:51:57Z",
+    "modo": "pse_inventory",
+    "autorizacao": null
+  },
+  "veredito": "indeterminado",
+  "exit_code": 20,
+  "packs": [
+    "ethics",
+    "privacy",
+    "security"
+  ],
+  "packs_desabilitados": [],
+  "resumo": {
+    "total_findings": 31,
+    "por_severidade": {
+      "ALTO": 31
+    }
+  },
+  "cobertura": {
+    "catalogo_total": 30,
+    "implementados_nos_packs": 29,
+    "executados": 13
+  },
+  "checks_executados": [
+    "E-00",
+    "E-04",
+    "E-05",
+    "E-07",
+    "E-10",
+    "P-01",
+    "P-03",
+    "P-04",
+    "P-06",
+    "P-07",
+    "P-09",
+    "S-04",
+    "S-06"
+  ],
+  "checks_pulados": [
+    {
+      "id": "P-02",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "P-08",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "S-05",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    },
+    {
+      "id": "S-08",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    }
+  ],
+  "checks_indeterminados": [
+    {
+      "id": "E-06",
+      "motivo": "dataset de avaliacao ausente: nenhum `fairness_dataset` declarado em pse-config.yaml. Fairness sem dados representativos e teatro, e a suite nao sai procurando qual arquivo seria o dataset"
+    }
+  ],
+  "checks_previstos": [
+    {
+      "id": "E-08",
+      "pack": "ethics",
+      "titulo": "Provenance/lineage — origem, transformacao e destino rastreaveis",
+      "status": "previsto-fase-3",
+      "modo": "inventory",
+      "motivo": "declarado no catalogo da suite como previsto-fase-3 — nao implementado nesta versao do pacote"
+    }
+  ],
+  "checks_nao_habilitados": [
+    {
+      "id": "E-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-09",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-05",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-10",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-11",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-07",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  ],
+  "packs_fora_de_escopo": [],
+  "relatorios": {
+    "cobertura_catalogo": {
+      "presente": false
+    },
+    "cobertura_parcial": {
+      "P-07": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado.",
+      "P-09": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  },
+  "findings": [
+    {
+      "check_id": "P-04",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Catalogo de dados ausente",
+      "descricao": "Sem inventario (campo -> classe, dono, finalidade, base legal, retencao) nenhum outro controle de privacidade opera.",
+      "recomendacao": "Criar tests/qa/catalog.yaml conforme pse/schemas/catalog-1.0.json.",
+      "base_legal": "LGPD Art. 37",
+      "arquivo": "tests/qa/catalog.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-07",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Modelo de consentimento ausente",
+      "descricao": "Nenhum modelo em tests/qa/consent-model.yaml. Sem finalidades declaradas nao ha como saber a que o titular consentiu — nem para registrar, nem para revogar.",
+      "recomendacao": "Criar tests/qa/consent-model.yaml conforme pse/schemas/consent-model-1.0.json.",
+      "base_legal": "LGPD Art. 7o-8o",
+      "arquivo": "tests/qa/consent-model.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.bcb.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 89,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.dadosabedoria.org",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/app/desenvolvedores/page.tsx",
+      "linha": 11,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.deepseek.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 68,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: apidadosabertos.saude.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/sisvan.py",
+      "linha": 151,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: apidatalake.tesouro.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/siconfi.py",
+      "linha": 208,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: app4.mdr.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/saneamento.py",
+      "linha": 100,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: bi.mte.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/scripts/diagnostico_caged.py",
+      "linha": 47,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: dados.mte.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/scripts/diagnostico_caged.py",
+      "linha": 46,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: dadosabedoria.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/app/robots.ts",
+      "linha": 4,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: dadosabedoria.org",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/lib/agir.test.ts",
+      "linha": 39,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: dadosabertos.aneel.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/energia.py",
+      "linha": 106,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: dadosabertos.mte.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/scripts/diagnostico_caged.py",
+      "linha": 48,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: datasus.saude.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 113,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: docs.dadosabedoria.org",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/core/config.py",
+      "linha": 48,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: download.inep.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/inep.py",
+      "linha": 87,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: falabr.cgu.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/components/AcoesIVM.tsx",
+      "linha": 90,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: ftp.mtps.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/scripts/diagnostico_caged.py",
+      "linha": 45,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: monitordesecas.ana.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/ana.py",
+      "linha": 114,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: pdet.mte.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 77,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: pncp.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/pncp.py",
+      "linha": 95,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: servicodados.ibge.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/ibge.py",
+      "linha": 76,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: sisvan.saude.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 209,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: wa.me",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/lib/agir.test.ts",
+      "linha": 56,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.bcb.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/ingestao/adaptadores/estban.py",
+      "linha": 106,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.google.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/components/AcoesIVM.tsx",
+      "linha": 19,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 137,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.ibge.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/app/seed/__init__.py",
+      "linha": 197,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www4.bcb.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "api/scripts/diagnostico_estban.py",
+      "linha": 96,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: x.org",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "web/lib/agir.test.ts",
+      "linha": 55,
+      "snippet": null,
+      "trace": null
+    }
+  ],
+  "duracao_s": 7.34
+}

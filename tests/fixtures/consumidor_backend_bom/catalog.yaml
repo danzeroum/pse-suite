@@ -1,0 +1,27 @@
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: cadastro
+        purpose: identificacao
+        legal_basis: contrato
+        retention_years: 5
+      genero:
+        class: sensitive
+        owner: cadastro
+        purpose: pesquisa
+        legal_basis: consentimento
+        retention_years: 2
+        encryption:
+          algorithm: AES-256-GCM
+          key_management: aws-kms          # chave fora da aplicacao
+      biometria:
+        class: sensitive
+        owner: seguranca
+        purpose: autenticacao
+        legal_basis: consentimento
+        retention_years: 1
+        encryption:
+          algorithm: AES-256-GCM
+          key_management: hashicorp-vault

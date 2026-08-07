@@ -21,6 +21,17 @@ def check(check_id: str, pack: str, titulo: str, base_legal: str | None = None):
                 f"{check_id} nao consta em pse/data/checks-catalog.yaml. "
                 f"Todo check declara-se no catalogo antes de existir em codigo "
                 f"— e o catalogo que torna a cobertura calculavel.")
+        esperado = catalogo.pilar_esperado(check_id)
+        if esperado is None:
+            raise CheckNaoCatalogado(
+                f"prefixo de {check_id} fora do vocabulario de pilares "
+                f"{sorted(catalogo.PREFIXO_DO_PILAR.values())}. O prefixo do ID "
+                f"codifica o PILAR, sempre — dominio e multivalorado e vive em "
+                f"`domain`, nunca no prefixo.")
+        if esperado != pack:
+            raise CheckNaoCatalogado(
+                f"{check_id} tem prefixo de '{esperado}' e foi registrado no "
+                f"pack '{pack}' — o prefixo do ID e a declaracao do pilar.")
         meta = catalogo.meta(check_id)
         if meta.get("pack") != pack:
             raise CheckNaoCatalogado(
@@ -33,6 +44,7 @@ def check(check_id: str, pack: str, titulo: str, base_legal: str | None = None):
             # Fonte unica: o catalogo. O argumento do decorator fica como
             # fallback para nao quebrar checks em desenvolvimento.
             "base_legal": meta.get("base_legal", base_legal),
+            "domain": catalogo.dominios(check_id),
             "guarda_de_pack": bool(meta.get("guarda_de_pack")),
             "fn": fn,
         }

@@ -1,3 +1,14 @@
+"""E-07 — Model Card e Datasheet: presentes, versionados e validos.
+
+A obrigacao nao e declarada pelo time: ela nasce do `import sklearn` (ou
+torch, tensorflow, xgboost...). Quem coloca um modelo em producao passa a
+dever a documentacao que permite contesta-lo — e o import e a evidencia
+verificavel de que o modelo existe.
+
+Por isso o endereco do achado (D-07) e a LINHA DO IMPORT, nao a raiz do
+repositorio: o defeito e "este modelo, aqui, nao tem card", e um achado
+apontando para lugar nenhum nao se conserta.
+"""
 import re
 from pse.engine import scan
 from pse.engine.registry import check

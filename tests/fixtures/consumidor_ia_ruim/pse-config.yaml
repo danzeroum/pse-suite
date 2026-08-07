@@ -1,0 +1,3 @@
+pse_suite:
+  catalog_path: catalog.yaml
+  decision_making: automated

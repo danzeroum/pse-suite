@@ -1,3 +1,16 @@
+"""P-08 — dado sensivel apoiado em legitimo interesse.
+
+Le o catalogo de dados e cruza duas colunas que o time preenche em momentos
+diferentes: a categoria do campo e a base legal. O Art. 11 nao lista
+legitimo interesse entre as hipoteses de dado sensivel — entao a combinacao
+nao e um risco a ponderar, e um tratamento sem base.
+
+CRITICO porque o defeito nao esta no codigo e sim na declaracao: enquanto
+ela estiver assim, todo processamento daquele campo esta descoberto, e o
+proprio catalogo e a prova.
+
+Sem catalogo o check PULA, com motivo — a ausencia e cobrada por P-04.
+"""
 from pse.engine.registry import check
 from pse.model import Finding, Severidade, SkipCheck
 

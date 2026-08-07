@@ -13,7 +13,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from pse import catalogo, fingerprint
+from pse import alcance, catalogo, fingerprint
+from pse.correlacao import correlacionar
 from pse.model import (EXIT_CONFORME, EXIT_INDETERMINADO, EXIT_VIOLACAO_ALTA,
                        EXIT_VIOLACAO_CRITICA, Severidade, Veredito,
                        VersaoIrresolvivel)
@@ -89,6 +90,7 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         "veredito": vered.value,
         "exit_code": codigo,
         "packs": sorted(packs),
+        "dominios": resultados.get("dominios", list(catalogo.DOMINIOS)),
         "packs_desabilitados": resultados.get("packs_desabilitados", []),
         "resumo": {
             "total_findings": len(resultados["findings"]),
@@ -98,6 +100,10 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
             "catalogo_total": len(catalogo.CATALOGO),
             "implementados_nos_packs": len(catalogo.implementados(packs)),
             "executados": len(resultados["checks_executados"]),
+            # A matriz vista pela segunda dimensao: quantos checks cada
+            # estrato tecnico tem. Um time de frontend que ve `frontend: 0`
+            # sabe na hora que aquele laudo nao fala com ele.
+            "por_dominio": catalogo.por_dominio(packs),
         },
         "checks_executados": resultados["checks_executados"],
         "checks_pulados": resultados["checks_pulados"],
@@ -110,11 +116,24 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         # declarada, com motivo, que nao bloqueia.
         "checks_nao_habilitados": resultados.get("checks_nao_habilitados", []),
         "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
+        # O que a suite NAO consegue ler, dito em voz alta. Nao e finding —
+        # nao ha defeito no alvo por ser escrito em Rust — mas sem este bloco
+        # "nenhum achado em .rs" seria indistinguivel de "Rust auditado e
+        # limpo". Ver pse/alcance.py.
+        "alcance": alcance.medir(repo),
+        # A mesma falha vista em duas camadas. Indice sobre o que ja esta no
+        # laudo — nenhum finding e removido ou alterado: deduplicar perderia
+        # justamente a informacao que so o PAR carrega (ver pse/correlacao.py).
+        "correlacoes": correlacionar(resultados["findings"]),
         # Estado, nao defeito: o consumidor precisa saber o quanto ja esta
         # certo, nao so o que esta errado.
         "relatorios": resultados.get("relatorios", {}),
         # Choke point da sanitizacao: nenhum caminho serializa um finding
         # sem passar por aqui.
-        "findings": [sanitizar_finding(f.to_dict()) for f in resultados["findings"]],
+        # O dominio e enriquecido a partir do catalogo, nao pedido ao check:
+        # a virada para multi-dominio nao pode obrigar 33 checks a mudar.
+        "findings": [{**sanitizar_finding(f.to_dict()),
+                      "domain": catalogo.dominios(f.check_id)}
+                     for f in resultados["findings"]],
         "duracao_s": resultados["duracao_s"],
     }

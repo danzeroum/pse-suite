@@ -1,0 +1,15 @@
+# E-07: Model Card versionado junto do codigo que treina.
+modelo: risco_credito
+versao: "1.4.0"
+proposito: Estimar probabilidade de inadimplencia em credito consignado
+dados_de_treino:
+  dataset: base_credito
+  periodo: 2024-01 a 2026-06
+  campos: [cpf (pseudonimizado), renda]
+limitacoes:
+  - Nao calibrado para clientes sem historico de credito
+  - Degrada fora da faixa de renda 1k-20k
+metricas:
+  auc: 0.81
+  fairness: ver fairness-report.yaml
+revisao_humana: obrigatoria para score entre 480 e 520

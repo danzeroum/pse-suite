@@ -106,6 +106,19 @@
           }
         }
       }
+    },
+    "domain": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "frontend",
+          "api",
+          "backend",
+          "data",
+          "ai"
+        ]
+      },
+      "description": "Estrato tecnico examinado. Segunda dimensao da matriz, ortogonal ao pilar (pack): o pilar diz que valor esta em jogo, o dominio diz onde ele se manifesta."
     }
   }
 }

@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: API de clientes
+  version: "1.0"
+paths:
+  /clientes:
+    get:
+      summary: Busca clientes
+      parameters:
+        # P-17: o contrato PROMETE filtro por raca e por CEP. Discriminacao
+        # nao precisa de modelo nenhum quando a propria API a oferece pronta.
+        - in: query
+          name: raca
+          schema: {type: string}
+        - in: query
+          name: cep
+          schema: {type: string}
+        - in: query
+          name: cidade
+          schema: {type: string}
+      responses:
+        "200": {description: ok}
+components:
+  schemas:
+    # S-12 vetor A: expoe PII e nao carrega ontologia nenhuma.
+    Cliente:
+      type: object
+      properties:
+        id: {type: string}
+        cpf: {type: string}
+        email: {type: string}
+        genero: {type: string}
+    # S-12 vetor B: promete o campo, o DTO nao implementa.
+    ContaBancaria:
+      type: object
+      x-ethics:
+        pii: [cpf, telefone]
+        allowlist_scopes:
+          conta:leitura: [id, agencia]
+        purpose: gestao_de_conta
+      properties:
+        id: {type: string}
+        agencia: {type: string}
+        cpf: {type: string}
+        telefone: {type: string}

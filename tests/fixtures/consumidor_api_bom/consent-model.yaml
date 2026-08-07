@@ -1,0 +1,20 @@
+# P-07 conforme: finalidade granular, opt-in explicito, revogacao existente.
+version: "2.1"
+purposes:
+  - id: cobranca
+    descricao: Emitir e cobrar faturas do contrato vigente
+    opt_in: true
+    revogavel: true
+    campos: [cpf, email]
+    base_legal: contrato
+    retencao_apos_revogacao_dias: 0
+  - id: marketing_segmentado
+    descricao: Segmentar comunicacao comercial por perfil declarado
+    opt_in: true
+    revogavel: true
+    campos: [email, genero]
+    base_legal: consentimento
+    retencao_apos_revogacao_dias: 0
+registro:
+  store: consentimentos
+  campos_obrigatorios: [titular_id, purpose_id, versao, timestamp, origem]

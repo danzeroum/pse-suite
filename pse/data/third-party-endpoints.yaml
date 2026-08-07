@@ -3,4 +3,63 @@ categorias:
   analytics: [analytics.google.com, api.segment.io, api.mixpanel.com, api.amplitude.com]
   llm: [api.openai.com, api.anthropic.com, generativelanguage.googleapis.com]
   cdn: [cdn.jsdelivr.net, cdnjs.cloudflare.com, unpkg.com]
+# Hosts que nao sao terceiro de verdade, para S-04. Lista curada, e nao uma
+# lista de dominios reservados: `w3.org` e `schema.org` estao aqui porque sao
+# namespace de schema, nao porque a RFC os reserve.
 ignorar: [localhost, 127.0.0.1, example.com, example.org, w3.org, json-schema.org, schema.org]
+
+# --------------------------------------------------------------------------
+# DOMINIO RESERVADO — a pergunta de P-01 e S-03, e ela NAO e a mesma de S-04.
+#
+# A incoerencia que isto fechou foi medida contra alvo real: `example.com` ja
+# estava em `ignorar`, S-04 o ignorava, e P-01 acusava `test@example.com` num
+# script de seed — tres CRITICOs. A mesma regua dizia coisas opostas sobre o
+# mesmo dominio, dependendo de qual check a lia. `_dominio` le `ignorar`
+# TAMBEM, e e isso que fecha a incoerencia medida.
+#
+# POR QUE AS LISTAS NAO SAO A MESMA, e a assimetria e deliberada:
+#
+#   * num E-MAIL, dominio reservado PROVA que nao ha titular. `test@example.net`
+#     nao pertence a ninguem, e acusa-lo como PII e falso-positivo em CRITICO —
+#     o defeito mais caro que a suite pode ter.
+#   * numa URL, dominio reservado NAO prova que nao ha egresso. Um time aponta
+#     codigo para `api.x.example.net` como placeholder, e o placeholder vira
+#     endereco real no deploy seguinte. S-04 emite ALTO, visivel e nao
+#     bloqueante, e o custo de mante-lo e muito menor que o de perde-lo.
+#
+# Custo assimetrico, tratamento assimetrico. Juntar as duas listas faria S-04
+# parar de ver egresso — foi medido: tres mutacoes canonicas (E-13, S-18) e o
+# teste de egresso real de S-04 deixaram de morder quando `example.net` entrou
+# em `ignorar`.
+reservados_de_email: [example.com, example.org, example.net]
+
+# Sufixos reservados por RFC 2606 / RFC 6761, para a mesma pergunta de e-mail.
+# Casam pelo FIM do dominio, entao `api.meuapp.test` entra sem lista de
+# subdominio que nunca fecha.
+tld_reservados: ['.test', '.example', '.invalid', '.localhost']
+
+# E-13: hosts que aparecem em METADADO de dependencia (registro, licenca,
+# documentacao) e nao representam egresso em runtime. Lista propria e estreita
+# — separada de `ignorar` para que ninguem silencie um destino real de dado
+# alegando que "e so metadado". O teste-guarda proibe que qualquer host das
+# categorias conhecidas entre aqui.
+ignorar_em_dependencias:
+  - registry.npmjs.org
+  - npmjs.org
+  - npmjs.com
+  - yarnpkg.com
+  - github.com
+  - raw.githubusercontent.com
+  - gitlab.com
+  - nodejs.org
+  - python.org
+  - pypi.org
+  - files.pythonhosted.org
+  - opensource.org
+  - spdx.org
+  - apache.org
+  - gnu.org
+  - mozilla.org
+  - tldrlegal.com
+  - unlicense.org
+  - creativecommons.org

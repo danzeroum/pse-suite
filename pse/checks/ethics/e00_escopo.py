@@ -21,6 +21,7 @@ import re
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade, SkipCheck
+from . import _llm
 
 RX_ML = re.compile(
     r"^(?:import|from)\s+(sklearn|torch|tensorflow|xgboost|lightgbm|keras"
@@ -39,6 +40,10 @@ def _indicios(ctx) -> list:
     for p in scan.arquivos(ctx.repo, {".py"}):
         arq = scan.rel(ctx.repo, p)
         texto = scan.ler(p)
+        # Chamar um LLM sobre pessoas e processamento automatizado: poe o pack
+        # de etica em escopo tanto quanto um modelo treinado em casa (E-11).
+        efetivo = scan.codigo_efetivo(texto, ".py", sem_literais=True)
+        modulo_llm = _llm.modulo_fala_com_llm(efetivo, ctx)
         m = RX_ML.search(scan.codigo_efetivo(texto, ".py", sem_literais=True))
         if m:
             linha = texto[:m.start()].count("\n") + 1
@@ -51,6 +56,8 @@ def _indicios(ctx) -> list:
         for no, nome in scan.chamadas(arvore):
             if RX_INFERENCIA.match(nome.split(".")[-1]) and "." in nome:
                 achados.append((arq, no.lineno, f"chamada de inferencia: {nome}()"))
+            elif _llm.e_chamada_llm(nome, ctx, modulo_llm):
+                achados.append((arq, no.lineno, f"chamada a modelo de linguagem: {nome}()"))
     return achados
 
 

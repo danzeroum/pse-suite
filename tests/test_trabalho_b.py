@@ -42,6 +42,75 @@ def test_pack_security_encontra_violacoes():
     assert any("analytics.google.com" in f.titulo for f in hosts)
 
 
+# ==================================================== S-08, o órfão que a trava achou
+#
+# `Transferencia internacional sem base`, fase 1, existia desde o começo sem um
+# único teste próprio. Ele aparecia na docstring de outro teste — e docstring
+# não é teste. É o D-01 aplicado à própria suíte: a MENÇÃO do check não prova
+# que alguém o exercitou.
+#
+# A prova de mutação canônica passava por ele, porque parametriza sobre
+# `catalogo.implementados()` e alcança todos por construção. Ela prova que o
+# inverso canônico fica vermelho; não prova que o caso conforme fica quieto,
+# nem que o skip nomeia o motivo. É isso que os quatro abaixo cobrem.
+MANIFESTO = {"catalog_path": "catalog.yaml", "third_party_manifest": "tp.yml"}
+
+
+def com_manifesto(tmp_path, corpo):
+    (tmp_path / "tp.yml").write_text(corpo, encoding="utf-8")
+    return executar(tmp_path, {"security"}, MANIFESTO)
+
+
+@pytest.mark.pse_security
+def test_s08_destino_fora_do_br_sem_base_dispara(tmp_path):
+    res = com_manifesto(tmp_path,
+                        "integrations:\n"
+                        "  - name: parceiro-us\n"
+                        "    hosts: [api.parceiro.example.net]\n"
+                        "    dpa_signed: true\n"
+                        "    data_residency: US\n")
+    achados = [f for f in res["findings"] if f.check_id == "S-08"]
+    assert achados, "residência US declarada sem transfer_basis"
+    assert achados[0].severidade.value == "ALTO"
+    assert "parceiro-us" in achados[0].titulo
+
+
+@pytest.mark.pse_security
+def test_s08_base_declarada_desliga(tmp_path):
+    """D-08: quem declarou a base fez o que o Art. 33 pede. Punir o manifesto
+    correto ensina o time a parar de declarar residência."""
+    res = com_manifesto(tmp_path,
+                        "integrations:\n"
+                        "  - name: parceiro-us\n"
+                        "    hosts: [api.parceiro.example.net]\n"
+                        "    dpa_signed: true\n"
+                        "    data_residency: US\n"
+                        "    transfer_basis: clausulas-contratuais-padrao\n")
+    assert not [f for f in res["findings"] if f.check_id == "S-08"]
+    assert "S-08" in res["checks_executados"], "verde por não ter olhado"
+
+
+@pytest.mark.pse_security
+def test_s08_residencia_nacional_nao_dispara(tmp_path):
+    res = com_manifesto(tmp_path,
+                        "integrations:\n"
+                        "  - name: parceiro-br\n"
+                        "    hosts: [api.parceiro.example.com.br]\n"
+                        "    dpa_signed: true\n"
+                        "    data_residency: BR\n")
+    assert not [f for f in res["findings"] if f.check_id == "S-08"]
+
+
+@pytest.mark.pse_security
+def test_s08_sem_manifesto_e_pulado(tmp_path):
+    """A ausência do manifesto já é cobrada por S-04. Cobrá-la duas vezes
+    ensina a ignorar as duas — então aqui o desfecho é pular, com motivo."""
+    (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+    res = executar(tmp_path, {"security"}, MANIFESTO)
+    pulados = {c["id"]: c["motivo"] for c in res["checks_pulados"]}
+    assert "S-08" in pulados and "S-04" in pulados["S-08"]
+
+
 @pytest.mark.pse_ethics
 def test_pack_ethics_encontra_violacoes():
     res = executar(FIX, {"ethics"}, CFG)
@@ -128,3 +197,36 @@ def test_config_inexistente_sai_30(tmp_path):
 @pytest.mark.mordida
 def test_packs_invalidos_saem_30(tmp_path):
     assert main(["--path", str(tmp_path), "--packs", "privacidade"]) == 30
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s04_nao_ve_host_em_comentario(tmp_path):
+    """D-01 no check mais antigo da suite, encontrado pelo PRIMEIRO ALVO REAL.
+
+    `// https://vite.dev/config/` num `vite.config.ts` do danzeroum/btv virava
+    "host de terceiro nao registrado". Nenhuma fixture tinha URL em
+    comentario, e por isso o defeito atravessou o projeto inteiro.
+
+    O literal continua contando: `fetch("https://api.terceiro.com")` e egresso
+    de verdade, e ali o literal E o fato. So a MENCAO sai.
+    """
+    (tmp_path / ".privacy").mkdir()
+    (tmp_path / ".privacy" / "third-party-manifest.yml").write_text(
+        "integrations: []\n", encoding="utf-8")
+    (tmp_path / "vite.config.ts").write_text(
+        "// https://vite.dev/config/\n"
+        "import x from 'y'\n"
+        "export default x\n", encoding="utf-8")
+    (tmp_path / "cliente.py").write_text(
+        '# https://so-um-comentario.example.net/doc\n'
+        'import requests\n'
+        'def f():\n'
+        '    return requests.get("https://api.egresso-real.example.net/v1")\n',
+        encoding="utf-8")
+
+    res = executar(tmp_path, {"security"}, {})
+    hosts = " ".join(f.titulo for f in res["findings"] if f.check_id == "S-04")
+    assert "egresso-real" in hosts, "o egresso de verdade sumiu junto"
+    assert "vite.dev" not in hosts, "host em comentario virou achado (D-01)"
+    assert "so-um-comentario" not in hosts, "host em comentario virou achado (D-01)"

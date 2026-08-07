@@ -1,0 +1,41 @@
+# CI da PSE Suite — a suíte, e a trava que confere a documentação de testes
+# ANTES do merge.
+#
+# Por que a trava roda no MESMO job que a suíte: um job separado pode ser
+# desabilitado sozinho, ou ficar de fora da lista de checks obrigatórios da
+# proteção de branch, sem que ninguém note que a conferência parou. Colocá-la
+# aqui faz a trava morrer no mesmo lugar em que a suíte morre.
+#
+# Por que o passo da trava vem ANTES da suíte completa: doc desatualizada é a
+# falha mais provável e a mais fácil de consertar. Vindo primeiro, a mensagem
+# de erro é a primeira coisa que o desenvolvedor lê — e ela diz o comando.
+#
+# Não há `continue-on-error`, não há `|| true`, não há flag de desligar. Uma
+# trava que o vigiado pode desligar não é trava, e `tests/test_indice.py`
+# reprova se alguém acrescentar qualquer um dos três.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+
+jobs:
+  suite:
+    name: Testes + trava de documentação
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar o pacote
+        run: pip install -e ".[dev]"
+
+      - name: Documentação de testes atualizada (fail-closed)
+        run: python -m pytest tests/test_indice.py -q
+
+      - name: Suíte completa
+        run: python -m pytest -q

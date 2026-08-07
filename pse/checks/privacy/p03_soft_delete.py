@@ -1,3 +1,13 @@
+"""P-03 — o "apagado" que continua la.
+
+`deleted_at`, `is_deleted`, `status == 'deleted'`: a linha some da consulta
+e permanece na tabela, no backup e na replica. O Art. 18 VI nao pede que o
+registro deixe de aparecer — pede que ele deixe de existir.
+
+O achado nao e o soft-delete em si, que e padrao legitimo de integridade
+referencial. E o soft-delete SEM contrapartida: nenhuma eliminacao fisica,
+nenhum crypto-shredding, nenhum job que feche o ciclo.
+"""
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade

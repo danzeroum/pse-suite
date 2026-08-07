@@ -4,16 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pse-suite"
-version = "0.3.0"
+version = "0.20.0"
 description = "Suite de evidencias de Privacidade, Seguranca e Etica por Design — padrao externo versionado, consumido por harness (nunca copiado)."
 requires-python = ">=3.10"
-dependencies = ["PyYAML>=6.0", "jsonschema>=4.18"]
+dependencies = [
+  "PyYAML>=6.0",
+  "jsonschema>=4.18",
+  # Dominio frontend: AST real de JS/JSX/TS/TSX. Sem gramatica, os
+  # checks FE-* saem indeterminados — nunca conformes.
+  "tree-sitter>=0.21",
+  "tree-sitter-javascript>=0.21",
+  "tree-sitter-typescript>=0.21",
+]
 
 [project.scripts]
 pse = "pse.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# Camada DINAMICA (Trabalho A por navegador). OPCIONAL de proposito: quem so
+# quer o inventario estatico nao carrega centenas de MB de navegador junto.
+# Ausente, os checks dinamicos ficam INDETERMINADOS com instrucao de
+# instalar — nunca verdes.
+#     pip install 'pse-suite[browser]' && python -m playwright install chromium
+browser = ["playwright>=1.40"]
 
 [tool.setuptools.packages.find]
 include = ["pse*"]
@@ -26,5 +40,13 @@ markers = [
   "pse_privacy: checks do pacote P (Privacidade)",
   "pse_security: checks do pacote S (Seguranca)",
   "pse_ethics: checks do pacote E (Etica)",
+  "pse_frontend: dominio frontend (interface e cliente)",
+  "pse_api: dominio api (borda e contrato)",
+  "pse_backend: dominio backend (servico e integracao)",
+  "pse_data: dominio data (catalogo, retencao, agregacao)",
+  "pse_ai: dominio ai (modelo e decisao automatizada)",
   "mordida: testes negativos que provam que o gate aborta",
+  "pse_dinamico: camada dinamica (Trabalho A por navegador)",
+  "pse_navegador: exige Playwright e binario de navegador instalados",
+  "pse_aceite: teste de aceite contra alvo REAL (pula se o alvo nao existe)",
 ]

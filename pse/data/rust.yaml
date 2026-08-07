@@ -1,0 +1,214 @@
+# Regua do alcance TEXTUAL a Rust — S-06, P-18, P-19, S-16, e as sondas de
+# substrato do mapa de cobertura.
+#
+# POR QUE ESTA REGUA EXISTE, E POR QUE ELA E PEQUENA.
+#
+# `docs/cobertura-btv.md` mediu: 53% do primeiro alvo real e Rust, e a suite
+# lia zero. A resposta OBVIA seria um parser de Rust; a resposta MEDIDA foi
+# outra. O mapa mostrou que o Rust do btv e motor de execucao — gRPC,
+# sandbox, ledger — onde consentimento, dark pattern e PII-em-prompt
+# simplesmente NAO EXISTEM. Um parser inteiro compraria sobretudo
+# nao-aplicavel.
+#
+# Restaram quatro vetores com existencia real em Rust, e os quatro sao
+# alcancaveis por PADRAO TEXTUAL ANCORADO — sem gramatica, sem arvore:
+#
+#   S-06  chave hardcoded          um literal de string numa ligacao
+#   P-18  campo sensivel sem cifra uma chamada de cifra sobre o campo
+#   P-19  evento sem crypto-shred  uma chamada de producao com PII no payload
+#   S-16  persistencia sem jurisd. um literal de regiao numa chamada de conexao
+#
+# O QUE ESTA REGUA NAO E. Ela nao torna a suite capaz de "ler Rust". Ela
+# alcanca QUATRO vetores; todo o resto do Rust segue fora do alcance dos
+# outros checks, e o mapa de cobertura continua dizendo isso em voz alta.
+# Confundir as duas coisas seria a cobertura de fachada que a medicao
+# inteira existiu para evitar.
+#
+# PRECISAO SOBRE RECALL. Sem arvore, o casamento e mais fragil que o de
+# Python e JS. A regra desta regua e errar para MENOS achado: marca ampla
+# demais aqui vira falso-positivo num alvo real, e falso-positivo ensina o
+# time a ignorar o pack inteiro — custo maior que o do achado perdido.
+#
+# Vive AQUI, nunca dentro do .py (D-13), com piso vigiado em
+# tests/test_regua.py.
+
+# ---------------------------------------------------------------- S-06
+# Nomes de ligacao que carregam credencial. Casam por TOKEN (nome_casa), e
+# nao por substring: `keyboard` nao e `key`.
+nomes_de_credencial: [api_key, apikey, access_token, secret, secret_key,
+                      client_secret, token, auth_token, password, passwd,
+                      senha, private_key, signing_key, bearer, credential,
+                      credentials, api_secret, app_secret, webhook_secret]
+
+# Formatos que NAO sao ambiguos: um literal assim e credencial, e o achado
+# pode ser CRITICO mesmo vindo de casamento textual. Fora desta lista, o
+# achado e ALTO — a deteccao textual em Rust nao merece o grau maximo.
+formatos_de_credencial:
+  - "AKIA[0-9A-Z]{16}"                    # AWS access key id
+  - "ASIA[0-9A-Z]{16}"                    # AWS temporaria
+  - "sk-[A-Za-z0-9]{20,}"                 # OpenAI e compativeis
+  - "sk_live_[A-Za-z0-9]{16,}"            # Stripe
+  - "rk_live_[A-Za-z0-9]{16,}"
+  - "gh[pousr]_[A-Za-z0-9]{30,}"          # GitHub
+  - "xox[baprs]-[A-Za-z0-9-]{10,}"        # Slack
+  - "AIza[0-9A-Za-z_-]{30,}"              # Google
+  - "ya29\\.[0-9A-Za-z_-]{20,}"           # Google OAuth
+  - "-----BEGIN [A-Z ]*PRIVATE KEY-----"  # PEM
+  - "eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\."   # JWT
+
+# D-08 EM RUST: de onde a chave vem quando o time fez certo. Nenhuma destas
+# poe segredo no repositorio, e nenhuma delas e um literal de string —
+# entao, na pratica, ligacao que usa uma destas nem chega a ser candidata.
+# A lista existe para o teste-mordida poder afirmar isso, e para a
+# indeterminacao saber distinguir `std::env::var` (runtime, limpo) de
+# `env!` (compilacao, ambiguo).
+origens_seguras_de_segredo: ["std::env::var", "env::var", "var_os",
+                             "dotenvy", "dotenv", "secrecy", "SecretString",
+                             "aws_sdk_secretsmanager", "vaultrs",
+                             "azure_security_keyvault", "google_cloud_kms",
+                             "keyring", "config::Config"]
+
+# Valores que sao PLACEHOLDER, nao segredo. Achado sobre um destes e o
+# D-08 ao contrario: punir o exemplo que o time deixou de proposito.
+placeholders: [changeme, change_me, your_key, your-key, yourkey, replace_me,
+               placeholder, example, exemplo, dummy, fake, sample, todo,
+               xxxxx, "<your", "${", "{{", "insert_", "redacted", "test_key",
+               "not_a_real", "deadbeef"]
+
+# Tamanho minimo do literal para virar candidato. Mais alto que o de Python
+# (12) de proposito: sem arvore, cada caractere a menos e um falso-positivo
+# a mais.
+tamanho_minimo_de_credencial: 16
+
+# ---------------------------------------------------------------- ambiguidade
+# A UNICA fonte de CheckIndeterminado no alcance textual a Rust, e ela e
+# deliberadamente estreita.
+#
+# Estas macros produzem valor em tempo de COMPILACAO. `env!("API_KEY")`
+# nao le o ambiente de execucao: ele grava o valor no binario. Se o valor
+# e um segredo, o binario carrega um segredo — e o texto do `.rs` nao diz
+# qual. Nao da para chamar de achado (pode ser um valor inocuo) nem de
+# limpo (pode ser a chave de producao). E o caso exato de "pode ou nao ser
+# o vetor", e a resposta certa e indeterminado com motivo, nunca um achado
+# forcado nem um verde por conveniencia.
+macros_nao_resolviveis: [env, option_env, include_str, include_bytes,
+                         concat, concat_idents, obfstr, const_format]
+
+# ---------------------------------------------------------------- P-18/P-19
+# Cifra de aplicacao em Rust. Complementa `backend-infra.cifra_de_aplicacao`,
+# que carrega os nomes de Python; estes sao os das crates do ecossistema.
+cifra_de_aplicacao: [aes_gcm, aesgcm, chacha20poly1305, chacha20, xchacha20,
+                     ring::aead, aead, sodiumoxide, orion, rustcrypto,
+                     encrypt, seal_in_place, seal, cocoon, age]
+
+# Barramentos e produtores em Rust. `rdkafka` e `async_nats` sao os nomes
+# das crates; `send`/`publish` sozinhos sao ambiguos e por isso exigem o
+# receptor ou o modulo (mesma regra do P-19 em Python).
+barramentos: [rdkafka, kafka, async_nats, nats, lapin, rabbit, pulsar,
+              rusoto_kinesis, aws_sdk_kinesis, kinesis, eventstore,
+              event_store, outbox, ledger, journal, changelog]
+produtores: [send, send_result, publish, produce, append, emit, dispatch,
+             record, write_event, publish_with_headers]
+# RECEPTORES QUE NAO SAO BARRAMENTO, mesmo num modulo que fala com um.
+#
+# Achado na triagem do btv, e e o falso-positivo mais caro deste alcance.
+# O btv tem um LEDGER no dominio, entao a marca `ledger` aparece em 18
+# arquivos — e a regra "o modulo fala com barramento" tornava elegivel TODO
+# `send` daqueles arquivos: `tx.send(...)` de canal tokio, `builder.send()`
+# de requisicao HTTP do reqwest, `responder.send(...)` de oneshot. Nenhum e
+# escrita em registro append-only, e num repositorio cujo canal carregasse
+# uma struct com `cpf` o check acusaria os tres.
+#
+# 142 dos 161 candidatos do btv eram elegiveis SO pelo modulo. A regra
+# larga demais nao produziu achado ali por sorte — porque nenhum nome de PII
+# caiu no span —, e sorte nao e controle.
+receptores_que_nao_sao_barramento: [tx, rx, sender, receiver, chan, channel,
+                                    builder, req, request, resp, response,
+                                    socket, stream, writer, reader, stdout,
+                                    stderr, file, buf, buffer, responder,
+                                    notify, waker, handle, ctx, cmd]
+
+# ---------------------------------------------------------------- S-16
+# Chamadas de conexao e de cliente de armazenamento em Rust. Complementa
+# `backend-infra.chamadas_de_persistencia`.
+persistencia: [PgPool, PgPoolOptions, MySqlPool, SqlitePool, AnyPool,
+               connect, connect_with, from_conn_str, Client::new,
+               aws_config, from_env, Region, region, endpoint_url,
+               Bucket::new, S3Client, StorageClient, MongoClient,
+               ClientOptions, redis::Client, Pool::builder]
+
+# ------------------------------------------------- P-18: escrita vs leitura
+# A TRIAGEM DO btv ACHOU ISTO, e e o falso-positivo mais numeroso do alcance.
+#
+# P-18 pergunta se um campo sensivel e PERSISTIDO sem cifra. Um `SELECT` nao
+# persiste nada — e dos 17 sites que a sonda levantou no btv, DEZ eram
+# leitura: `query_row("SELECT created_ts, email, nome FROM users ...")`,
+# `query_map`, `query_as`. Acusar um SELECT de gravar em claro e um achado
+# que o time nao consegue corrigir, porque nao ha escrita ali.
+#
+# A ORDEM IMPORTA, e o btv provou por que: `sqlx::query_scalar("INSERT INTO
+# users (..., email, ...)")` tem NOME de leitura e faz ESCRITA. Uma lista de
+# nomes proibidos, sozinha, produziria falso-NEGATIVO exatamente no site que
+# mais importa. Entao o verbo do SQL vence o nome da chamada, e o nome so
+# decide quando nao ha SQL no span.
+leituras_de_persistencia: [query_row, query_map, query_as, query_scalar,
+                           fetch_one, fetch_all, fetch_optional, fetch,
+                           select, find, load, get, read, recall, list,
+                           count, exists, scan_iter]
+verbos_sql_de_escrita: [insert, update, upsert, merge, copy, replace,
+                        "create table", "alter table"]
+verbos_sql_de_leitura: [select]
+# DDL de credencial de BANCO — nao e dado de titular.
+#
+# `sqlx::query("... CREATE ROLE btv_app_teste LOGIN PASSWORD '...'")` casava
+# `password` como campo sensivel: a palavra estava ali como PALAVRA-CHAVE DO
+# SQL, nao como coluna. Administrar role de banco e assunto de S-15, nao de
+# P-18 — e um achado aqui mandaria o time cifrar uma keyword.
+ddl_de_credencial_de_banco: ["create role", "create user", "alter role",
+                             "alter user", "drop role", "drop user",
+                             "grant ", "revoke "]
+
+# ---------------------------------------------------------------- sondas
+# SONDA DE SUBSTRATO — o que faz `nao_aplicavel` ser MEDIDO, e nao alegado.
+#
+# O mapa de cobertura precisa distinguir "o vetor deste check nao existe no
+# Rust deste alvo" de "existe e ninguem olhou". A diferenca nao pode vir de
+# opiniao: alegar nao-aplicabilidade e a forma mais confortavel de inflar
+# cobertura, e seria exatamente o que o mapa foi criado para impedir.
+#
+# Entao cada check com vetor em backend declara aqui as marcas que, se
+# AUSENTES de todo `.rs` do alvo, provam que o vetor nao esta la. Presenca
+# de marca NAO significa achado — significa que o vetor existe e que o
+# check segue cego naquela metade. A sonda so pode empurrar para
+# nao-aplicavel; nunca para auditado.
+sondas:
+  E-00: [predict, infer, inference, forward, model, onnx, tract, candle,
+         torch, tensorflow, llm, classify, score]
+  E-01: [explain, explanation, rationale, justificativa, motivo, reason]
+  E-02: [decision_log, decisionlog, audit_log, auditlog, trilha, decision]
+  E-04: [review, revisao, human, humano, approve, aprovar, escalate]
+  E-11: [openai, anthropic, bedrock, vertex, cohere, mistral, ollama,
+         prompt, completion, chat_completion, llm]
+  E-12: [export, exportar, anonym, anonim, pseudonym, pseudonim, derived,
+         derivado]
+  P-01: [log, tracing, info, warn, error, debug, println, eprintln, slog]
+  P-02: [purge, purgar, retention, retencao, expire, expirar, cleanup,
+         delete_older, ttl]
+  P-03: [deleted_at, is_deleted, soft_delete, softdelete, deleted,
+         removed_at, tombstone]
+  P-06: [pseudonym, pseudonim, hash, hmac, salt, pepper, derive_key, hkdf]
+  P-17: [query, filter, filtro, search, busca, params, Query, web::Query]
+  P-20: [sha256, sha2, sha1, md5, blake3, blake2, digest, hash]
+  S-04: ["http://", "https://", reqwest, hyper, ureq, surf, isahc]
+  S-10: [prompt, completion, system_message, user_message, template,
+         format_prompt, llm]
+  S-11: [Command::new, exec, eval, spawn, shell, query_unchecked, raw_sql,
+         execute, write_all]
+  S-12: [serde, Serialize, Deserialize, utoipa, ToSchema, openapi, schemars]
+  S-13: [Error, anyhow, thiserror, backtrace, panic, unwrap, expect,
+         IntoResponse, ResponseError]
+  # S-22: a finalidade chegando ao servidor Rust. Sao os nomes do cabecalho e
+  # das chaves de finalidade, mais os extratores dos frameworks — sem nenhum
+  # deles no alvo, o vetor de S-22 comprovadamente nao existe ali.
+  S-22: [x-purpose, x_purpose, purpose, finalidade, proposito,
+         legal_basis, base_legal, HeaderMap, headers, TypedHeader]

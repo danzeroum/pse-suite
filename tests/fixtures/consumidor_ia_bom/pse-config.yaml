@@ -1,0 +1,8 @@
+pse_suite:
+  catalog_path: catalog.yaml
+  decision_making: automated
+  packs:
+    ethics:
+      enabled: true
+      fairness_dataset: eval.csv
+      fairness_report: fairness-report.yaml

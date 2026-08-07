@@ -1,0 +1,138 @@
+# Regua da camada dinamica — P-22, S-17, P-23.
+#
+# Adaptado de danzeroum/qa-suite (webqa/trackers.py::TRACKER_DOMAINS), com a
+# lista movida de constante Python para YAML: na PSE toda regua curada mora
+# em pse/data/ e e coberta pelo `catalog_hash` (D-13). Na qa-suite a lista
+# vive no modulo porque a suite dela nao tem o carimbo de procedencia que
+# esta tem — a decisao de mover e adaptacao, nao correcao.
+#
+# Lista deliberadamente CURTA e auditavel. Falso positivo em bateria
+# regulatoria custa credibilidade, entao so entram dominios cuja finalidade
+# primaria e medir ou publicitar.
+#
+# LIMITE HONESTO, que a severidade reflete: o nome do host NAO prova a
+# finalidade do tratamento. Um `googletagmanager.com` pode estar servindo
+# uma tag que respeita consentimento. Por isso P-22 e ALTO e nao CRITICO:
+# e sinal forte, nao prova cabal. A qa-suite marca o mesmo indicio como
+# xfail; aqui ele entra no laudo com a severidade que o indicio merece.
+
+rastreadores:
+  - google-analytics.com
+  - googletagmanager.com
+  - doubleclick.net
+  - connect.facebook.net
+  - facebook.net
+  - hotjar.com
+  - hotjar.io
+  - clarity.ms
+  - mixpanel.com
+  - segment.com
+  - segment.io
+  - amplitude.com
+  - criteo.com
+  - criteo.net
+  - taboola.com
+  - outbrain.com
+  - tiktok.com
+  - analytics.tiktok.com
+  - bat.bing.com
+  - ads.linkedin.com
+  - px.ads.linkedin.com
+
+# Prefixos de NOME de cookie que denunciam medicao/publicidade. Casam por
+# prefixo do nome, nunca por substring perdida no meio.
+cookies_nao_essenciais:
+  - _ga
+  - _gid
+  - _gat
+  - _gcl
+  - _fbp
+  - _fbc
+  - _hj
+  - _uet
+  - _clck
+  - _clsk
+  - _ttp
+  - ajs_
+  - amplitude_
+  - mp_
+  - IDE
+  - MUID
+  - personalization_id
+
+# Cookies que a propria operacao exige. Nunca viram achado de consentimento:
+# exigir opt-in para o cookie que mantem a sessao de pe seria cobrar do time
+# uma coisa que a lei nao pede e que quebraria o produto.
+cookies_essenciais:
+  - session
+  - sessionid
+  - sid
+  - jsessionid
+  - phpsessid
+  - csrf
+  - xsrf
+  - csrftoken
+  - _csrf
+  - auth
+  - authorization
+  - remember_token
+  - lang
+  - locale
+  - i18n
+  - consent
+  - cookieconsent
+  - cookie_consent
+
+# Prefixos que identificam um cookie como PORTADOR DE SESSAO — o que S-17
+# audita. Um cookie destes sem HttpOnly, Secure e SameSite entrega a sessao
+# a qualquer XSS e a qualquer rede intermediaria.
+cookies_de_sessao:
+  - session
+  - sessionid
+  - sess
+  - sid
+  - jsessionid
+  - phpsessid
+  - asp.net_sessionid
+  - connect.sid
+  - auth
+  - authorization
+  - token
+  - jwt
+  - access_token
+  - refresh_token
+  - remember_token
+
+# Atributos que um cookie de sessao tem de carregar, com o que cada um
+# impede. O texto entra no achado: severidade sem explicacao vira ruido.
+atributos_exigidos_em_sessao:
+  httpOnly: "sem HttpOnly, qualquer XSS le o cookie por document.cookie e a
+    sessao viaja junto com o payload do atacante"
+  secure: "sem Secure, o navegador envia o cookie tambem em http:// — uma
+    rede intermediaria captura a sessao inteira em claro"
+  sameSite: "sem SameSite, o cookie acompanha requisicao originada de outro
+    site, que e a definicao de CSRF"
+
+# Valores de SameSite que NAO protegem. `none` e explicitamente permissivo.
+samesite_sem_protecao:
+  - none
+  - ""
+
+# Onde a PII pode aparecer em transito, observada no HTML entregue. Cada
+# lugar tem um vazamento proprio, e por isso sao grupos separados.
+superficies_de_transito:
+  query: "a query string vai inteira para o log do servidor, para o log do
+    proxy, para o historico do navegador e para o cabecalho Referer da
+    proxima requisicao — inclusive as de terceiros"
+  formulario_get: "formulario com method=GET publica o que o titular digitou
+    na barra de enderecos e no historico"
+  referer: "o Referer leva a URL de origem para o terceiro contactado, entao
+    PII na URL da pagina vaza para quem ela chamar"
+
+# Engines de navegador que a suite aceita. Engine fora daqui e ERRO
+# fail-closed, nunca filtro silencioso: um typo (`chromiun`) que degenerasse
+# em "rodou zero engines e passou" seria a pior forma de verde falso.
+engines_validas:
+  - chromium
+  - firefox
+  - webkit

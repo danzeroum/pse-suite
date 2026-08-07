@@ -1,0 +1,7 @@
+integrations:
+  - name: parceiro-coleta
+    hosts: [coleta.parceiro.example.net]
+    dpa_signed: true
+    dpa_path: contratos/parceiro.pdf
+    data_residency: BR
+    egress_fields: [id_pseudonimo, evento]

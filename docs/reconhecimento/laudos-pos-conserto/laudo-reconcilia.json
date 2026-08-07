@@ -1,0 +1,494 @@
+{
+  "schema": "laudo-pse-1.0",
+  "artifact": {
+    "suite": "pse-suite",
+    "suite_version": "0.4.0",
+    "schema_version": "laudo-pse-1.0",
+    "catalog_hash": "0654bdc11bda55e922a5d4f57c55be55adf8a9b78d252995ab6c7f70151c9302",
+    "repo_commit": "2a89a1b293a58548c7e90c4a1644e7a33ee973e8",
+    "config_fingerprint": null,
+    "timestamp_utc": "2026-08-07T18:50:49Z",
+    "modo": "pse_inventory",
+    "autorizacao": null
+  },
+  "veredito": "violacao",
+  "exit_code": 10,
+  "packs": [
+    "ethics",
+    "privacy",
+    "security"
+  ],
+  "packs_desabilitados": [],
+  "resumo": {
+    "total_findings": 27,
+    "por_severidade": {
+      "CRITICO": 7,
+      "ALTO": 14,
+      "MEDIO": 6
+    }
+  },
+  "cobertura": {
+    "catalogo_total": 30,
+    "implementados_nos_packs": 29,
+    "executados": 13
+  },
+  "checks_executados": [
+    "E-00",
+    "E-04",
+    "E-05",
+    "E-07",
+    "E-10",
+    "P-01",
+    "P-03",
+    "P-04",
+    "P-06",
+    "P-07",
+    "P-09",
+    "S-04",
+    "S-06"
+  ],
+  "checks_pulados": [
+    {
+      "id": "P-02",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "P-08",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "S-05",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    },
+    {
+      "id": "S-08",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    }
+  ],
+  "checks_indeterminados": [
+    {
+      "id": "E-06",
+      "motivo": "dataset de avaliacao ausente: nenhum `fairness_dataset` declarado em pse-config.yaml. Fairness sem dados representativos e teatro, e a suite nao sai procurando qual arquivo seria o dataset"
+    }
+  ],
+  "checks_previstos": [
+    {
+      "id": "E-08",
+      "pack": "ethics",
+      "titulo": "Provenance/lineage — origem, transformacao e destino rastreaveis",
+      "status": "previsto-fase-3",
+      "modo": "inventory",
+      "motivo": "declarado no catalogo da suite como previsto-fase-3 — nao implementado nesta versao do pacote"
+    }
+  ],
+  "checks_nao_habilitados": [
+    {
+      "id": "E-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-09",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-05",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-10",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-11",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-07",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  ],
+  "packs_fora_de_escopo": [],
+  "relatorios": {
+    "cobertura_catalogo": {
+      "presente": false
+    },
+    "cobertura_parcial": {
+      "P-07": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado.",
+      "P-09": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  },
+  "findings": [
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/api/routes/auth.py",
+      "linha": 122,
+      "snippet": "logger.info(",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/api/routes/auth.py",
+      "linha": 69,
+      "snippet": "logger.warning(\"login_blocked_locked_out\", email=request.email, retry_after=locked_for)",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/api/routes/auth.py",
+      "linha": 79,
+      "snippet": "logger.warning(\"login_failed_user_not_found\", email=request.email)",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/api/routes/auth.py",
+      "linha": 95,
+      "snippet": "logger.warning(\"login_failed_invalid_password\", user_id=str(user.id), email=user.email)",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/infrastructure/repositories/postgresql_user_repository.py",
+      "linha": 39,
+      "snippet": "self._logger.debug(\"user_found\", user_id=str(model.id), email=email)",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Log grava dado pessoal sem mascaramento",
+      "descricao": "Chamada de log recebe dado pessoal sem pseudonimizacao (variavel 'email' vai crua para o log) — risco de exposicao em vazamento de logs.",
+      "recomendacao": "Mascarar PII antes de logar (ex.: mascarar(cpf)); logs sensiveis com chave KMS separada.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "src/infrastructure/repositories/postgresql_user_repository.py",
+      "linha": 36,
+      "snippet": "self._logger.debug(\"user_not_found\", email=email)",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Log possivelmente grava dado pessoal sem mascaramento",
+      "descricao": "Identificador pessoal aparece em chamada de log. Sem AST para esta linguagem, a suite nao consegue provar se ha mascaramento — severidade rebaixada, revisao manual.",
+      "recomendacao": "Mascarar PII antes de logar; confirmar manualmente ate a suite ganhar AST para esta linguagem.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "scripts/smoke-test-console.js",
+      "linha": 38,
+      "snippet": "if(token)log('Token do app encontrado — usando a sessão atual.');",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Log possivelmente grava dado pessoal sem mascaramento",
+      "descricao": "Identificador pessoal aparece em chamada de log. Sem AST para esta linguagem, a suite nao consegue provar se ha mascaramento — severidade rebaixada, revisao manual.",
+      "recomendacao": "Mascarar PII antes de logar; confirmar manualmente ate a suite ganhar AST para esta linguagem.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "scripts/smoke-test-console.js",
+      "linha": 40,
+      "snippet": "log('Sem sessão — login:',CONFIG.EMAIL);",
+      "trace": null
+    },
+    {
+      "check_id": "P-01",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Log possivelmente grava dado pessoal sem mascaramento",
+      "descricao": "Identificador pessoal aparece em chamada de log. Sem AST para esta linguagem, a suite nao consegue provar se ha mascaramento — severidade rebaixada, revisao manual.",
+      "recomendacao": "Mascarar PII antes de logar; confirmar manualmente ate a suite ganhar AST para esta linguagem.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "scripts/smoke-test-console.js",
+      "linha": 45,
+      "snippet": "try{const p=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));log('Autenticado como →',{email:p.email,roles:p.roles,tenant_id:p.tenant_id});}catch{}",
+      "trace": null
+    },
+    {
+      "check_id": "P-04",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Catalogo de dados ausente",
+      "descricao": "Sem inventario (campo -> classe, dono, finalidade, base legal, retencao) nenhum outro controle de privacidade opera.",
+      "recomendacao": "Criar tests/qa/catalog.yaml conforme pse/schemas/catalog-1.0.json.",
+      "base_legal": "LGPD Art. 37",
+      "arquivo": "tests/qa/catalog.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "CRITICO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "scripts/generate_test_password.py",
+      "linha": 9,
+      "snippet": "password = \"Se***\"",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste e o proprio valor se declara sintetico. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/integration/test_acquirer_clients.py",
+      "linha": 33,
+      "snippet": "password=\"te***\",",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste e o proprio valor se declara sintetico. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/unit/security/test_jwt_handler.py",
+      "linha": 15,
+      "snippet": "handler = JWTHandler(secret_key=\"te***\")",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste e o proprio valor se declara sintetico. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/unit/security/test_jwt_handler.py",
+      "linha": 32,
+      "snippet": "handler = JWTHandler(secret_key=\"te***\", access_token_expire_minutes=-1)",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste e o proprio valor se declara sintetico. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/unit/security/test_jwt_handler.py",
+      "linha": 43,
+      "snippet": "handler = JWTHandler(secret_key=\"te***\")",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/unit/security/test_password_hasher.py",
+      "linha": 17,
+      "snippet": "password = \"Se***\"",
+      "trace": null
+    },
+    {
+      "check_id": "P-06",
+      "pack": "privacy",
+      "severidade": "MEDIO",
+      "titulo": "Chave/segredo em texto claro no codigo",
+      "descricao": "Chave de pseudonimizacao ou segredo hardcoded — vazamento do repositorio revela os dados protegidos. SEVERIDADE REBAIXADA PARA MEDIO: o arquivo esta num caminho de teste. O achado continua no laudo e deixa de dirigir o exit code — mas nao foi suprimido, porque segredo real vaza em codigo de teste com frequencia. Confirme que este valor nao abre nada.",
+      "recomendacao": "Mover para cofre (Vault/KMS/Secret Manager) com rotacao; nunca versionar o valor.",
+      "base_legal": "LGPD Art. 46",
+      "arquivo": "tests/unit/security/test_password_hasher.py",
+      "linha": 41,
+      "snippet": "password = \"Sa***\"",
+      "trace": null
+    },
+    {
+      "check_id": "P-07",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Modelo de consentimento ausente",
+      "descricao": "Nenhum modelo em tests/qa/consent-model.yaml. Sem finalidades declaradas nao ha como saber a que o titular consentiu — nem para registrar, nem para revogar.",
+      "recomendacao": "Criar tests/qa/consent-model.yaml conforme pse/schemas/consent-model-1.0.json.",
+      "base_legal": "LGPD Art. 7o-8o",
+      "arquivo": "tests/qa/consent-model.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-09",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Agregacao sem supressao de celula rara",
+      "descricao": "Consulta agrega com GROUP BY e nao filtra celulas pequenas (HAVING COUNT(*) >= 5). Uma celula com poucos titulares reidentifica: agregado nao e anonimo por definicao, e sim por tamanho.",
+      "recomendacao": "Adicionar HAVING COUNT(*) >= 5 e suprimir ou agrupar as celulas abaixo do piso.",
+      "base_legal": "reidentificacao / LGPD Art. 12",
+      "arquivo": "scripts/database/init-schema.sql",
+      "linha": 452,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.cielo.com.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "tests/integration/test_cielo_integration.py",
+      "linha": 44,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.stone.com.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "src/infrastructure/acquirers/stone_api_client.py",
+      "linha": 21,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.test",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "tests/unit/infrastructure/test_cielo_conciliator_client.py",
+      "linha": 29,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.userede.com.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 51,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: app.conciliaai.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "src/api/gateway.py",
+      "linha": 28,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: github.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".pre-commit-config.yaml",
+      "linha": 2,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: hook.example",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "tests/unit/test_auto_import_alert.py",
+      "linha": 35,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: rl7-sandbox-api.useredecloud.com.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 50,
+      "snippet": null,
+      "trace": null
+    }
+  ],
+  "duracao_s": 4.82
+}

@@ -1,0 +1,22 @@
+# Regua do dominio frontend. Termos que identificam a SUPERFICIE examinada —
+# nao substituem a regua de PII (pii-patterns.yaml), que continua sendo a
+# fonte do que e dado pessoal.
+#
+# Vigiada por teste-guarda: esvaziar um grupo aqui cega um check inteiro.
+
+# P-13: como um controle de consentimento se identifica na interface.
+consentimento: [consent, consentimento, aceito, aceite, optin, opt_in,
+                termos, cookies, marketing, newsletter, privacidade,
+                compartilhar, autorizo, permito]
+
+# P-13: handlers que provam que a escolha e do usuario, nao do produto.
+handlers_de_mudanca: [onchange, oncheckedchange, onvaluechange, ontoggle,
+                      onclick, oninput, onpress, onselect]
+
+# P-14: onde o cliente persiste ou expoe dado.
+armazenamento_cliente: [localstorage, sessionstorage, indexeddb]
+
+# S-09: o que nunca deveria viver no cliente.
+segredos_cliente: [token, jwt, access_token, refresh_token, id_token, secret,
+                   senha, password, apikey, api_key, credential, authorization,
+                   bearer]
