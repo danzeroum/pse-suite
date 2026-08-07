@@ -77,6 +77,19 @@ DECLARACAO_DE_EXCECAO = "CHECKS_FORA_DO_CATALOGO"
 
 EXCECOES = ("SkipCheck", "CheckIndeterminado", "NaoHabilitado")
 
+# As portas por onde um teste EXERCITA um check. Citar o ID nao basta: uma
+# asercao de que `S-22` consta do catalogo e uma verificacao sobre a
+# DECLARACAO, nao sobre o comportamento — e contar isso como cobertura faria
+# a trava de orfao aceitar um check que ninguem jamais rodou.
+#
+# Foi assim que a trava quase deixou passar: removidos os testes de S-22,
+# duas asercoes de pertencimento sobreviveram e o check continuou "coberto".
+# Um teste conta quando a funcao que cita o ID ALCANCA uma destas portas —
+# diretamente, ou por um auxiliar de modulo (`rodar`, `escrever`) que as
+# alcance. E o mesmo D-01 mais uma volta: nao basta o ID aparecer no codigo,
+# ele tem de aparecer em codigo que executa o check.
+MOTORES = ("executar", "main", "provar", "provar_todas")
+
 
 class ArvoreAusente(Exception):
     """Gerador rodando fora do repositorio — sem `tests/`, nao ha o que gerar.
@@ -246,11 +259,42 @@ def analisar_arquivo_de_teste(caminho: Path) -> dict:
                 nao_resolviveis.append(no.name)
             casos += n
 
-    ids = set()
+    # Funcoes de modulo que alcancam o motor, direta ou indiretamente.
+    chamadas_de = {}
+    for no in arvore.body:
+        if isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            chamadas_de[no.name] = {
+                ast.unparse(x.func).split(".")[-1]
+                for x in ast.walk(no) if isinstance(x, ast.Call)}
+
+    def alcanca_o_motor(nome, vistos=None):
+        vistos = vistos if vistos is not None else set()
+        if nome in vistos:
+            return False
+        vistos.add(nome)
+        for chamada in chamadas_de.get(nome, ()):
+            if chamada in MOTORES:
+                return True
+            if chamada in chamadas_de and alcanca_o_motor(chamada, vistos):
+                return True
+        return False
+
+    # `ids` e TODA citacao — e o que pega a referencia fantasma, esteja ela
+    # onde estiver. `exercitados` e o subconjunto que vale como cobertura.
+    ids, exercitados = set(), set()
     for no in ast.walk(arvore):
         if isinstance(no, ast.Constant) and isinstance(no.value, str):
             if RX_ID.match(no.value):
                 ids.add(no.value)
+    for no in ast.walk(arvore):
+        if not isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if not no.name.startswith("test_") or not alcanca_o_motor(no.name):
+            continue
+        for sub in ast.walk(no):
+            if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
+                if RX_ID.match(sub.value):
+                    exercitados.add(sub.value)
 
     modulos = set()
     for no in ast.walk(arvore):
@@ -281,6 +325,7 @@ def analisar_arquivo_de_teste(caminho: Path) -> dict:
         "parametrizacoes_opacas": sorted(nao_resolviveis),
         "marcadores": sorted(_marcadores(arvore)),
         "ids_citados": sorted(ids),
+        "ids_exercitados": sorted(exercitados),
         "modulos_de_check": sorted(modulos),
         "excecoes_declaradas": excecoes,
         "descricao": doc.split("\n")[0].strip() if doc else "",
@@ -363,8 +408,12 @@ def descricao_de(c: dict) -> str:
 def cobertura_de_checks(fichas=None) -> dict:
     """check -> arquivos de teste que o cobrem, e os dois defeitos simetricos.
 
-    Coberto por IMPORTACAO (o teste importa o modulo do check) ou por ID (o
-    ID aparece como literal na arvore do teste). As duas evidencias sao
+    Coberto por IMPORTACAO (o teste importa o modulo do check) ou por ID —
+    e, no segundo caso, so quando o ID aparece dentro de uma funcao de teste
+    que ALCANCA o motor (`executar`, `main`, `provar`), direta ou por um
+    auxiliar de modulo. Citar o ID numa asercao sobre o catalogo verifica a
+    declaracao, nao o comportamento, e contar isso como cobertura faria a
+    trava aceitar um check que ninguem jamais rodou. As duas evidencias sao
     registradas separadamente para que o indice diga COMO cada check e
     coberto, e nao apenas que e.
 
@@ -400,9 +449,11 @@ def cobertura_de_checks(fichas=None) -> dict:
             cid = modulo_do_check.get(mod)
             if cid:
                 por_check[cid]["por_import"].append(f["arquivo"])
-        for cid in f["ids_citados"]:
+        for cid in f["ids_exercitados"]:
             if cid in por_check:
                 por_check[cid]["por_id"].append(f["arquivo"])
+        for cid in f["ids_citados"]:
+            if cid in por_check:
                 continue
             if not catalogo.PILAR_DO_PREFIXO.get(cid.split("-")[0]):
                 continue          # `FE-01` e prefixo de dominio: outro teste cuida
@@ -1056,7 +1107,7 @@ def gerar_indice(versao=None, data=None) -> str:
     L += _tabela(["Arquivo", "Checks que exercita"],
                  [[f"`{a}`",
                    ", ".join(f"`{c}`" for c in sorted(
-                       set(fichas[a]["ids_citados"]) & set(cob["por_check"])))
+                       set(fichas[a]["ids_exercitados"]) & set(cob["por_check"])))
                    or "—"]
                   for a in sorted(fichas) if fichas[a]["funcoes"]])
 

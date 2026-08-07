@@ -12,7 +12,7 @@ produto; a segunda e a garantia de que o produto nao mente.
 | Camada | O que e | Quantidade | Onde vive | Contra quem roda |
 |---|---|---|---|---|
 | **A — Checks** | O que a PSE audita num alvo | **58** checks | `pse/checks/**` | O sistema auditado |
-| **B — Testes** | O que prova que os checks funcionam | **612** funcoes / **677+** casos | `tests/**` | A propria PSE |
+| **B — Testes** | O que prova que os checks funcionam | **614** funcoes / **679+** casos | `tests/**` | A propria PSE |
 
 ---
 
@@ -155,9 +155,9 @@ Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`
 
 ---
 
-# Camada B — os 612 testes da suite
+# Camada B — os 614 testes da suite
 
-30 arquivos com teste (9302 linhas), mais 2 auxiliares (`conftest.py`, `helpers_alvo.py`). Divididos por **familia de garantia**, nao por ordem alfabetica.
+30 arquivos com teste (9340 linhas), mais 2 auxiliares (`conftest.py`, `helpers_alvo.py`). Divididos por **familia de garantia**, nao por ordem alfabetica.
 
 ## B.1 As familias
 
@@ -168,7 +168,7 @@ Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`
 | Contrato e autorizacao | 4 | 64 | 80 |
 | Cobertura honesta | 3 | 54 | 59 |
 | A regua e o catalogo (D-13) | 4 | 62 | 69 |
-| Provas negativas — o gate tem de morder | 5 | 71 | 71 |
+| Provas negativas — o gate tem de morder | 5 | 73 | 73 |
 | Integracao de ponta a ponta | 2 | 37 | 41 |
 
 ## B.2 Um arquivo por pacote de checks — 223 funcoes
@@ -229,13 +229,13 @@ Lista curada mora em `pse/data/`, nunca no `.py` do check e nunca copiada ao con
 | `test_regua.py` | 29 | 29 | `parametrize` | D-13 — a regua curada e vigiada. |
 | `test_versao.py` | 4 | 5 | `parametrize` | Gap 5 — a versao tem UMA fonte, e ninguem a restata em silencio. |
 
-## B.7 Provas negativas — o gate tem de morder — 71 funcoes
+## B.7 Provas negativas — o gate tem de morder — 73 funcoes
 
 Check que nunca foi visto reprovando nada e hipotese, nao trava.
 
 | Arquivo | Fn | Casos | Marcadores | O que garante |
 |---|---|---|---|---|
-| `test_indice.py` | 32 | 32 | `mordida` | A TRAVA — documentação de testes obrigatória, conferida a cada merge. |
+| `test_indice.py` | 34 | 34 | `mordida` | A TRAVA — documentação de testes obrigatória, conferida a cada merge. |
 | `test_mordida.py` | 9 | 9 | `mordida`, `pse_ethics` | Os repo-provas do Relatorio de Validacao, virados testes permanentes. |
 | `test_mutacao.py` | 5 | 5 | `mordida`, `parametrize` | Gap 4 — prova de mutacao: todo check bloqueante tem inverso canonico. |
 | `test_ratificacao.py` | 21 | 21 | — | As nove ratificações, seladas pelo COMPORTAMENTO e não pela prosa. |

@@ -243,6 +243,44 @@ def test_citacao_declarada_nao_reprova_e_aparece_no_indice(tmp_path):
 
 
 @pytest.mark.mordida
+def test_citacao_que_nao_exercita_o_check_nao_conta_como_cobertura(tmp_path):
+    """A trava quase deixou passar por aqui. Removidos os testes de S-22, duas
+    asserções de que ele consta do catálogo sobreviveram — e o check continuou
+    "coberto" sem que nada o rodasse.
+
+    Uma asserção sobre a DECLARAÇÃO verifica que o check foi anunciado, não
+    que ele funciona. É o D-01 mais uma volta: não basta o ID aparecer no
+    código, ele tem de aparecer em código que EXECUTA o check."""
+    so_declara = _ficha_sintetica(
+        tmp_path, "test_so_declara.py",
+        "from pse import catalogo\n"
+        "def test_x():\n"
+        "    assert 'P-01' in catalogo.CATALOGO\n")
+    cob = testes.cobertura_de_checks(fichas=[so_declara])
+    assert cob["por_check"]["P-01"]["arquivos"] == [], (
+        "asserção de pertencimento ao catálogo contou como cobertura")
+    assert "P-01" in so_declara["ids_citados"], (
+        "a citação continua visível — é ela que pega referência fantasma")
+
+
+@pytest.mark.mordida
+def test_citacao_que_roda_o_motor_conta(tmp_path):
+    """A contrapartida, e o caso comum: o teste chama um auxiliar de módulo
+    (`rodar`) que chama `executar`. Exigir a chamada direta ao motor
+    reprovaria metade da suíte por estilo, não por falta de cobertura."""
+    ficha = _ficha_sintetica(
+        tmp_path, "test_exercita.py",
+        "from pse.engine.runner import executar\n"
+        "def rodar(p):\n"
+        "    return executar(p, {'privacy'}, {})\n"
+        "def test_x(tmp_path):\n"
+        "    res = rodar(tmp_path)\n"
+        "    assert not [f for f in res['findings'] if f.check_id == 'P-01']\n")
+    cob = testes.cobertura_de_checks(fichas=[ficha])
+    assert cob["por_check"]["P-01"]["por_id"] == ["test_exercita.py"]
+
+
+@pytest.mark.mordida
 def test_prefixo_de_dominio_nao_vira_fantasma(tmp_path):
     """`FE-01` e `AP-01` são IDs que a suíte barra por outro motivo (prefixo
     codifica pilar, nunca domínio) e que `test_dominio.py` cita de propósito.
