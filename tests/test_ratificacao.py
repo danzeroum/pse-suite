@@ -169,6 +169,17 @@ def test_r5_email_reservado_nao_dispara_e_o_vivo_dispara(tmp_path):
 # `docs/RATIFICACOES.md` não foi atualizado — e as duas exigem revisão humana.
 CHECKS_BLOQUEADOS = ("P-12", "S-09")
 
+# A trava de órfão reprova todo teste que cite ID fora do catálogo — é assim
+# que se pega o teste que ficou para trás depois de um check ser renomeado.
+# Aqui os IDs inexistentes SÃO o corpo de prova: eles existem para provar que
+# os dois checks bloqueados não foram implementados. A exceção fica declarada,
+# com motivo, e some no dia em que os checks entrarem.
+CHECKS_FORA_DO_CATALOGO = {
+    "P-12": "check de PAN, bloqueado por A-01 — citado aqui para provar que "
+            "NÃO está no catálogo",
+    "S-09": "ID alternativo do mesmo check de PAN (D-05), pela mesma razão",
+}
+
 
 @pytest.mark.mordida
 def test_checks_bloqueados_por_pergunta_do_dono_nao_existem():
