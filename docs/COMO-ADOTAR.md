@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.3.0
+pse-suite==0.4.0
 ```
 
 ## 2. Config declarativa

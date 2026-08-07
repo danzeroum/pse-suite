@@ -19,6 +19,7 @@
 | 2 | [`PROVA-NAO-FALSO-POSITIVO.md`](PROVA-NAO-FALSO-POSITIVO.md) | **Etapa 2b** — a régua não pune o crypto-shredding correto. O artefato mais importante da rodada |
 | 3 | [`PROPOSTA-CHECK-PAN-PCI.md`](PROPOSTA-CHECK-PAN-PCI.md) · [`PROPOSTA-CHECK-SIGILO-LLM.md`](PROPOSTA-CHECK-SIGILO-LLM.md) | **Etapa 3** — especificação dos 2 checks. Não implementados |
 | 4 | [`PENDENCIAS-DO-DONO.md`](PENDENCIAS-DO-DONO.md) | O que a PSE não pode decidir |
+| 5 | [`delta-conserto.md`](delta-conserto.md) | **Rodada de conserto (v0.4.0)** — os 3 refinos que esta rodada expôs, remedidos contra os mesmos 6 alvos e os mesmos commits |
 
 **Nota de premissa:** o enunciado descreve uma suíte de 58 checks, ~713 testes,
 `RATIFICACOES.md`, `docs/matriz-dominio.md`, `E-11` e `P-18/19/20`. Nada disso

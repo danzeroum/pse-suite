@@ -1,0 +1,623 @@
+{
+  "schema": "laudo-pse-1.0",
+  "artifact": {
+    "suite": "pse-suite",
+    "suite_version": "0.4.0",
+    "schema_version": "laudo-pse-1.0",
+    "catalog_hash": "0654bdc11bda55e922a5d4f57c55be55adf8a9b78d252995ab6c7f70151c9302",
+    "repo_commit": "87f49348da3da594d82b1b8a54ecc179bbc2800f",
+    "config_fingerprint": null,
+    "timestamp_utc": "2026-08-07T18:51:02Z",
+    "modo": "pse_inventory",
+    "autorizacao": null
+  },
+  "veredito": "indeterminado",
+  "exit_code": 20,
+  "packs": [
+    "ethics",
+    "privacy",
+    "security"
+  ],
+  "packs_desabilitados": [],
+  "resumo": {
+    "total_findings": 37,
+    "por_severidade": {
+      "ALTO": 28,
+      "MEDIO": 9
+    }
+  },
+  "cobertura": {
+    "catalogo_total": 30,
+    "implementados_nos_packs": 29,
+    "executados": 13
+  },
+  "checks_executados": [
+    "E-00",
+    "E-04",
+    "E-05",
+    "E-07",
+    "E-10",
+    "P-01",
+    "P-03",
+    "P-04",
+    "P-06",
+    "P-07",
+    "P-09",
+    "S-04",
+    "S-06"
+  ],
+  "checks_pulados": [
+    {
+      "id": "P-02",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "P-08",
+      "motivo": "catalogo de dados ausente — cobrado por P-04"
+    },
+    {
+      "id": "S-05",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    },
+    {
+      "id": "S-08",
+      "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+    }
+  ],
+  "checks_indeterminados": [
+    {
+      "id": "E-06",
+      "motivo": "dataset de avaliacao ausente: nenhum `fairness_dataset` declarado em pse-config.yaml. Fairness sem dados representativos e teatro, e a suite nao sai procurando qual arquivo seria o dataset"
+    }
+  ],
+  "checks_previstos": [
+    {
+      "id": "E-08",
+      "pack": "ethics",
+      "titulo": "Provenance/lineage — origem, transformacao e destino rastreaveis",
+      "status": "previsto-fase-3",
+      "modo": "inventory",
+      "motivo": "declarado no catalogo da suite como previsto-fase-3 — nao implementado nesta versao do pacote"
+    }
+  ],
+  "checks_nao_habilitados": [
+    {
+      "id": "E-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "E-09",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-05",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-10",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "P-11",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-01",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-02",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-03",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    },
+    {
+      "id": "S-07",
+      "motivo": "Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  ],
+  "packs_fora_de_escopo": [],
+  "relatorios": {
+    "cobertura_catalogo": {
+      "presente": false
+    },
+    "cobertura_parcial": {
+      "P-07": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado.",
+      "P-09": "metade runtime nao executada: Trabalho A nao habilitado: nenhum `target` declarado em pse-config.yaml. Check previsto e nao habilitado."
+    }
+  },
+  "findings": [
+    {
+      "check_id": "E-07",
+      "pack": "ethics",
+      "severidade": "ALTO",
+      "titulo": "Codigo de ML sem Model Card versionado",
+      "descricao": "Ha treino/inferencia de modelo sem documentacao formal de proposito, limitacoes, dados de treino e metricas de fairness.",
+      "recomendacao": "Criar model-card.yaml (Mitchell et al., 2019) versionado com o codigo; validar no CI.",
+      "base_legal": "EbD-AI / LGPD Art. 20",
+      "arquivo": "services/audit/anomaly/detector.py",
+      "linha": 19,
+      "snippet": "from sklearn",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'healthy' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "docs/engines.py",
+      "linha": 111,
+      "snippet": "def healthy(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'score' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "docs/factory.py",
+      "linha": 41,
+      "snippet": "def score(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'test_score_dentro_do_intervalo' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "docs/test_score_engine_contract.py",
+      "linha": 52,
+      "snippet": "def test_score_dentro_do_intervalo(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'detect' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "services/audit/anomaly/detector.py",
+      "linha": 53,
+      "snippet": "def detect(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'healthy' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "services/scoring/engine/engines.py",
+      "linha": 110,
+      "snippet": "def healthy(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'score' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "services/scoring/engine/factory.py",
+      "linha": 41,
+      "snippet": "def score(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'test_score_dentro_do_intervalo' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "services/scoring/tests/contract/test_score_engine_contract.py",
+      "linha": 52,
+      "snippet": "def test_score_dentro_do_intervalo(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'test_engine_produces_valid_result_with_real_features' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "tests/unit/test_feature_assembler.py",
+      "linha": 142,
+      "snippet": "def test_engine_produces_valid_result_with_real_features(...)",
+      "trace": null
+    },
+    {
+      "check_id": "E-10",
+      "pack": "ethics",
+      "severidade": "MEDIO",
+      "titulo": "Decisao de 'test_python_engine_deterministico' sem incerteza quantificada",
+      "descricao": "A funcao produz uma inferencia pontual e nao calcula nenhuma medida de confianca. Sem isso, decisao limitrofe e decisao folgada sao indistinguiveis — e e a limitrofe que precisa de revisao humana.",
+      "recomendacao": "Devolver probabilidade/intervalo junto do escore e rotear os casos de baixa confianca para analise.",
+      "base_legal": "robustez / EbD-AI",
+      "arquivo": "tests/unit/test_score_factory.py",
+      "linha": 51,
+      "snippet": "def test_python_engine_deterministico(...)",
+      "trace": null
+    },
+    {
+      "check_id": "P-04",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Catalogo de dados ausente",
+      "descricao": "Sem inventario (campo -> classe, dono, finalidade, base legal, retencao) nenhum outro controle de privacidade opera.",
+      "recomendacao": "Criar tests/qa/catalog.yaml conforme pse/schemas/catalog-1.0.json.",
+      "base_legal": "LGPD Art. 37",
+      "arquivo": "tests/qa/catalog.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-07",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Modelo de consentimento ausente",
+      "descricao": "Nenhum modelo em tests/qa/consent-model.yaml. Sem finalidades declaradas nao ha como saber a que o titular consentiu — nem para registrar, nem para revogar.",
+      "recomendacao": "Criar tests/qa/consent-model.yaml conforme pse/schemas/consent-model-1.0.json.",
+      "base_legal": "LGPD Art. 7o-8o",
+      "arquivo": "tests/qa/consent-model.yaml",
+      "linha": 1,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-09",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Agregacao sem supressao de celula rara",
+      "descricao": "Consulta agrega com GROUP BY e nao filtra celulas pequenas (HAVING COUNT(*) >= 5). Uma celula com poucos titulares reidentifica: agregado nao e anonimo por definicao, e sim por tamanho.",
+      "recomendacao": "Adicionar HAVING COUNT(*) >= 5 e suprimir ou agrupar as celulas abaixo do piso.",
+      "base_legal": "reidentificacao / LGPD Art. 12",
+      "arquivo": "services/early_warning/queries.py",
+      "linha": 30,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-09",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Agregacao sem supressao de celula rara",
+      "descricao": "Consulta agrega com GROUP BY e nao filtra celulas pequenas (HAVING COUNT(*) >= 5). Uma celula com poucos titulares reidentifica: agregado nao e anonimo por definicao, e sim por tamanho.",
+      "recomendacao": "Adicionar HAVING COUNT(*) >= 5 e suprimir ou agrupar as celulas abaixo do piso.",
+      "base_legal": "reidentificacao / LGPD Art. 12",
+      "arquivo": "services/forecasting/queries.py",
+      "linha": 30,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "P-09",
+      "pack": "privacy",
+      "severidade": "ALTO",
+      "titulo": "Agregacao sem supressao de celula rara",
+      "descricao": "Consulta agrega com GROUP BY e nao filtra celulas pequenas (HAVING COUNT(*) >= 5). Uma celula com poucos titulares reidentifica: agregado nao e anonimo por definicao, e sim por tamanho.",
+      "recomendacao": "Adicionar HAVING COUNT(*) >= 5 e suprimir ou agrupar as celulas abaixo do piso.",
+      "base_legal": "reidentificacao / LGPD Art. 12",
+      "arquivo": "services/jurimetria/queries.py",
+      "linha": 133,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api-publica.datajud.cnj.jus.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 51,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.bcb.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/bcb.py",
+      "linha": 4,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.dados.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/caged.py",
+      "linha": 28,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: api.openai.com",
+      "descricao": "Endpoint de terceiro (categoria conhecida: llm) usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/shared/config.py",
+      "linha": 102,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: apidatalake.tesouro.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/siconfi.py",
+      "linha": 5,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: custom.datajud.example",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "tests/unit/test_config.py",
+      "linha": 87,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: hooks.slack.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 61,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: juridico.io",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "frontend/apps/platform/app/(shell)/defensor/page.tsx",
+      "linha": 26,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: pncp.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/pncp.py",
+      "linha": 5,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: portal.fazenda.rj.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/sefaz_scraper.py",
+      "linha": 28,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: portal.fazenda.sp.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/sefaz_scraper.py",
+      "linha": 27,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: publica.cnpj.ws",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/receita_cnpj.py",
+      "linha": 4,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: raw.githubusercontent.com",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".github/workflows/ci.yml",
+      "linha": 343,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: servicodados.ibge.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/ibge.py",
+      "linha": 37,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: unpkg.com",
+      "descricao": "Endpoint de terceiro (categoria conhecida: cdn) usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "docs/design_handoff_plataforma_juridico_contabil/defensor-components/prototype/support.js",
+      "linha": 1012,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.cnj.jus.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "docs/design_handoff_plataforma_juridico_contabil/defensor-components/page.example.tsx",
+      "linha": 247,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.confaz.fazenda.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/confaz_discovery.py",
+      "linha": 26,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.consumidor.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "docs/design_handoff_plataforma_juridico_contabil/defensor-components/ProtocolStatusCard.stories.tsx",
+      "linha": 31,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.fazenda.mg.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/ingest/tasks/sefaz_scraper.py",
+      "linha": 29,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": ".env.example",
+      "linha": 66,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.procon.sp.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/defensor/protocolo/real.py",
+      "linha": 108,
+      "snippet": null,
+      "trace": null
+    },
+    {
+      "check_id": "S-04",
+      "pack": "security",
+      "severidade": "ALTO",
+      "titulo": "Host externo nao registrado no manifesto: www.regularize.pgfn.gov.br",
+      "descricao": "Endpoint de terceiro usado no codigo sem entrada em .privacy/third-party-manifest.yml.",
+      "recomendacao": "Registrar a integracao com DPA, residencia de dados e base de transferencia — ou remover a chamada.",
+      "base_legal": "LGPD Art. 39",
+      "arquivo": "services/shared/config.py",
+      "linha": 25,
+      "snippet": null,
+      "trace": null
+    }
+  ],
+  "duracao_s": 5.38
+}
