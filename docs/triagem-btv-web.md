@@ -3,8 +3,8 @@
 > Escrito a mao. Os NUMEROS vieram de instrumentacao reproduzivel; a
 > classificacao e leitura de contexto.
 >
-> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.16.0 ·
-> **data:** 2026-08-07 · **duas superficies, dev E producao**
+> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.17.0 ·
+> **data:** 2026-08-07 · **dev, producao — e a borda, que nao existe no repo**
 >
 > **A PSE aponta; o dono valida.** O btv nao foi alterado.
 
@@ -110,9 +110,9 @@ foram efetivamente percorridos. O zero e real.
 
 | Classificacao | Quantidade |
 |---|---|
-| **VIOLACAO PROVAVEL** | **2** — `S-19` nas duas superficies (ver 4c) |
+| **VIOLACAO PROVAVEL** | **4** — `S-19` nas duas superficies (4c) + 2 hosts de terceiro no `index.html` (4e) |
 | **FALSO-POSITIVO CONFIRMADO** | **2** — `S-21` nas duas, era andaime de dev server |
-| **INCERTO — precisa do dono** | **3** (os 3 arquivos nao analisados) |
+| **INCERTO — precisa do dono** | **6** — 3 arquivos nao analisados, 2 hosts em HTML de documentacao, e a borda nao observada (4d) |
 
 A medicao contra o artefato de producao (4c) resolveu dois dos cinco
 incertos anteriores em direcoes OPOSTAS: `S-21` caiu para zero e `S-19`
@@ -295,6 +295,106 @@ suite observa, e o laudo cruza os dois:
 * declarado `producao` sem indicio contrario → nota dizendo que a suite
   **nao verificou** a declaracao, so nao viu indicio contra.
 * nada declarado → o laudo diz o que observou e nao afirma se e o artefato.
+
+---
+
+## 4d. A borda: por que ela NAO foi medida, e nao e falta de tentativa
+
+A pendencia da v0.16.0 era medir com o **ingress** na frente — a camada onde
+o basic auth existe de verdade. Duas coisas impediram, e a segunda e mais
+importante que a primeira.
+
+**(1) O daemon Docker nao esta disponivel neste ambiente.** `docker info`
+falha; nao ha `/var/run/docker.sock`. A imagem nao pode ser buildada.
+
+**(2) O ingress NAO ESTA NO REPOSITORIO — e isso nao muda com Docker.**
+
+Procurei em todo o clone por `server_name`, `proxy_pass`, `auth_basic`,
+`listen 443` e `htpasswd`. Os unicos arquivos que casam sao o proprio
+`docker-compose.prod.yml` e o `infra/docker/README.md`, e os dois so
+**mencionam** o ingress em prosa. O compose diz, na linha 17:
+
+> A rede `btv-prod-net` e criada pelo compose do ingress (**global-ingress**);
+> aqui ela e referenciada como externa.
+
+O ingress e **outro projeto**. Nao ha `nginx.conf`, nao ha `.htpasswd`, nao
+ha nada a reproduzir. Subir um nginx configurado por mim e medi-lo provaria
+alguma coisa sobre o *meu* nginx e **nada** sobre o btv — seria a fachada
+que esta serie inteira de rodadas existe para evitar, na sua forma mais
+convincente: um numero verde produzido por um arranjo inventado.
+
+### O que isso deixa registrado, como fato
+
+| | |
+|---|---|
+| Arranjo medido | binario `btv dashboard` + duas `dist`, **sem container, sem borda** |
+| `btv dashboard` direto (`:7878`) | responde **200** na raiz e em `/dev`, **sem credencial propria** |
+| Basic auth | **NAO OBSERVADO** — vive no `global-ingress`, fora do artefato |
+| `BTV_TRUSTED_ORIGINS` | vazio no compose (`${BTV_TRUSTED_ORIGINS:-}`); o proprio comentario diz que a origem publica *"SO funciona combinada com basic auth no ingress"* |
+
+**O artefato declara depender de um controle que nao esta nele.** Isso e uma
+observacao factual sobre a fronteira do que a PSE consegue auditar, nao um
+veredito: a suite audita o repositorio, e o controle mora fora dele.
+
+**Cobertura com borda: INDETERMINADA**, com motivo nomeado — nao presumida
+protegida, nao presumida exposta. As duas presuncoes seriam erros opostos, e
+a honesta e dizer que a camada nao foi observada.
+
+*Pergunta ao dono:* o `global-ingress` e versionado em algum lugar? Se sim,
+apontar o repositorio torna a borda auditavel; enquanto nao, ela fica
+declarada e nao verificada.
+
+---
+
+## 4e. `fonts.googleapis.com` — o achado que virou defeito da SUITE
+
+O produto contacta o Google Fonts em producao. A camada **dinamica** viu; a
+**estatica** nao. A triagem perguntou por que, e a resposta nao foi "o check
+e fraco":
+
+`.html` estava em `alcance.IRRELEVANTES` — a lista de "nem codigo nem
+declaracao" — e **S-04 nunca abria um `.html`**. Mas `index.html` e o unico
+arquivo do bundle que o navegador carrega SEMPRE, e e exatamente onde mora:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque…" />
+```
+
+Um arquivo que **declara para onde o navegador vai** nao e irrelevante.
+Chamar de irrelevante era a lacuna se escondendo atras de uma palavra — o
+mesmo padrao de todas as rodadas anteriores: nao um erro de logica, e um
+silencio com aparencia de decisao.
+
+**Corrigido na suite**, nao no alvo: `.html` e `.htm` entraram em
+`COM_PARSER`, S-04 passou a le-los, e `codigo_efetivo` ganhou tratamento de
+`<!-- -->` — sem ele, o apagador generico usaria `#`, que em HTML nao
+comenta nada, e um host dentro de um comentario valeria como fato. Ha
+teste-mordida dos dois lados.
+
+### O que o btv passou a mostrar
+
+| Achado | Arquivo | Classificacao |
+|---|---|---|
+| `fonts.googleapis.com` | `btv-web/index.html` | **VIOLACAO PROVAVEL** — egresso do PRODUTO |
+| `fonts.gstatic.com` | `btv-web/index.html` | **VIOLACAO PROVAVEL** — egresso do PRODUTO |
+| `reactjs.org` | `docs/roadmap-forge.html` | documentacao, nao produto — **do dono** |
+| `github.com` | `docs/design_handoff…/*.html` | documentacao, nao produto — **do dono** |
+
+Os dois primeiros sao o mesmo host que a camada dinamica ja tinha
+observado, **agora corroborado pelas duas camadas**. Antes, um leitor podia
+concluir que o egresso era coisa do navegador; ele esta declarado no
+artefato entregue.
+
+**Fato, nao veredito:** carregar fonte do Google envia o IP de todo visitante
+ao Google, sem que o visitante escolha. Se o remedio e auto-hospedar a fonte,
+declarar a integracao no manifesto com DPA, ou nada — **e decisao do dono**.
+A suite aponta o egresso e a ausencia de registro; nao decide o remedio.
+
+Os dois ultimos sao HTML de documentacao, e a PSE ja tratava `docs/*.js`
+desse jeito (`support.js` -> `unpkg.com` ja era achado). Consistente, e
+igualmente do dono decidir se documentacao entra no escopo.
 
 ---
 

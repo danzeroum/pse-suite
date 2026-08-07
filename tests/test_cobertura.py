@@ -428,10 +428,17 @@ def test_o_documento_marca_a_meia_execucao_na_linha_do_check():
 def test_a_camada_dinamica_declara_o_que_nao_conseguiu_ler():
     """O recurso acima do teto de corpo nao foi varrido por S-20. Ausencia
     de achado nele nao e ausencia de segredo — a mesma regra do bloco
-    `alcance`, um nivel abaixo."""
+    `alcance`, um nivel abaixo.
+
+    O bloco e CONDICIONAL, e a medicao de producao mostrou por que: contra o
+    bundle real nao ha recurso acima do teto (o `react-dom_client.js` de
+    2,8 MB era do dev server, servido sem minificar). Exigir o relatorio
+    sempre transformaria um bom resultado em falha de teste — mas quando ele
+    existe, cada recurso PRECISA aparecer no documento.
+    """
     rel = _dados()["medicao"]["laudo"]["relatorios"]
     texto = DOC.read_text(encoding="utf-8")
-    for r in rel["recursos_nao_varridos"]["recursos"]:
+    for r in (rel.get("recursos_nao_varridos") or {}).get("recursos") or []:
         assert r in texto
     obs = rel["observacao_de_rede"]
     assert str(obs["total_requisicoes"]) in texto

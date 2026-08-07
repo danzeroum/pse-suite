@@ -26,6 +26,11 @@ _CMT_LINHA = {
 }
 # Extensoes com comentario de bloco /* ... */
 _CMT_BLOCO = {".js", ".ts", ".go", ".java", ".sql", ".css"}
+# HTML comenta com <!-- -->, e so com isso. Sem tratamento proprio, o
+# apagador generico usaria `#` — que em HTML nao comenta nada — e um host
+# dentro de `<!-- <link href="https://tracker.exemplo"> -->` valeria como
+# fato. D-01 exige o contrario.
+_CMT_HTML = {".html", ".htm"}
 # Extensoes com string de tres aspas.
 _TRIPLA = {".py"}
 
@@ -76,6 +81,8 @@ def codigo_efetivo(texto: str, ext: str, sem_literais: bool = False) -> str:
     ali o literal e justamente o fato — `api_key = "sk-live-..."` e uma
     credencial hardcoded, nao uma mencao a uma.
     """
+    if ext in _CMT_HTML:
+        return _apagar_comentario_html(texto)
     marcas = _CMT_LINHA.get(ext, ("#",))
     bloco = ext in _CMT_BLOCO
     tripla = ext in _TRIPLA
@@ -135,6 +142,28 @@ def codigo_efetivo(texto: str, ext: str, sem_literais: bool = False) -> str:
 
         i += 1
 
+    return "".join(saida)
+
+
+def _apagar_comentario_html(texto: str) -> str:
+    """`<!-- ... -->` apagado, preservando posicao e numero de linha.
+
+    Literais NAO sao apagados, e isso e deliberado: em HTML o valor do
+    atributo E o fato. `<link href="https://fonts.googleapis.com/...">` nao e
+    a mencao de um terceiro — e o egresso acontecendo.
+    """
+    saida = list(texto)
+    i, n = 0, len(texto)
+    while i < n:
+        if texto.startswith("<!--", i):
+            fim = texto.find("-->", i + 4)
+            fim = n if fim == -1 else fim + 3
+            for k in range(i, min(fim, n)):
+                if saida[k] != "\n":
+                    saida[k] = " "
+            i = fim
+            continue
+        i += 1
     return "".join(saida)
 
 

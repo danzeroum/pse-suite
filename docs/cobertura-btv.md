@@ -15,7 +15,7 @@ nao com impressao.
 
 ## Delta desta medicao
 
-O que mudou desde `pse-suite 0.14.2`, e por que. A rodada anterior mediu que
+O que mudou desde `pse-suite 0.16.0`, e por que. A rodada anterior mediu que
 53% do alvo estava cego e recomendou o degrau `literal`: quatro vetores
 alcancaveis sem gramatica nenhuma. Esta rodada implementou exatamente isso —
 nenhum parser, nenhum check novo, quatro checks existentes passando a
@@ -23,14 +23,14 @@ reconhecer `.rs` por padrao textual ancorado.
 
 | | antes | agora |
 |---|---|---|
-| Linhas lidas por parser | 47.0% | **47.0%** |
-| Linhas em alcance parcial (4 vetores) | — | **50.8%** |
-| Linhas cegas para TODO check | 53.0% | **2.2%** |
+| Linhas lidas por parser | 47.0% | **51.6%** |
+| Linhas em alcance parcial (4 vetores) | — | **46.4%** |
+| Linhas cegas para TODO check | 53.0% | **2.0%** |
 | Checks auditados de verdade | 16 | **16** |
 | Checks meio-cegos em Rust | 13 | **13** |
 
 **A leitura honesta do delta.** O numero que encolheu de verdade foi o de linhas
-invisiveis para QUALQUER check — de 53.0% para 2.2%. Mas ele encolheu porque
+invisiveis para QUALQUER check — de 53.0% para 2.0%. Mas ele encolheu porque
 38 mil linhas sairam de *cegas* e entraram em *alcance parcial*, nao em *lidas*:
 quatro checks passaram a olha-las e treze continuam sem ver nada ali. Ler a
 primeira linha da tabela como se fosse cobertura seria exatamente a fachada
@@ -43,9 +43,9 @@ que esta serie de rodadas existe para impedir.
 | Alvo | `danzeroum/btv` |
 | Commit do alvo | `a3e14f4568da95cf021206aec4816815efbd303a` |
 | Medido em | 2026-08-07 |
-| Suite | `pse-suite 0.15.0 @ 79339622a582` |
+| Suite | `pse-suite 0.17.0 @ c6efa04a4b1b` |
 | Modo | pse_passive (Trabalho B estatico + camada dinamica passiva) |
-| Alvo no ar | sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true` |
+| Alvo no ar | sim — artefato de PRODUCAO: binario `btv dashboard` servindo btv-web na raiz e web em /dev, mesma origem, `http://127.0.0.1:7878`, atestado `artefato: producao`. SEM container e SEM ingress — ver docs/triagem-btv-web.md 4d |
 
 ## Os estados, e por que nenhum colapsa no outro
 
@@ -95,7 +95,7 @@ convem e como um mapa de cobertura mente sem dizer nada falso.**
 | Rust (motor) | 137 | 38096 |
 | Python (orquestracao) | 88 | 8506 |
 | declaracao (YAML/JSON) | 65 | 7194 |
-| outros | 43 | 2225 |
+| outros | 53 | 9322 |
 
 **Por ARQUIVOS o maior estrato e `web (JS/TS/JSX/TSX)`, com 174. Por LINHAS e**
 **`Rust (motor)`, com 38096.** As duas leituras sao verdadeiras e servem a
@@ -135,10 +135,10 @@ laudo junto com a indeterminacao.
 
 ## Proporcao do alvo que a suite consegue ler
 
-**47.0% lido, 50.8% em alcance parcial (4 vetores), 2.2% cego** — em linhas, nao em arquivos.
+**51.6% lido, 46.4% em alcance parcial (4 vetores), 2.0% cego** — em linhas, nao em arquivos.
 
 As tres fatias sao separadas de proposito. Somar o alcance parcial ao lido faria
-a proporcao saltar de 47.0% para 97.8% e a suite passaria a mentir por
+a proporcao saltar de 51.6% para 98.0% e a suite passaria a mentir por
 arredondamento: aquelas linhas sao olhadas por quatro checks e invisiveis para
 os outros treze que tem vetor la.
 
@@ -152,6 +152,7 @@ parser, nao ha decisao, e nenhum achado sai daqui.
 | Rust | 137 | 38096 | **parcial** (4 vetores) |
 | Python | 88 | 8506 | sim |
 | TypeScript/TSX | 77 | 8184 | sim |
+| HTML | 10 | 7097 | sim |
 | JavaScript | 9 | 6000 | sim |
 | TypeScript | 88 | 4856 | sim |
 | YAML | 9 | 3978 | sim |
@@ -163,7 +164,7 @@ parser, nao ha decisao, e nenhum achado sai daqui.
 | SQL | 4 | 204 | sim |
 | .jsonl (nao reconhecida) | 1 | 144 | **nao** |
 | Terraform | 1 | 31 | **nao** |
-| **total** | | 75061 | 47.0% lido |
+| **total** | | 82158 | 51.6% lido |
 
 ## Por dominio
 
@@ -392,9 +393,9 @@ da suite e a que um alvo poliglota nunca perde.
 
 | | |
 |---|---|
-| URL observada | `http://127.0.0.1:5178` |
+| URL observada | `http://127.0.0.1:7878` |
 | Engine | chromium |
-| Requisicoes | 119 |
+| Requisicoes | 7 |
 | Hosts contactados | `127.0.0.1`, `fonts.googleapis.com` |
 | Cookies | nenhum |
 
@@ -402,14 +403,6 @@ O front do btv contacta `fonts.googleapis.com` no carregamento — um terceiro q
 recebe o IP de todo visitante. S-18 o denunciaria; ele foi PULADO porque nao ha manifesto
 de terceiros no alvo para comparar, e S-04 ja cobra a ausencia do manifesto.
 E um exemplo exato de por que `pulado` nao pode virar `auditado` no mapa.
-
-**Nem tudo que foi servido foi lido.** Recursos acima do teto de corpo ficaram
-fora da varredura de segredo, e a suite diz quais:
-
-  * `http://127.0.0.1:5178/node_modules/.vite/deps/react-dom_client.js?v=383d2562 (corpo acima do teto (2819504 bytes))`
-
-Ausencia de achado NESSES recursos nao e ausencia de segredo. E a mesma regra
-do bloco `alcance`, aplicada dentro da camada dinamica.
 
 ## O laudo que originou este mapa
 
@@ -420,9 +413,12 @@ Veredito **indeterminado**, exit `20`. Achados:
 | `P-04` | ALTO | Catalogo de dados ausente |
 | `P-07` | ALTO | Modelo de consentimento ausente |
 | `S-04` | ALTO | Host externo nao registrado no manifesto: exemplo.com |
+| `S-04` | ALTO | Host externo nao registrado no manifesto: fonts.googleapis.com |
+| `S-04` | ALTO | Host externo nao registrado no manifesto: fonts.gstatic.com |
+| `S-04` | ALTO | Host externo nao registrado no manifesto: github.com |
+| `S-04` | ALTO | Host externo nao registrado no manifesto: reactjs.org |
 | `S-04` | ALTO | Host externo nao registrado no manifesto: unpkg.com |
 | `S-19` | ALTO | Documento sem content-security-policy, x-content-type-options, referrer-policy |
-| `S-21` | MEDIO | 107 bundle(s) referenciando sourcemap |
 
 O laudo NAO foi tocado para produzir este documento. Ele continua indeterminado,
 com os mesmos achados e o mesmo exit code — cobertura de fachada comeca

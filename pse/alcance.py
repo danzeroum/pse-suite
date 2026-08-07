@@ -52,6 +52,17 @@ COM_PARSER = {
     ".sql": ("SQL", "regex sobre codigo efetivo"),
     ".sh": ("shell", "linha a linha sobre codigo efetivo"),
     ".bash": ("shell", "linha a linha sobre codigo efetivo"),
+    # HTML ERA CLASSIFICADO COMO IRRELEVANTE, e isso estava errado.
+    #
+    # `index.html` e o unico arquivo do bundle que o navegador carrega
+    # SEMPRE, e e onde mora `<link href="https://fonts.googleapis.com/...">`
+    # — egresso a terceiro, declarado no artefato entregue. No btv, a
+    # camada dinamica achou o host e a estatica nao, porque S-04 nunca
+    # abriu um `.html`. Chamar de "nem codigo nem declaracao" um arquivo
+    # que declara para onde o navegador vai era a lacuna se escondendo
+    # atras de um rotulo.
+    ".html": ("HTML", "regex sobre codigo efetivo"),
+    ".htm": ("HTML", "regex sobre codigo efetivo"),
 }
 
 # Extensoes que nao sao codigo nem declaracao: nao ter parser para elas nao e
@@ -63,7 +74,7 @@ IRRELEVANTES = {
     ".woff", ".woff2", ".ttf", ".eot", ".otf",
     ".lock", ".sum", ".mod", ".gitignore", ".gitattributes", ".editorconfig",
     ".map", ".min", ".snap", ".pyc", ".so", ".dylib", ".dll", ".bin",
-    ".css", ".scss", ".less", ".html", ".htm", ".xml",
+    ".css", ".scss", ".less", ".xml",
 }
 
 # TERCEIRA CATEGORIA, e ela existe para nao virar mentira.
