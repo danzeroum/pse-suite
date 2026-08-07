@@ -24,3 +24,28 @@ venv/
 !tests/fixtures/**/.env.*
 !pse/fixtures/**/.env
 !pse/fixtures/**/.env.*
+
+# FIXTURE E CORPO DE DELITO, NAO ARTEFATO DE BUILD.
+#
+# `dist/` acima existe para nao versionar build; ele engolia, em silencio,
+# `tests/fixtures/consumidor_ruim/node_modules/rastreador-ui/dist/index.js`
+# — a dependencia que E-13 tem de encontrar. Resultado: 3 testes verdes na
+# maquina de quem escreveu a fixture e vermelhos em qualquer clone limpo.
+# Um check cuja violacao nao sobe no clone nao e reproduzivel, e a suite
+# inteira existe para nao aceitar prova que so uma pessoa consegue rodar.
+#
+# A excecao mora AQUI, num lugar so, em vez de `git add -f` espalhado: ela
+# declara a intencao e vale para a proxima fixture tambem. `node_modules/`
+# entra por precaucao — hoje nada o ignora, e no dia em que alguem o
+# acrescentar a lista de artefatos as fixtures ja estarao protegidas.
+# `__pycache__` continua ignorado dentro de fixture, porque ali ele e
+# artefato de verdade.
+#
+# tests/test_reprodutibilidade.py reprova se qualquer arquivo de fixture
+# voltar a ficar de fora do versionamento.
+!tests/fixtures/**/dist/
+!tests/fixtures/**/build/
+!tests/fixtures/**/node_modules/
+!pse/fixtures/**/dist/
+!pse/fixtures/**/build/
+!pse/fixtures/**/node_modules/
