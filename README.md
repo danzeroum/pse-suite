@@ -88,7 +88,8 @@ etiquetados a posteriori.
   a `exec`, ao banco ou ao shell transforma injeção de prompt em execução.
 - **P-15** — treinar é finalidade **nova**, não detalhe da antiga. CPF coletado
   para cobrança virando feature de risco precisa da sua própria finalidade
-  declarada — e, se sensível, da hipótese do Art. 11.
+  declarada — e, se sensível, da hipótese do Art. 11. Severidade condicional:
+  **CRÍTICO** para campo sensível, **ALTO** para pessoal comum.
 - **P-16** — o E-08 dos dados de treino. Dataset costuma ser o único artefato
   que ninguém inventaria: vive num bucket e sobrevive a toda retenção porque
   não está em tabela nenhuma.

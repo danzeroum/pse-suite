@@ -227,6 +227,74 @@ def test_p15_campo_sensivel_invoca_art_11():
     assert genero and "Art. 11" in genero[0].base_legal
 
 
+# --------------------------------------------- ratificacao: severidade condicional
+# P-15 nasceu ALTO inteiro, e eu disse na entrega que ampliar o conjunto
+# CRITICO por conta propria seria errado — S-04 precisou de ratificacao
+# explicita. O arquiteto ratificou: sensivel e CRITICO, pessoal comum segue
+# ALTO. O principio e o de P-08 — Art. 11 e trava estrutural, nao gradiente.
+@pytest.mark.pse_privacy
+def test_p15_sensivel_e_critico():
+    from pse.model import Severidade
+    res = rodar(RUIM)
+    genero = [f for f in acha(res, "P-15") if "genero" in f.titulo]
+    assert genero, "campo sensivel como feature de treino nao produziu achado"
+    assert genero[0].severidade is Severidade.CRITICO, (
+        f"campo SENSIVEL como feature de treino saiu {genero[0].severidade}: "
+        f"Art. 11 nao e gradiente, e o mesmo principio ja trava P-08")
+
+
+@pytest.mark.pse_privacy
+def test_p15_pessoal_comum_segue_alto():
+    """A outra metade da ratificacao. Se tudo virasse CRITICO, a distincao
+    que o arquiteto pediu deixaria de existir e o pack perderia a graduacao
+    que faz o operador priorizar."""
+    from pse.model import Severidade
+    res = rodar(RUIM)
+    cpf = [f for f in acha(res, "P-15") if "cpf" in f.titulo]
+    assert cpf and cpf[0].severidade is Severidade.ALTO, (
+        f"campo pessoal comum saiu {cpf[0].severidade if cpf else 'sem achado'}")
+
+
+@pytest.mark.pse_privacy
+def test_p15_sensivel_com_finalidade_declarada_nao_dispara(tmp_path):
+    """D-08 tem de valer tambem na severidade nova: declarar a finalidade de
+    treino desliga o achado, sensivel ou nao. Elevar a severidade sem manter
+    esta porta aberta transformaria a ratificacao numa armadilha."""
+    (tmp_path / "catalog.yaml").write_text(
+        "tables:\n  t:\n    fields:\n"
+        "      genero:\n        class: sensitive\n        owner: o\n"
+        "        purpose: analise, treino_de_modelo\n"
+        "        legal_basis: consentimento\n        retention_years: 5\n"
+        "      cpf:\n        class: personal\n        owner: o\n"
+        "        purpose: cobranca, treino_de_modelo\n"
+        "        legal_basis: contrato\n        retention_years: 5\n",
+        encoding="utf-8")
+    res = escrever(tmp_path,
+                   "def treinar(df, modelo):\n"
+                   '    modelo.fit(df[["cpf", "genero"]], df["y"])\n')
+    assert not acha(res, "P-15"), [f.titulo for f in acha(res, "P-15")]
+
+
+@pytest.mark.pse_privacy
+@pytest.mark.mordida
+def test_p15_sensivel_leva_o_processo_a_dez(tmp_path):
+    """A ratificacao so vale se mudar o codigo de saida: CRITICO em P-15 tem
+    de derrubar o gate para 10, nao ficar em 11."""
+    (tmp_path / "catalog.yaml").write_text(
+        "tables:\n  t:\n    fields:\n      genero:\n        class: sensitive\n"
+        "        owner: o\n        purpose: analise\n"
+        "        legal_basis: consentimento\n        retention_years: 5\n",
+        encoding="utf-8")
+    (tmp_path / "pse-config.yaml").write_text(
+        "catalog_path: catalog.yaml\ndecision_making: automated\n", encoding="utf-8")
+    (tmp_path / "a.py").write_text(
+        "def treinar(df, modelo):\n"
+        '    modelo.fit(df[["genero"]], df["y"])\n', encoding="utf-8")
+    assert main(["--path", str(tmp_path), "--pilar", "privacy",
+                 "--domain", "ai",
+                 "--config", str(tmp_path / "pse-config.yaml")]) == 10
+
+
 @pytest.mark.pse_privacy
 def test_p15_sem_catalogo_e_indeterminado(tmp_path):
     res = escrever(tmp_path,

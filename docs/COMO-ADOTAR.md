@@ -426,6 +426,12 @@ cpf:
   legal_basis: consentimento                       # sensível exige Art. 11
 ```
 
+A severidade é **condicional** (ratificada): campo `class: sensitive` sem
+finalidade de treino é **CRÍTICO** — Art. 11 é trava estrutural, o mesmo
+princípio que já rege P-08 — e campo pessoal comum é **ALTO**. Declarar a
+finalidade desliga os dois: elevar a severidade sem manter essa porta aberta
+transformaria a régua em armadilha.
+
 **P-16 · dataset de treino sem governança.** Nova seção no catálogo, com o
 mesmo rigor que se cobra de uma tabela:
 

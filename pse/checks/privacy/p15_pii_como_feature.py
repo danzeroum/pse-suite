@@ -16,6 +16,16 @@ para decidir, e nao decidir bloqueia — nunca vira verde.
 
 D-08: campo com `purpose` que inclui treino nao dispara. Punir quem declarou
 seria punir exatamente o comportamento que o check quer produzir.
+
+SEVERIDADE CONDICIONAL (ratificada). Nasceu ALTO inteiro, e a entrega
+registrou a duvida: ampliar o conjunto CRITICO sozinho seria errado — S-04
+precisou de ratificacao explicita. O arquiteto ratificou o principio de
+P-08: Art. 11 e trava ESTRUTURAL, nao gradiente. Dado sensivel virando
+feature de treino sem finalidade declarada e CRITICO; dado pessoal comum
+segue ALTO.
+
+A graduacao importa: se tudo virasse CRITICO, o operador perderia a ordem
+de prioridade e o pack voltaria a ser uma lista plana de alarmes.
 """
 import ast
 
@@ -123,9 +133,13 @@ def pii_como_feature(ctx):
             else:
                 base, extra = BASE, ""
 
+            # Ratificado: Art. 11 nao e gradiente. Sensivel -> CRITICO,
+            # pessoal comum -> ALTO. Mesmo principio de P-08.
+            severidade = Severidade.CRITICO if sensivel else Severidade.ALTO
+
             i = no.lineno
             findings.append(Finding(
-                check_id="P-15", pack="privacy", severidade=Severidade.ALTO,
+                check_id="P-15", pack="privacy", severidade=severidade,
                 titulo=f"Campo '{campo}' vira feature de treino sem finalidade "
                        f"declarada",
                 descricao=f"O catalogo declara purpose="

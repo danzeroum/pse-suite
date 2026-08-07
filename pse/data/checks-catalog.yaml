@@ -845,6 +845,10 @@ checks:
     fase: 6
     status: implementado
     supports: [P-04, P-08, E-06]
+    # Severidade CONDICIONAL (ratificada): campo sensivel -> CRITICO (Art. 11
+    # e trava estrutural, mesmo principio de P-08); pessoal comum -> ALTO.
+    # A mutacao canonica prova a violacao MINIMA, que e o ramo ALTO; o ramo
+    # CRITICO tem prova propria em tests/test_ia_estrato.py.
     canonical_mutation:
       descricao: CPF vira feature de treino com finalidade de cobranca no catalogo
       arquivos:
