@@ -173,14 +173,50 @@ def test_r09_a_observacao_declara_superficie_e_quem_serviu():
     assert d["servidor_de_desenvolvimento"] is True
 
 
+# ------------------------------------------------------------ 10
+def test_r10_declarado_e_observado_sao_campos_separados():
+    """Ratificação 10. A suíte NÃO descobre sozinha contra que artefato mede."""
+    from pse.navegador.rede import NetworkLog, RecursoObservado
+    limpo = NetworkLog(url="https://app.exemplo.test/", engine="chromium")
+    d = limpo.sanitizado(("/@vite/client",), "producao")
+    assert d["artefato_declarado"] == "producao"
+    assert d["servidor_de_desenvolvimento"] is False
+    assert "contradicao_de_artefato" not in d
+
+
+def test_r10_producao_declarada_sobre_dev_observado_e_contradicao():
+    from pse.navegador.rede import NetworkLog, RecursoObservado
+    log = NetworkLog(url="http://127.0.0.1:5178/", engine="chromium",
+                     recursos=(RecursoObservado(
+                         url="http://127.0.0.1:5178/@vite/client", status=200),))
+    assert "contradicao_de_artefato" in log.sanitizado(("/@vite/client",),
+                                                       "producao")
+
+
+def test_r10_valor_fora_da_lista_e_exit_30():
+    from pse.model import EntradaInvalida
+    from pse.trabalho_a.autorizacao import validar_config
+    with pytest.raises(EntradaInvalida):
+        validar_config({"target": {"base_url": "https://a.test",
+                                   "environment": "staging",
+                                   "artefato": "prod"}}, "pse_passive")
+
+
+def test_r10_nada_declarado_nao_vira_producao_por_inferencia():
+    from pse.navegador.rede import NetworkLog
+    d = NetworkLog(url="https://app.exemplo.test/",
+                   engine="chromium").sanitizado(("/@vite/client",))
+    assert d["artefato_declarado"] == "nao_declarado"
+
+
 # ------------------------------------------ o documento e o código não divergem
-def test_o_ledger_lista_exatamente_as_nove():
+def test_o_ledger_lista_exatamente_as_dez():
     texto = LEDGER.read_text(encoding="utf-8")
     tabela = [l for l in texto.splitlines()
               if l.startswith("| ") and l.split("|")[1].strip().isdigit()]
-    assert len(tabela) == 9, f"o ledger tem {len(tabela)} linhas numeradas"
+    assert len(tabela) == 10, f"o ledger tem {len(tabela)} linhas numeradas"
     numeros = [int(l.split("|")[1].strip()) for l in tabela]
-    assert numeros == list(range(1, 10)), numeros
+    assert numeros == list(range(1, 11)), numeros
 
 
 def test_cada_ratificacao_nomeia_a_versao_de_origem():

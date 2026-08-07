@@ -20,7 +20,7 @@
 
 ---
 
-## Seladas em 2026-08-07 — as nove primeiras
+## Seladas em 2026-08-07 — as dez primeiras
 
 | # | Decisão | Nasceu em | Comportamento selado |
 |---|---|---|---|
@@ -33,8 +33,9 @@
 | 7 | Embrulho de cifra opaco → `CheckIndeterminado` | v0.14.2 | Coluna sensível no SQL com valor ligado a identificador que a régua não reconhece como cifra bloqueia, em vez de virar achado ou verde |
 | 8 | Emitir achado **e** indeterminar coexistem | v0.15.0 | Arquivo ilegível não apaga o veredito dos demais: o check emite o que leu e segue indeterminado |
 | 9 | Qualificação do que foi observado | v0.15.1 | `observacao_de_rede` declara a superfície observada e se quem serviu era servidor de desenvolvimento |
+| 10 | `target.artefato` — declarado × observado | v0.16.0 | O operador declara `producao`/`desenvolvimento`, a suíte observa, e o laudo cruza: `producao` declarado com indício de dev server é `contradicao_de_artefato`; valor fora da lista é exit 30; nada declarado, o laudo não afirma |
 
-### O que as nove têm em comum
+### O que as dez têm em comum
 
 Todas foram decididas **para o lado seguro** — bloquear em vez de adivinhar,
 `ALTO` em vez de `CRÍTICO` sem certeza, nomear a lacuna em vez de calar. Três
@@ -42,7 +43,14 @@ delas (5, 7, 8) existem porque o alvo real mostrou um caso em que qualquer um
 dos dois lados óbvios estaria errado, e a resposta certa era a terceira: não
 decidir, e dizer que não decidiu.
 
-Nenhuma foi selada por conveniência. As nove já tinham teste-mordida antes de
+A décima é de uma família própria e vale destacar: ela sela que a suíte **não
+adivinha** contra o que está medindo. Um `vite preview` e um deploy real
+servem bundle igualmente minificado — inferir *produção* da ausência de
+indícios seria inventar um fato sobre o alvo. Então o operador declara, a
+suíte observa, e o valor do laudo está no **cruzamento**, não em nenhum dos
+dois isolados.
+
+Nenhuma foi selada por conveniência. As dez já tinham teste-mordida antes de
 chegar aqui, e o teste é o que sela de verdade — este documento apenas torna a
 decisão localizável.
 
