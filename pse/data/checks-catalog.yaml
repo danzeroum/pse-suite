@@ -1076,3 +1076,50 @@ checks:
       config:
         data_residency: BR
       espera_severidade: ALTO
+
+  # ================================================================ fase 9
+  # Fundador do estrato `data`. Aqui a densidade nao era heranca preguicosa:
+  # `data` foi o estrato ONDE A SUITE COMECOU — catalogo, retencao,
+  # k-anonimato e lineage nasceram olhando para ele. Sobrou um buraco, e ele
+  # e perigoso justamente por parecer resolvido.
+  #
+  # P-21 (zona bruta de data lake sem restricao) foi INVESTIGADO e NAO
+  # implementado: a leitura assinada esta em pse/matriz.py
+  # (FORA_DE_ESCOPO_ESTATICO) e em tests/test_data_estrato.py. Buraco honesto
+  # e melhor que check que nao verifica nada real.
+  P-20:
+    pack: privacy
+    domain: [data]
+    titulo: Hash determinístico sem chave tratado como anonimizacao
+    base_legal: LGPD Art. 12 (dado anonimizado) + Art. 6o
+    tipo: estatico
+    modo: inventory
+    fase: 9
+    status: implementado
+    supports: [P-06, P-09, P-18, E-12]
+    # Severidade CONDICIONAL, mesmo principio ratificado em P-15: campo
+    # sensivel -> CRITICO, pessoal comum -> ALTO. A mutacao prova o ramo
+    # ALTO, que e a violacao minima; o ramo CRITICO tem prova propria.
+    canonical_mutation:
+      descricao: sha256 nu de CPF gravado em coluna declarada anonima
+      arquivos:
+        exportacao.py: |
+          import hashlib
+
+
+          def exportar(cliente, warehouse):
+              h = hashlib.sha256(cliente.cpf.encode()).hexdigest()
+              warehouse.insert("dim_cliente", {"id_anonimo": h})
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: cadastro
+                  purpose: identificacao
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO

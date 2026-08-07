@@ -42,6 +42,30 @@ BURACOS_FECHADOS = {
         "(dataset de treino sem governanca).",
 }
 
+# Risco investigado e deliberadamente NAO transformado em check. Distinto de
+# um buraco de celula: aqui ha check POSSIVEL em tese, e a decisao foi que
+# ele nao seria verificavel de verdade neste artefato. Fica assinado porque
+# "nao implementei" e "nao existe risco" sao coisas opostas, e so a segunda
+# seria mentira.
+FORA_DE_ESCOPO_ESTATICO = {
+    ("data", "zona_bruta"):
+        "**P-21 — zona bruta de data lake com acesso irrestrito. Investigado, "
+        "NAO implementado.** Tres razoes, nesta ordem. (1) A identificacao da "
+        "zona bruta viria do NOME do bucket (`raw`, `bronze`, `landing`): isso "
+        "e mencao, nao fato, e o D-01 proibe exatamente esse atalho — num "
+        "check cuja consequencia seria bloquear CI. (2) Uma policy sem "
+        "`Condition` no Terraform nao e violacao por si: a restricao pode "
+        "viver numa SCP, num permission boundary, num grant de Lake Formation "
+        "ou no provedor de identidade, todos FORA do repositorio. O check "
+        "acusaria setup correto — o D-08 ao contrario. (3) A suite nao tem "
+        "parser de HCL, e adicionar um para avaliar uma forma de politica que "
+        "nao se consegue decidir seria construir a aparencia de cobertura. "
+        "**O que faria P-21 nascer:** um artefato de policy-as-code versionado "
+        "que declare finalidade e expiracao por zona — ai ha declaracao a "
+        "confrontar com fato, que e como todos os outros funcionam. Buraco "
+        "honesto e melhor que check que nao verifica nada real.",
+}
+
 LEITURA_DA_DENSIDADE = {
     "frontend":
         "Unico dominio cujos checks foram desenhados OLHANDO para ele. Os "
@@ -59,11 +83,14 @@ LEITURA_DA_DENSIDADE = {
         "equivalente em outro dominio. Os demais seguem sendo os estaticos do "
         "inventario, reclassificados.",
     "data":
-        "A posteriori, mas o mais coerente dos herdados: catalogo, retencao, "
-        "k-anonimato e lineage sao genuinamente do estrato de dados. **S-15, "
-        "P-18 e P-19 aparecem aqui por inspecionarem artefato de dados** "
-        "(catalogo, schema, log de eventos), mas nasceram olhando o BACKEND — "
-        "contam como multi-dominio, nao como fundadores deste estrato.",
+        "Aqui a densidade nunca foi heranca preguicosa: `data` e o estrato "
+        "ONDE A SUITE NASCEU — catalogo, retencao, k-anonimato e lineage "
+        "vieram olhando para ele. Sobrou um buraco, e **P-20 o fecha**: hash "
+        "deterministico sem chave tratado como anonimizacao, o risco que "
+        "engana por parecer resolvido. S-15, P-18 e P-19 aparecem nesta "
+        "coluna por inspecionarem artefato de dados (catalogo, schema, log de "
+        "eventos), mas nasceram olhando o BACKEND — sao multi-dominio, nao "
+        "fundadores daqui.",
     "ai":
         "Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os "
         "demais foram etiquetados a posteriori. Primeiro dominio herdado a "
@@ -133,6 +160,18 @@ def gerar() -> str:
               "| Pilar x dominio | Como foi fechado |", "|---|---|"]
         for (p, d), texto in sorted(BURACOS_FECHADOS.items()):
             L.append(f"| `{p}` x `{d}` | {texto} |")
+        L.append("")
+
+    if FORA_DE_ESCOPO_ESTATICO:
+        L += ["### Risco investigado e fora de escopo estatico", "",
+              "Distinto de celula vazia: aqui ha check POSSIVEL em tese, e a "
+              "decisao foi", "que ele nao seria verificavel de verdade neste "
+              "artefato. Fica assinado", "porque *nao implementei* e *nao "
+              "existe risco* sao coisas opostas — e so a", "segunda seria "
+              "mentira.", "",
+              "| Dominio x risco | Decisao |", "|---|---|"]
+        for (d, risco), texto in sorted(FORA_DE_ESCOPO_ESTATICO.items()):
+            L.append(f"| `{d}` x `{risco}` | {texto} |")
         L.append("")
 
     L += ["## Densidade por dominio", "",

@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 **P-17** | P-01 P-06 **P-18 P-19** | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 | P-15 P-16 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 **S-12 S-13** | S-04 S-05 S-06 S-07 E-13* **S-14 S-15 S-16** | S-05 S-08 S-15 | S-10 S-11 |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
+| **security** | S-09 | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -139,6 +139,29 @@ do inventário. E o que é próprio do backend não é "código de servidor" —
 - **S-16** — residência no ponto de **escrita**. S-08 audita o egresso
   declarado no manifesto; um bucket em `us-east-1` não é integração com
   ninguém e não aparece em manifesto nenhum — mas o dado pousa lá igual.
+
+### O estrato de dados (P-20) — e o P-21 que não existe
+
+`data` é o estrato onde a suite **nasceu**: catálogo, retenção, k-anonimato
+e linhagem vieram olhando para ele. Sobrou um buraco, e ele engana por
+parecer resolvido.
+
+- **P-20** — `hashlib.sha256(cpf)` gravado numa coluna `class: anonymized`.
+  O CPF tem ~10¹¹ valores válidos: o dicionário completo se constrói em
+  segundos, e o Art. 12 só dispensa o dado que **não pode** ser revertido
+  por meios razoáveis. P-06 audita onde a chave mora — aqui não *há* chave;
+  P-18 audita a ausência de cifra — aqui alguém "cifrou", no sentido errado
+  da palavra. Severidade condicional: **CRÍTICO** para campo sensível,
+  **ALTO** para pessoal comum. HMAC com chave de cofre e sal aleatório por
+  registro **não** disparam — punir HMAC seria a suite contradizendo P-06.
+
+**P-21 (zona bruta de data lake sem restrição) foi investigado e não
+implementado.** A identificação da zona viria do *nome* do bucket, que é
+menção e não fato (D-01); uma policy sem `Condition` no Terraform não é
+violação por si, porque a restrição pode viver numa SCP ou no provedor de
+identidade, fora do repositório; e a suite não tem parser de HCL. A decisão
+está assinada em `pse/matriz.py` e no mapa gerado. Buraco honesto é melhor
+que check que não verifica nada real.
 
 ## Os dois trabalhos
 

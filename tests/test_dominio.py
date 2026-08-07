@@ -64,7 +64,7 @@ def test_a_matriz_cruza_de_verdade():
     # por isso — e a matriz registra que NAO nasceram do estrato `data`.
     (["--pilar", "privacy", "--domain", "data"],
      lambda ids: set(ids) <= {"P-02", "P-03", "P-04", "P-07", "P-08", "P-09",
-                              "P-18", "P-19"}),
+                              "P-18", "P-19", "P-20"}),
 ])
 def test_cli_filtra_por_pilar_dominio_e_cruzamento(tmp_path, flags, esperado):
     out = tmp_path / "l.json"

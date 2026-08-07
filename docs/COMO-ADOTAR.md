@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.9.0
+pse-suite==0.10.0
 ```
 
 ## 2. Config declarativa
@@ -594,3 +594,53 @@ Sem `data_residency` declarado o check é **pulado com motivo**. Supor `BR`
 porque a LGPD é brasileira seria a suite decidindo pelo consumidor uma coisa
 que é dele — há operação legítima com residência europeia, e achado inventado
 custa mais confiança do que achado ausente.
+
+## 19. Estrato de dados (P-20) — e o P-21 que não existe
+
+**P-20 · hash sem chave tratado como anonimização.**
+
+```python
+h = hashlib.sha256(cliente.cpf.encode()).hexdigest()   # ALTO
+db.insert("dim_cliente", {"id_anonimo": h})            # ...porque é guardado
+
+hashlib.sha1(c.biometria.encode()).hexdigest()         # CRÍTICO: sensível
+
+# conforme — HMAC com chave de cofre
+hmac.new(chave_do_vault("pseudo"), c.cpf.encode(), hashlib.sha256)
+
+# conforme — sal aleatório por registro
+sal = secrets.token_bytes(16)
+hashlib.sha256(sal + c.email.encode())
+
+# conforme — checksum de conteúdo: não há titular nisto
+hashlib.sha256(conteudo).hexdigest()
+```
+
+Três condições, todas necessárias: digest **determinístico e sem segredo**,
+sobre **campo de PII**, cujo resultado **alcança escrita ou exportação**. Hash
+em memória que não é guardado não é dado; hash de arquivo não toca titular.
+
+O grupo `credenciais` da régua está **fora de escopo por construção** —
+hashear senha é o que se deve fazer, e o defeito ali (falta de KDF) é outro
+assunto.
+
+E a recomendação que o achado carrega vale repetir: enquanto houver qualquer
+forma de reverter, o campo continua sendo **dado pessoal** no catálogo.
+Pseudonimizado não é anonimizado.
+
+**P-21 — o check que decidimos não escrever.** Zona bruta de data lake com
+acesso irrestrito é risco real, e mesmo assim não virou check:
+
+1. identificar a zona bruta viria do **nome** do bucket (`raw`, `bronze`,
+   `landing`) — menção, não fato, e o D-01 proíbe esse atalho num check que
+   bloquearia CI;
+2. policy sem `Condition` no Terraform **não é violação por si**: a restrição
+   pode viver numa SCP, num permission boundary, num grant de Lake Formation
+   ou no provedor de identidade, todos fora do repositório — o check acusaria
+   setup correto;
+3. a suite não tem parser de HCL, e adicionar um para avaliar uma forma de
+   política indecidível seria construir a **aparência** de cobertura.
+
+O que faria P-21 nascer: um artefato de policy-as-code versionado declarando
+finalidade e expiração por zona. Aí há declaração a confrontar com fato — que
+é como todos os outros funcionam.

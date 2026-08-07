@@ -379,7 +379,7 @@ def test_gate_morde_no_estrato_de_ia(tmp_path):
 
 def test_catalogo_40_e_buracos_de_ia_fechados():
     from pse import catalogo
-    assert len(catalogo.CATALOGO) == 48
+    assert len(catalogo.CATALOGO) == 49
     assert catalogo.previstos() == []
     assert catalogo.implementados({"security"}, ["ai"]) == ["S-10", "S-11"]
     assert catalogo.implementados({"privacy"}, ["ai"]) == ["P-15", "P-16"]

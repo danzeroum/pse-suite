@@ -1,0 +1,45 @@
+# Regua da anonimizacao — P-20.
+#
+# Vive AQUI, nunca dentro do .py (D-13). Piso vigiado em
+# tests/test_regua.py.
+#
+# Por que uma regua propria e nao mais um grupo em backend-infra: os verbos
+# de persistencia daqui sao de LINHA (`insert`, `write`, `save`), e os de la
+# sao de CONEXAO (`create_engine`, `client`, `bucket`). Sao conceitos
+# distintos que so por acaso moram perto — juntar os dois faria S-16 passar
+# a olhar `save()` e P-20 passar a olhar `create_engine()`, e nenhum dos
+# dois quer isso.
+
+# Funcoes de digest determinístico e SEM chave. E a lista inteira do
+# `hashlib` que serve como "hash nu" — o que as une nao e a forca do
+# algoritmo, e a ausencia de segredo: o mesmo cpf produz o mesmo digest
+# em qualquer maquina do mundo, sempre.
+hashes_sem_chave: [md5, sha1, sha224, sha256, sha384, sha512, sha3_224,
+                   sha3_256, sha3_384, sha3_512, shake_128, shake_256,
+                   blake2b, blake2s, new]
+
+# D-08: construcoes com SEGREDO. Nao sao hash nu e nao entram no check —
+# P-06 e quem audita onde a chave mora.
+construcoes_com_chave: [hmac, compare_digest, pbkdf2_hmac, scrypt, bcrypt,
+                        argon2, hkdf, derive_key, fernet, encrypt]
+
+# D-08: fontes de aleatoriedade que tornam o digest NAO determinístico. Sal
+# por registro quebra a ligacao entre duas ocorrencias do mesmo titular, que
+# e exatamente o que o hash nu preserva.
+fontes_de_sal: [urandom, token_bytes, token_hex, token_urlsafe, uuid4,
+                randbytes, systemrandom, getrandbits, randombytes]
+# Argumentos nomeados que introduzem segredo no proprio digest.
+argumentos_com_chave: [key, salt, secret, pepper]
+
+# Onde o digest deixa de ser calculo e vira DADO GUARDADO. E este passo que
+# transforma "hash de uma string" em "identificador persistido".
+verbos_de_persistencia: [insert, save, write, create, update, upsert, put,
+                         add, append, store, persist, bulk_insert, to_sql,
+                         to_parquet, to_csv, copy_from, load, index]
+verbos_de_exportacao: [export, publish, send, emit, dump, to_json, upload,
+                       sync, share]
+
+# Classes do catalogo que declaram o dado como fora do alcance da lei. E a
+# afirmacao que P-20 confronta: Art. 12 so dispensa quem NAO PODE ser
+# revertido por meios razoaveis.
+classes_de_anonimato: [anonymized, anonimizado, anonimo, anonymous]

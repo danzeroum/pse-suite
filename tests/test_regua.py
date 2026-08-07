@@ -262,6 +262,44 @@ def test_regua_do_contrato_de_api_e_vigiada(regua):
         "reprovaria qualquer campo de negócio chamado assim")
 
 
+def test_regua_da_anonimizacao_e_vigiada(regua):
+    """P-20 deriva de `anonimizacao`. Remover um termo de
+    `construcoes_com_chave` ou de `fontes_de_sal` faz o check passar a punir
+    HMAC e sal aleatório — ou seja, a acusar exatamente quem acertou. É o
+    D-13 com a consequência invertida, e por isso o piso é aqui."""
+    anon = regua["anonimizacao"]
+    piso = {
+        "hashes_sem_chave": {"md5", "sha1", "sha256", "sha512"},
+        "construcoes_com_chave": {"hmac", "pbkdf2_hmac", "scrypt", "bcrypt"},
+        "fontes_de_sal": {"urandom", "token_bytes", "uuid4"},
+        "argumentos_com_chave": {"key", "salt"},
+        "verbos_de_persistencia": {"insert", "save", "write"},
+        "verbos_de_exportacao": {"export", "publish"},
+        "classes_de_anonimato": {"anonymized"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {str(t).lower() for t in anon[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de anonimizacao.yaml [{grupo}]: "
+            f"{sorted(faltando)} — remover daqui faz P-20 punir o caso correto")
+
+
+def test_p20_nao_reimplementa_a_regua_de_pii(regua):
+    """O identificador de P-20 vem de `pii-patterns`, sem o grupo
+    `credenciais` — hashear senha é o que se deve fazer, e incluí-la faria o
+    check acusar a prática certa."""
+    fonte = _fonte("privacy", "p20_hash_como_anonimizacao.py")
+    assert 'ctx.data["pii-patterns"]' in fonte
+    assert 'ctx.data["sensitive-fields"]' in fonte
+    intruso = _literais_de_colecao("privacy", "p20_hash_como_anonimizacao.py") & {
+        "sha256", "md5", "hmac", "cpf", "urandom", "insert"}
+    assert not intruso, f"vocabulário próprio em P-20: {sorted(intruso)}"
+    assert '"credenciais"' in fonte, (
+        "a exclusão do grupo de credenciais é deliberada e tem de estar "
+        "explícita no check")
+
+
 def test_regua_da_infra_de_backend_e_vigiada(regua):
     """S-14, S-15, P-18, P-19 e S-16 derivam de `backend-infra`. Esvaziar um
     grupo aqui apaga um vetor de infra inteiro — e infra é justamente onde
