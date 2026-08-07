@@ -1,4 +1,4 @@
-# Matriz pilar x dominio — os 40 checks
+# Matriz pilar x dominio — os 43 checks
 
 > **Gerado**, nunca escrito a mao: `python -m pse.matriz > docs/matriz-dominio.md`.
 > Ha teste que reprova se este arquivo divergir do catalogo — um mapa
@@ -13,12 +13,12 @@ um check pode examinar mais de um estrato.
 
 | | frontend | api | backend | data | ai | total no pilar |
 |---|---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | P-15 P-16 | 15 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 S-08 | S-05 S-08 | S-10 S-11 | 11 |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | P-15 P-16 | 16 |
+| **security** | S-09 | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 S-08 | S-05 S-08 | S-10 S-11 | 13 |
 | **ethics** | **—** | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04 E-05 E-06 E-07 E-09 E-10 E-11 E-12 | 14 |
-| **total no dominio** | 3 | 12 | 11 | 11 | 15 | 40 |
+| **total no dominio** | 3 | 15 | 11 | 11 | 15 | 43 |
 
-A soma da ultima linha (52) e maior que 40 porque um check aparece em
+A soma da ultima linha (55) e maior que 43 porque um check aparece em
 mais de uma coluna quando examina mais de um estrato. Nao e erro de contagem:
 e a multiplicidade do dominio, que e exatamente a razao de ele nao caber
 no prefixo do ID.
@@ -46,17 +46,18 @@ celula vazia virou pergunta, e a pergunta virou check.
 ## Densidade por dominio
 
 O numero sozinho engana: o que interessa e se o check NASCEU do estrato ou
-foi etiquetado depois. So o frontend passou pela primeira porta.
+foi etiquetado depois. Densidade por heranca nao e cobertura — e um numero
+que engana quem le o mapa.
 
 | Dominio | Checks | Leitura |
 |---|---|---|
 | `frontend` | 3 | Unico dominio cujos checks foram desenhados OLHANDO para ele. Os tres nasceram do estrato. |
-| `api` | 12 | Todos classificados a posteriori. Nenhum nasceu da pergunta 'o que e proprio de uma API?' — vieram do Trabalho A e foram etiquetados depois. |
+| `api` | 15 | **S-12, P-17 e S-13 nasceram do estrato** — do contrato, do filtro de busca e do payload de erro. Os demais continuam sendo classificacao a posteriori: vieram do Trabalho A e do inventario e foram etiquetados depois. Era a leitura critica que a propria matriz fazia deste dominio, e ela deixou de valer para o pacote fundador. |
 | `backend` | 11 | A posteriori. Sao os estaticos do inventario, reclassificados. |
 | `data` | 11 | A posteriori, mas o mais coerente dos quatro herdados: catalogo, retencao, k-anonimato e lineage sao genuinamente do estrato de dados. |
 | `ai` | 15 | Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os demais foram etiquetados a posteriori. Primeiro dominio herdado a receber checks proprios. |
 
-## Os 40, um por linha
+## Os 43, um por linha
 
 | Check | Pilar | Dominio(s) | Titulo |
 |---|---|---|---|
@@ -89,6 +90,7 @@ foi etiquetado depois. So o frontend passou pela primeira porta.
 | `P-14` | privacy | frontend | PII no armazenamento do cliente ou na URL |
 | `P-15` | privacy | ai | Dado pessoal como feature de treino sem finalidade declarada |
 | `P-16` | privacy | ai | Dataset de treino sem governanca declarada |
+| `P-17` | privacy | api | Endpoint de busca aceita filtro sensivel sem bloqueio |
 | `S-01` | security | api | BOLA/IDOR — recurso de titular sem assertOwnership |
 | `S-02` | security | api | Rate limit + paginacao por cursor (anti-extracao em massa) |
 | `S-03` | security | api | Erros e webhooks sem PII no payload |
@@ -100,6 +102,8 @@ foi etiquetado depois. So o frontend passou pela primeira porta.
 | `S-09` | security | frontend | Token sensivel persistido no cliente |
 | `S-10` | security | ai | Injecao de prompt (instrucao, invisivel, flooding) |
 | `S-11` | security | ai | Saida do modelo em sink perigoso sem validacao |
+| `S-12` | security | api | Ontologia x-ethics ausente ou nao implementada no contrato |
+| `S-13` | security | api | Resposta de erro expoe pilha, caminho ou versao interna |
 
 Todo check tem ao menos um dominio, e todo prefixo corresponde ao pilar —
 as duas coisas sao verificadas em `tests/test_dominio.py`.

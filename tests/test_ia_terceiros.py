@@ -182,8 +182,8 @@ def test_catalogo_tem_os_tres():
         assert m.get("status") == "implementado"
         assert m.get("canonical_mutation")
         assert "Art. 42" in m.get("base_legal", "")
-    assert len(catalogo.CATALOGO) == 40
-    assert len(catalogo.implementados()) == 40
+    assert len(catalogo.CATALOGO) == 43
+    assert len(catalogo.implementados()) == 43
 
 
 def test_laudo_lista_os_tres(tmp_path):

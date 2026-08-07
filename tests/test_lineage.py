@@ -174,7 +174,7 @@ def test_catalogo_100_por_cento_implementado():
     from pse import catalogo
     assert catalogo.previstos() == [], (
         f"ainda ha previstos: {[c['id'] for c in catalogo.previstos()]}")
-    assert len(catalogo.implementados()) == len(catalogo.CATALOGO) == 40
+    assert len(catalogo.implementados()) == len(catalogo.CATALOGO) == 43
     m = catalogo.meta("E-08")
     assert m["pack"] == "ethics" and m["canonical_mutation"]
     assert "rastreabilidade" in m["base_legal"].lower()
@@ -186,7 +186,7 @@ def test_laudo_sem_previstos(tmp_path):
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
     assert laudo["checks_previstos"] == []
-    assert laudo["cobertura"]["catalogo_total"] == 40
+    assert laudo["cobertura"]["catalogo_total"] == 43
     assert "E-08" in laudo["checks_executados"]
 
 

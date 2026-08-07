@@ -1,0 +1,87 @@
+# Regua do estrato de API — S-12, P-17, S-13.
+#
+# Vive AQUI, nunca dentro do .py do check (D-13). Um check com lista propria
+# e um check que so o autor sabe o que cobre, e encolher a cobertura passa a
+# ser um diff invisivel. Remover termo daqui exige PR neste repositorio, e ha
+# piso vigiado em tests/test_regua.py.
+#
+# Nada aqui e "palavra que aparece no codigo": sao NOMES DE FATO — nome de
+# chamada que executa, chave de contrato que o parser encontra, extensao de
+# spec. A mencao num comentario nunca alcanca nenhuma destas listas (D-01).
+
+# ---------------------------------------------------------------- S-12
+# A ontologia que o contrato deve carregar. `x-` e o espaco de extensao do
+# proprio OpenAPI: declarar a PII ali e declarar NO CONTRATO, no lugar onde
+# o consumidor da API ja olha, em vez de num wiki que ninguem le.
+ontologia:
+  extensao: x-ethics
+  # Chaves aceitas dentro da extensao. Sinonimo existe porque time brasileiro
+  # escreve nos dois idiomas e reprovar por idioma seria burocracia, nao trava.
+  campos_pii: [pii, dados_pessoais, personal_fields, campos_pessoais]
+  campos_sensiveis: [sensitive, sensiveis, dados_sensiveis]
+  escopos: [allowlist_scopes, scopes, escopos, escopos_permitidos]
+  finalidade: [purpose, finalidade]
+
+# Chaves de topo que identificam um arquivo como spec de API. E o FATO
+# (o documento se declara), nao o nome do arquivo — spec chamada
+# `contrato-publico.yml` continua sendo spec.
+marcas_de_spec: [openapi, swagger]
+
+# Nomes de arquivo que SUGEREM contrato. Usados so para decidir
+# INDETERMINACAO: arquivo com cara de spec que nao parseia vira pergunta
+# bloqueante em vez de sumir. Nunca liberam nada — o pior caso e um arquivo
+# inocente virar pergunta, e essa direcao e segura.
+nomes_de_arquivo_de_contrato: [openapi, swagger, api-spec, apispec]
+
+# Como um DTO se parece em Python. Usado so para achar a classe que
+# IMPLEMENTA o schema; o campo em si vem da AST, nunca de texto.
+bases_de_dto: [BaseModel, Schema, Model, TypedDict, DTO]
+
+# ---------------------------------------------------------------- P-17
+# Verbos de rota. O fato e o decorator com literal de caminho, nao a palavra.
+verbos_de_rota: [get, post, put, patch, delete, route, api_route, endpoint,
+                 head, options]
+# De onde uma rota le parametro de consulta.
+extratores_de_query: [args, query_params, params, query, GET, request_args]
+# D-08: a guarda que EXECUTA desliga o achado. Nome de funcao que aplica
+# allowlist ou recusa filtro fora do vocabulario permitido.
+#
+# Casadas por `scan.nome_casa_tokens`: TODOS os tokens da marca precisam
+# aparecer no nome da chamada, cada um como prefixo. Por isso as marcas
+# ficam no radical mais curto — `validar_filtro` alcanca `validar_filtros` e
+# `validar_filtros_permitidos`, e nao alcanca `validar_email`. Marca de um
+# token so (`allowlist`) casa sozinha; `filtro` sozinho NAO entra na lista,
+# porque casaria com qualquer funcao de filtragem e a guarda viraria passe
+# livre.
+guardas_de_filtro: [allowlist, allow_list, whitelist,
+                    filtro_permitido, filtros_permitidos, campo_permitido,
+                    validar_filtro, valida_filtro, sanitiz_filtro,
+                    sanitize_filter, assert_filtro, restring_filtro]
+
+# ---------------------------------------------------------------- S-13
+# Onde uma resposta de erro e construida.
+construtores_de_resposta: [jsonify, JSONResponse, PlainTextResponse, Response,
+                           make_response, HTTPException, abort, HttpResponse,
+                           JsonResponse, send_json]
+# Como se reconhece um handler de erro.
+decoradores_de_erro: [errorhandler, app_errorhandler, exception_handler,
+                      exceptionhandler]
+# O que NAO pode chegar ao cliente. Tres grupos porque a recomendacao muda:
+# traceback e o pior, caminho entrega a topologia do disco, versao entrega
+# o CVE aplicavel. CHAMADAS, casadas pelo ultimo segmento do nome.
+internals:
+  traceback: [format_exc, print_exc, format_exception, format_tb, extract_tb,
+              print_tb, format_stack]
+  caminho: [getcwd, abspath, realpath, dirname]
+  versao: [get_version, python_version, platform_version, version_info]
+# ATRIBUTOS (nao chamadas) que entregam o mesmo, nas mesmas tres categorias.
+# Casam pelo nome do atributo ou pelo nome pontuado inteiro, o que vier
+# primeiro — `sys.version` precisa do nome inteiro porque `version` sozinho
+# casaria com qualquer campo de negocio chamado version.
+atributos_internos:
+  traceback: [__traceback__, tb_frame, tb_lineno, f_locals, f_globals]
+  caminho: [__file__, sys.path, sys.executable, sys.prefix]
+  versao: [__version__, sys.version, sys.version_info]
+# Modo de depuracao ligado no servidor: o console do Werkzeug devolve
+# traceback interativo a qualquer requisicao que estoure.
+ligadores_de_debug: [run, Flask, FastAPI, create_app]

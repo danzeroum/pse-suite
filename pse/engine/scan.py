@@ -177,6 +177,34 @@ def nome_casa(nome: str, marcas) -> bool:
     return any(t.startswith(m.lower()) for t in tokens if t for m in marcas)
 
 
+def _tokens(nome: str) -> list:
+    return [t for t in re.split(r"[._]+", str(nome).lower()) if t]
+
+
+def nome_casa_tokens(nome: str, marcas) -> bool:
+    """A marca e um CONJUNTO de tokens, e todos tem de aparecer no nome.
+
+    `nome_casa` resolve marca de um token so (`limitar`). Nao resolve marca
+    composta: `validar_filtro` vira os tokens ['validar', 'filtro'], e
+    nenhum token de `validar_filtros` comeca com a string inteira.
+
+    Aqui cada token da marca precisa ser prefixo de algum token do nome —
+    o que faz `validar_filtro` casar com `validar_filtros` (plural) e com
+    `validar_filtros_permitidos`, e NAO casar com `validar_email`. Sem a
+    exigencia de todos os tokens, `filtro` sozinho casaria com qualquer
+    funcao de filtragem e a guarda viraria um passe livre.
+    """
+    tokens = _tokens(nome)
+    if not tokens:
+        return False
+    for marca in marcas:
+        exigidos = _tokens(marca)
+        if exigidos and all(any(t.startswith(e) for t in tokens)
+                            for e in exigidos):
+            return True
+    return False
+
+
 def chamadas(no: ast.AST):
     """Todas as chamadas dentro de um no, com nome resolvido."""
     for sub in ast.walk(no):

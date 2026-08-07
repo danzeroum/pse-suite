@@ -190,6 +190,101 @@ def test_invisiveis_da_regua_cobrem_zero_width_e_bidi(regua):
         f"teto de token flooding implausível: {teto}")
 
 
+def _fonte(pack: str, arquivo: str) -> str:
+    return (Path(__file__).resolve().parent.parent / "pse" / "checks" /
+            pack / arquivo).read_text(encoding="utf-8")
+
+
+def _literais_de_colecao(pack: str, arquivo: str) -> set:
+    """Strings que o check trata como VOCABULÁRIO, não como prosa.
+
+    Procurar o termo no arquivo inteiro reprova a própria explicação de por
+    que o check existe — a docstring de P-17 cita `?raca=` e a mensagem de
+    S-12 cita a chave `openapi` para o operador entender o motivo do skip.
+    A lição aprendida seria "documente menos", que é a errada.
+
+    O que caracteriza lista própria é a string participar de uma COLEÇÃO
+    literal ou de uma comparação — `("openapi", "swagger")`, `x in {...}`,
+    `nome == "raca"`. É isso que se procura aqui, pela AST.
+    """
+    import ast
+    achados = set()
+    for no in ast.walk(ast.parse(_fonte(pack, arquivo))):
+        alvos = []
+        if isinstance(no, (ast.List, ast.Tuple, ast.Set)):
+            alvos = list(no.elts)
+        elif isinstance(no, ast.Compare):
+            alvos = list(no.comparators)
+        elif isinstance(no, ast.Dict):
+            alvos = [k for k in no.keys if k is not None]
+        for alvo in alvos:
+            if isinstance(alvo, ast.Constant) and isinstance(alvo.value, str):
+                achados.add(alvo.value.lower())
+    return achados
+
+
+def test_regua_do_contrato_de_api_e_vigiada(regua):
+    """S-12, P-17 e S-13 derivam de `api-contract`. Esvaziar um grupo aqui
+    apaga um vetor inteiro sem que nenhum teste de caminho feliz perceba —
+    o D-13 no estrato de API."""
+    api = regua["api-contract"]
+    assert api["ontologia"]["extensao"] == "x-ethics", (
+        "a extensão que carrega a ontologia mudou de nome: todo contrato já "
+        "escrito deixaria de ser reconhecido em silêncio")
+    for chave in ("campos_pii", "campos_sensiveis", "escopos"):
+        assert api["ontologia"].get(chave), (
+            f"grupo '{chave}' vazio: S-12 pararia de ler metade da ontologia")
+    piso = {
+        "marcas_de_spec": {"openapi", "swagger"},
+        "verbos_de_rota": {"get", "post", "route"},
+        "extratores_de_query": {"args", "query_params", "params"},
+        "guardas_de_filtro": {"allowlist", "validar_filtro"},
+        "construtores_de_resposta": {"jsonify", "jsonresponse"},
+        "decoradores_de_erro": {"errorhandler", "exception_handler"},
+        "ligadores_de_debug": {"run"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {t.lower() for t in api[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de api-contract.yaml [{grupo}]: "
+            f"{sorted(faltando)}")
+    for grupo in ("traceback", "caminho", "versao"):
+        assert api["internals"].get(grupo), (
+            f"categoria de internals '{grupo}' vazia: S-13 pararia de ver "
+            f"aquela classe de vazamento")
+        assert api["atributos_internos"].get(grupo), (
+            f"categoria de atributo interno '{grupo}' vazia")
+    assert "format_exc" in api["internals"]["traceback"]
+    assert "__file__" in api["atributos_internos"]["caminho"]
+    assert "sys.version" in api["atributos_internos"]["versao"], (
+        "`sys.version` casa pelo nome pontuado inteiro — `version` sozinho "
+        "reprovaria qualquer campo de negócio chamado assim")
+
+
+def test_p17_nao_tem_lista_propria_de_campo_proibido():
+    """O filtro proibido de P-17 vem de `prohibited-filters` e
+    `sensitive-fields`, as mesmas réguas de E-05 e P-08. Se tivesse lista
+    própria, remover `raca` de prohibited-filters deixaria E-05 cego e P-17
+    enxergando — e ninguém saberia qual dos dois está certo."""
+    fonte = _fonte("privacy", "p17_filtro_sensivel_na_busca.py")
+    assert 'ctx.data["prohibited-filters"]' in fonte
+    assert 'ctx.data["sensitive-fields"]' in fonte
+    vocabulario = _literais_de_colecao("privacy", "p17_filtro_sensivel_na_busca.py")
+    intruso = vocabulario & {"raca", "etnia", "nome_mae", "cep", "genero"}
+    assert not intruso, f"vocabulário próprio em P-17: {sorted(intruso)}"
+
+
+def test_s12_e_s13_nao_tem_lista_propria():
+    for nome in ("s12_ontologia_no_contrato.py", "s13_erro_expoe_internals.py"):
+        assert "api-contract" in _fonte("security", nome)
+        vocabulario = _literais_de_colecao("security", nome)
+        intruso = vocabulario & {"format_exc", "openapi", "swagger",
+                                 "errorhandler", "x-ethics", "print_exc",
+                                 "__file__", "sys.version", "jsonify"}
+        assert not intruso, f"vocabulário próprio em {nome}: {sorted(intruso)}"
+
+
 def test_s10_e_s11_nao_tem_lista_propria():
     raiz = Path(__file__).resolve().parent.parent / "pse" / "checks" / "security"
     for nome in ("s10_injecao_de_prompt.py", "s11_saida_do_modelo_em_sink.py"):

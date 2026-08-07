@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: API de clientes
+  version: "1.0"
+paths:
+  /clientes:
+    get:
+      summary: Busca clientes
+      parameters:
+        # Nenhum filtro de prohibited-filters: a busca discrimina por nada.
+        - in: query
+          name: cidade
+          schema: {type: string}
+        - in: query
+          name: status
+          schema: {type: string}
+      responses:
+        "200": {description: ok}
+components:
+  schemas:
+    Cliente:
+      type: object
+      # A ontologia mora no contrato, no espaco de extensao do proprio
+      # OpenAPI: quem consome a API le a PII e o escopo no mesmo lugar em
+      # que le o campo.
+      x-ethics:
+        pii: [cpf, email]
+        sensitive: [genero]
+        allowlist_scopes:
+          cliente:leitura: [id, cidade]
+          cliente:completo: [id, cidade, cpf, email, genero]
+        purpose: atendimento_ao_cliente
+      properties:
+        id: {type: string}
+        cidade: {type: string}
+        cpf: {type: string}
+        email: {type: string}
+        genero: {type: string}
+    Pedido:
+      type: object
+      properties:
+        id: {type: string}
+        valor: {type: number}
+        status: {type: string}

@@ -894,3 +894,77 @@ checks:
         catalog_path: catalog.yaml
       espera_severidade: ALTO
 
+
+  # ================================================================ fase 7
+  # Pacote fundador do estrato de API. A matriz de v0.7.0 mostrou `api` com
+  # 12 checks e nenhum nascido olhando para ele: vieram do Trabalho A e do
+  # inventario e foram etiquetados depois. Densidade por heranca nao e
+  # cobertura. Estes tres nascem da pergunta "o que e proprio de uma borda
+  # de API?" — o contrato, o filtro de busca e o payload de erro.
+  S-12:
+    pack: security
+    domain: [api]
+    titulo: Ontologia x-ethics ausente ou nao implementada no contrato
+    base_legal: LGPD Art. 6o VI (transparencia) + Art. 46 (seguranca)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [P-04, S-03, P-17]
+    canonical_mutation:
+      descricao: schema OpenAPI expoe CPF e nao declara ontologia x-ethics
+      arquivos:
+        openapi.yaml: |
+          openapi: 3.0.3
+          components:
+            schemas:
+              Cliente:
+                type: object
+                properties:
+                  id: {type: string}
+                  cpf: {type: string}
+      espera_severidade: ALTO
+  P-17:
+    pack: privacy
+    domain: [api]
+    titulo: Endpoint de busca aceita filtro sensivel sem bloqueio
+    base_legal: LGPD Art. 6o IX + Art. 11 (nao discriminacao)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [E-05, S-12]
+    canonical_mutation:
+      descricao: rota de busca aceita ?raca= sem allowlist de filtros
+      arquivos:
+        rotas.py: |
+          from flask import request
+
+
+          @app.get("/clientes")
+          def buscar():
+              return repo.buscar(raca=request.args.get("raca"))
+      espera_severidade: ALTO
+  S-13:
+    pack: security
+    domain: [api]
+    titulo: Resposta de erro expoe pilha, caminho ou versao interna
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 7
+    status: implementado
+    supports: [S-03]
+    canonical_mutation:
+      descricao: handler de erro devolve traceback ao cliente
+      arquivos:
+        erros.py: |
+          import traceback
+
+          from flask import jsonify
+
+
+          @app.errorhandler(500)
+          def falha(e):
+              return jsonify({"trace": traceback.format_exc()}), 500
+      espera_severidade: ALTO

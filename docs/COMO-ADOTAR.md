@@ -447,3 +447,76 @@ datasets:
 Sem treino no código, P-15 e P-16 são **pulados com motivo**. Com treino e sem
 catálogo, P-15 é **indeterminado** (exit 20) — sem inventário a pergunta não é
 respondível.
+
+## 17. Estrato de API (S-12 · P-17 · S-13)
+
+Três checks nascidos da pergunta *o que é próprio de uma borda de API?* — o
+contrato, o filtro de busca e o payload de erro.
+
+**S-12 · ontologia no contrato.** Declare a PII no espaço de extensão do
+próprio OpenAPI, onde quem consome a API já olha:
+
+```yaml
+components:
+  schemas:
+    Cliente:
+      x-ethics:
+        pii: [cpf, email]
+        sensitive: [genero]
+        allowlist_scopes:
+          cliente:leitura: [id, cidade]        # o escopo restrito
+          cliente:completo: [id, cidade, cpf]  # o escopo amplo
+        purpose: atendimento_ao_cliente
+      properties:
+        id: {type: string}
+        cpf: {type: string}
+```
+
+Dois vetores: schema com PII e **sem** `x-ethics` → achado; `x-ethics` que
+promete um campo que a classe homônima em Python **não implementa** → achado.
+O segundo é o de maior valor — ontologia que ninguém implementou é confiada
+por quem lê o contrato.
+
+Schema sem dado pessoal **não** precisa de `x-ethics`: exigi-lo de um `Pedido`
+com id e valor seria burocracia, e burocracia ensina o time a preencher por
+reflexo. Sem nenhum arquivo com `openapi:`/`swagger:` de topo, o check é
+**pulado com motivo**; spec que não parseia é **indeterminado** (exit 20).
+
+**Limite declarado:** a ligação schema → DTO é por *nome de classe*. Repo que
+só publica contrato (gateway, monorepo de specs) não tem DTO e não é punido
+por isso — o vetor B simplesmente não é avaliado ali.
+
+**P-17 · filtro sensível na busca.**
+
+```python
+@app.get("/clientes")
+def buscar():
+    return repo.buscar(raca=request.args.get("raca"))   # ALTO
+
+@app.get("/clientes")                                   # conforme
+def buscar():
+    filtros = validar_filtros(request.args)             # allowlist que EXECUTA
+    return repo.buscar(**filtros)
+```
+
+Lê os dois lados do mesmo fato: a view (parâmetro nomeado ou
+`request.args.get`) e o **contrato** (`parameters: [{in: query, name: raca}]`)
+— é no contrato que a capacidade fica pública. O caminho correto mais comum
+sequer chega ao check: quem monta o filtro a partir de um vocabulário fechado
+nunca menciona um campo proibido.
+
+**S-13 · erro expõe internals.**
+
+```python
+return jsonify({"trace": traceback.format_exc()}), 500   # ALTO: pilha
+return jsonify({"modulo": __file__}), 500                # ALTO: caminho
+return jsonify({"runtime": sys.version}), 500            # ALTO: versão
+app.run(debug=True)                                      # ALTO: console interativo
+
+log.exception("falha")                                   # conforme: vai para dentro
+return jsonify({"erro": "interno", "correlacao": cid}), 500
+```
+
+A distinção é onde o traceback **chega**: retorno ou construtor de resposta é
+achado; chamada de log não é. Punir observabilidade empurraria o time a apagar
+o traceback em vez de sanear a resposta.

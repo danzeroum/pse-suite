@@ -47,8 +47,11 @@ LEITURA_DA_DENSIDADE = {
         "Unico dominio cujos checks foram desenhados OLHANDO para ele. Os "
         "tres nasceram do estrato.",
     "api":
-        "Todos classificados a posteriori. Nenhum nasceu da pergunta 'o que e "
-        "proprio de uma API?' — vieram do Trabalho A e foram etiquetados depois.",
+        "**S-12, P-17 e S-13 nasceram do estrato** — do contrato, do filtro de "
+        "busca e do payload de erro. Os demais continuam sendo classificacao a "
+        "posteriori: vieram do Trabalho A e do inventario e foram etiquetados "
+        "depois. Era a leitura critica que a propria matriz fazia deste "
+        "dominio, e ela deixou de valer para o pacote fundador.",
     "backend":
         "A posteriori. Sao os estaticos do inventario, reclassificados.",
     "data":
@@ -127,8 +130,8 @@ def gerar() -> str:
 
     L += ["## Densidade por dominio", "",
           "O numero sozinho engana: o que interessa e se o check NASCEU do "
-          "estrato ou", "foi etiquetado depois. So o frontend passou pela "
-          "primeira porta.", ""]
+          "estrato ou", "foi etiquetado depois. Densidade por heranca nao e "
+          "cobertura — e um numero", "que engana quem le o mapa.", ""]
     L += ["| Dominio | Checks | Leitura |", "|---|---|---|"]
     for d in doms:
         L.append(f"| `{d}` | {len(por_dominio[d])} | "

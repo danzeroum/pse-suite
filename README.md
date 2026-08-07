@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | **P-15 P-16** |
-| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | **S-10 S-11** |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 **P-17** | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | P-15 P-16 |
+| **security** | S-09 | S-01 S-02 S-03 S-07 **S-12 S-13** | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -93,6 +93,29 @@ etiquetados a posteriori.
 - **P-16** — o E-08 dos dados de treino. Dataset costuma ser o único artefato
   que ninguém inventaria: vive num bucket e sobrevive a toda retenção porque
   não está em tabela nenhuma.
+
+### O estrato de API (S-12 · P-17 · S-13)
+
+A matriz dizia a verdade incômoda sobre `api`: 12 checks e **nenhum nascido
+olhando para ele**. Vieram do Trabalho A e do inventário e foram etiquetados
+depois. Densidade por herança não é cobertura — é um número que engana quem
+lê o mapa. Estes três nascem da pergunta *o que é próprio de uma borda?*
+
+- **S-12** — o **contrato** é o artefato do estrato. Uma API existe para ser
+  consumida por quem não lê o seu código: o outro time decide o que logar,
+  cachear e repassar olhando a spec. Dois vetores — o schema que carrega PII
+  sem declarar `x-ethics`, e o `x-ethics` que promete campo que o DTO não
+  implementa. O segundo é pior: silêncio não engana ninguém, e uma ontologia
+  que ninguém implementou é confiada por quem lê.
+- **P-17** — discriminação sem modelo nenhum. Um endpoint com `?raca=` entrega
+  segmentação pronta a quem souber montar a URL, e a combinação de dois
+  filtros inocentes reconstrói o recorte que a lei proíbe sem que nenhuma
+  linha do código mencione discriminação. Lê os dois lados: a view e a spec.
+- **S-13** — a borda é onde a exceção vira resposta. S-03 já pega PII no
+  payload de erro; este pega a **estrutura**: pilha, caminho no disco, versão
+  de framework, e `debug=True` no servidor. `log.exception` não é achado —
+  punir observabilidade empurraria o time a apagar o log em vez de sanear a
+  resposta.
 
 ## Os dois trabalhos
 
