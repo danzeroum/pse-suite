@@ -29,6 +29,7 @@ mixed content, e cobrar ali seria inventar violacao. URL protocol-relative
 justamente o caso em que a verificacao ingenua por "comeca com http" erra.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.navegador.analise import cabecalhos_faltantes
 from pse.trabalho_a.base import exigir_observacao
@@ -53,7 +54,7 @@ def _documento(log):
        base_legal=BASE)
 def cabecalhos_e_conteudo(ctx):
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     findings = []
     exigidos = _r(ctx, "cabecalhos_exigidos")

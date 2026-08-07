@@ -162,3 +162,17 @@ def jpeg_com_exif_gps(com_gps: bool = True) -> bytes:
             + b"\xff\xe1" + struct.pack(">H", len(app1) + 2) + app1
             + b"\xff\xdb\x00\x04\x00\x00"
             + b"\xff\xd9")
+
+
+def relatar_observacao(ctx, log):
+    """Anexa `observacao_de_rede` ao laudo JA QUALIFICADO.
+
+    Existe para que a qualificacao — qual superficie foi observada, e se
+    quem serviu era um dev server — nao dependa de cada um dos sete checks
+    dinamicos lembrar de passar a regua. Esquecer num deles produziria um
+    laudo que diz a verdade em seis relatorios e cala no setimo, e qual
+    apareceria dependeria da ordem de execucao.
+    """
+    marcas = (ctx.data.get("servido-ao-cliente") or {}).get(
+        "marcas_de_dev_server") or ()
+    ctx.relatorio("observacao_de_rede", log.sanitizado(marcas))

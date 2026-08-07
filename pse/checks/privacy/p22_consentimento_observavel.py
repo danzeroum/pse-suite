@@ -32,6 +32,7 @@ A allowlist do consumidor VENCE a regua: e a decisao documentada do
 controlador, e o check nao pode ser mais esperto que a decisao registrada.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.navegador.rede import host_de
 from pse.trabalho_a.base import exigir_observacao
@@ -63,7 +64,7 @@ def _cookies_nao_essenciais(log, nao_essenciais, essenciais) -> list:
 
 def _registrar(ctx, log):
     """A observacao entra no laudo — SANITIZADA, e uma vez so."""
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
 
 @check("P-22", "privacy", "Consentimento observavel", base_legal=BASE)

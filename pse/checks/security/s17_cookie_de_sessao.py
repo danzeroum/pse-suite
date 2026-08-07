@@ -29,6 +29,7 @@ cookie de idioma que o proprio front precisa ler seria pedir ao time que
 quebre o produto para agradar a suite.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.trabalho_a.base import exigir_observacao
 
@@ -72,7 +73,7 @@ def _faltantes(cookie, exigidos: dict, samesite_fraco) -> list:
 @check("S-17", "security", "Cookie de sessao inseguro", base_legal=BASE)
 def cookie_de_sessao(ctx):
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     prefixos = _r(ctx, "cookies_de_sessao")
     exigidos = _r(ctx, "atributos_exigidos_em_sessao")

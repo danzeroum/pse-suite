@@ -25,6 +25,7 @@ Le apenas o que o navegador JA baixou. Ir buscar um arquivo que a pagina
 nao referenciou seria sondagem — Fase 3, atras do gate.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.trabalho_a.base import exigir_observacao
 
@@ -41,7 +42,7 @@ def metadado_publicado(ctx):
     from pse.navegador.analise import metadados_exif
 
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     sufixos = tuple(str(s).lower() for s in _r(ctx, "sufixos_com_metadado"))
     tipos = [t.lower() for t in _r(ctx, "tipos_com_metadado")]

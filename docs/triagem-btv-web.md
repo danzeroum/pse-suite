@@ -3,8 +3,8 @@
 > Escrito a mao. Os NUMEROS vieram de instrumentacao reproduzivel; a
 > classificacao e leitura de contexto.
 >
-> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.15.0 ·
-> **data:** 2026-08-07
+> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.15.1 ·
+> **data:** 2026-08-07 · **duas superficies medidas**
 >
 > **A PSE aponta; o dono valida.** O btv nao foi alterado.
 
@@ -111,8 +111,8 @@ foram efetivamente percorridos. O zero e real.
 | Classificacao | Quantidade |
 |---|---|
 | **VIOLACAO PROVAVEL** | **0** |
-| **FALSO-POSITIVO PROVAVEL** | **0** |
-| **INCERTO — precisa do dono** | **3** |
+| **FALSO-POSITIVO PROVAVEL** | **2** (S-21 nas duas superficies — ver 4b) |
+| **INCERTO — precisa do dono** | **5** (3 arquivos + S-19 + arranjo de `/dev`) |
 
 Nao ha lista de violacoes a devolver, e nao ha falso-positivo a triar: **os
 checks de frontend nao produziram achado nenhum contra o btv**, nem antes
@@ -130,10 +130,23 @@ nao produziu nada.
 *Pergunta ao dono:* vale reduzir a construcao da linha 56 a uma forma que a
 gramatica 0.23.2 alcance, ou preferem que a suite atualize a gramatica?
 
-**(ii) `web/src/api/squad.ts`** — mesma situacao. Note que ha **duas** arvores
-de front no repositorio (`btv-web/` e `web/`), e as duas tem `api/squad.ts`.
-*Pergunta ao dono:* `web/` esta ativo ou e resto de migracao? Se for resto,
-sai do alvo e a lacuna some sozinha.
+**(ii) `web/src/api/squad.ts`** — mesma situacao. Ha **duas** arvores de front
+no repositorio (`btv-web/` e `web/`), e as duas tem `api/squad.ts`.
+
+*A pergunta foi respondida pelo dono, e a resposta muda a prioridade.*
+`web/` **NAO e resto de migracao**: e o console de desenvolvedor, buildado e
+servido. Confirmado em `infra/docker/Dockerfile` — dois estagios (`web-build`
+e `btvweb-build`), `BTV_DEV_WEB_DIR=/src/web/dist` e
+`BTV_WEB_DIR=/src/btv-web/dist` — e em `crates/btv-server/src/lib.rs`, que
+monta `router.nest_service("/dev", svc)`.
+
+| Arvore | Servida em | Variavel |
+|---|---|---|
+| `btv-web/` | `/` (raiz) — o produto | `BTV_WEB_DIR` |
+| `web/` | `/dev` — console de desenvolvedor | `BTV_DEV_WEB_DIR` |
+
+Os tres arquivos ilegiveis sao **codigo embarcado e servido nas duas SPAs**,
+nao sobra. A lacuna da gramatica vale para o produto E para o console.
 
 **(iii) `web/src/components/screens/user/Designer/PropertiesPanel.tsx`** —
 nao analisado. Tela de designer; a gramatica falha na linha 35 pela versao
@@ -141,6 +154,73 @@ tsx e na linha 1 pela de typescript.
 
 Nenhum dos tres e achado. Sao **lacunas nomeadas** — a diferenca entre
 "olhei e esta limpo" e "nao olhei" continua sendo o ponto.
+
+---
+
+## 4b. Duas superficies dinamicas — e uma delas nunca tinha sido observada
+
+**A lacuna.** Todas as medicoes dinamicas anteriores carregaram a **raiz**.
+O console em `/dev` nunca foi observado por navegador nenhum, e o laudo nao
+registrava esse silencio: os sete checks dinamicos afirmavam algo sobre uma
+superficie e **nada** sobre a outra, sem distinguir as duas. E o mesmo verde
+falso que o bloco `alcance` impede no estatico, uma camada acima.
+
+**Corrigido nos dois sentidos.** O laudo passou a NOMEAR a superficie
+observada (`superficie_observada` + nota dizendo que nenhuma outra rota da
+mesma origem foi carregada), e as duas superficies foram medidas.
+
+### Medicao das duas
+
+| | raiz (`btv-web`) | console (`web`) |
+|---|---|---|
+| Requisicoes | 119 | 93 |
+| Hosts contactados | `127.0.0.1`, **`fonts.googleapis.com`** | `127.0.0.1` |
+| Cookies | nenhum | nenhum |
+| S-19 cabecalhos | ALTO | ALTO |
+| S-21 sourcemap | MEDIO (107) | MEDIO (84) |
+| P-22 · P-23 · P-24 · S-17 · S-20 | sem achado | sem achado |
+| S-18 terceiros | pulado (sem manifesto) | pulado (sem manifesto) |
+
+**Observacao factual, sem veredito:** o console **nao** contacta terceiro
+nenhum; a raiz contacta `fonts.googleapis.com`. Nenhuma das duas depositou
+cookie durante a carga. O que isso significa para a exposicao de `/dev` **e
+julgamento do dono** — a PSE observa carga, cabecalho e cookie; nao conclui
+risco. Registro tambem, como fato: o `docker-compose.prod.yml` declara que
+autenticacao e responsabilidade do ingress, e o servidor Rust nao define
+`content-security-policy`, `x-content-type-options` nem `referrer-policy`
+(procurados em `crates/btv-server/src/*.rs`, ausentes).
+
+### E uma correcao que a segunda medicao expos: **contra o que se mediu**
+
+As duas superficies foram observadas em **servidor de desenvolvimento**
+(Vite), nao no `btv dashboard` de producao. Isso muda o que os achados
+significam:
+
+* **S-21 (sourcemap) — FALSO-POSITIVO PROVAVEL sobre o artefato.** Os
+  "bundles" sao `/@vite/client` (com `sourceMappingURL=data:…base64`),
+  `/@react-refresh` e `node_modules/.vite/deps/*`. Nada disso e o que o
+  `vite build` produz: e modo de desenvolvimento, que serve sem minificar e
+  com sourcemap embutido **por design**. O check nao errou — a referencia
+  existe mesmo, e ele so afirma que existe. Errado era o laudo nao dizer
+  contra o que mediu.
+* **S-19 (cabecalhos) — INCERTO.** Um dev server nao poe cabecalho de borda,
+  entao o achado nao prova a postura de producao. *Porem* o servidor Rust
+  tambem nao os define, e o compose delega isso ao ingress: o achado
+  **pode** valer em producao, e so observando o ingress se sabe.
+
+**Correcao na suite.** O relatorio de observacao passou a declarar
+`servidor_de_desenvolvimento` com os indicios que o denunciaram, em regua
+(`pse/data/servido-ao-cliente.yaml`), com nota dizendo que o comportamento e
+normal do modo e nao propriedade do artefato publicado. Nenhum veredito
+mudou — mudou o que o leitor entende do veredito.
+
+### Limite desta medicao, declarado
+
+O console foi servido em **porta propria** (Vite em `127.0.0.1:5179`), e nao
+aninhado em `/dev` atras do servidor Rust. Origem separada em vez de origem
+compartilhada: cookie, `SameSite` e cabecalho podem diferir do arranjo real.
+Para medir o arranjo de producao seria preciso subir a imagem Docker com as
+duas `dist` buildadas — **pendencia registrada, nao presumida limpa**.
 
 ---
 
@@ -177,10 +257,17 @@ cobertura nenhuma; so para de esconder a que ja existia.
 **Afirma, com prova de leitura:** nao ha checkbox de consentimento
 pre-marcado, nem PII em `localStorage`/`sessionStorage`/URL, nem token de
 sessao guardado pelo cliente — em **171 dos 174** arquivos, percorrendo
-1.159 elementos JSX e 5.797 chamadas.
+1.159 elementos JSX e 5.797 chamadas. As **duas** arvores foram auditadas, e
+`web/` e a maior: **104 arquivos analisados** contra 61 de `btv-web/`.
 
-**Nao afirma:** nada sobre os tres arquivos nao analisados; nada sobre
-comportamento que so aparece em execucao (isso e a camada dinamica); nada
-sobre os `.rs`, que tem alcance proprio e limitado.
+**Afirma, sobre a carga observada:** as duas SPAs carregam sem depositar
+cookie; o console nao contacta terceiro; a raiz contacta
+`fonts.googleapis.com`.
+
+**Nao afirma:** nada sobre os tres arquivos nao analisados; nada sobre a
+postura de PRODUCAO das duas SPAs (o que foi observado foi dev server);
+nada sobre `/dev` no arranjo real (origem compartilhada atras do servidor
+Rust); nada sobre exposicao ou risco de `/dev` — isso e veredito do dono;
+nada sobre os `.rs`, que tem alcance proprio e limitado.
 
 **O btv nao foi alterado.**

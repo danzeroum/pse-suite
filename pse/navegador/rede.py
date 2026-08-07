@@ -209,7 +209,22 @@ class NetworkLog:
     def nomes_de_cookie(self) -> list:
         return [c.name for c in self.cookies]
 
-    def sanitizado(self) -> dict:
+    def indicios_de_dev_server(self, marcas) -> list:
+        """Caminhos servidos que denunciam modo de desenvolvimento.
+
+        Ver `marcas_de_dev_server` em `pse/data/servido-ao-cliente.yaml`: o
+        que a camada dinamica observa depende inteiramente de QUEM serviu, e
+        um dev server nao serve o mesmo artefato que a producao.
+        """
+        vistos = []
+        for r in self.recursos:
+            baixo = str(r.url).lower()
+            for m in marcas:
+                if str(m).lower() in baixo and m not in vistos:
+                    vistos.append(m)
+        return vistos
+
+    def sanitizado(self, marcas_de_dev=()) -> dict:
         """A projecao que pode ir para o laudo.
 
         Passa pelo MESMO sanitizador do resto da suite, na ORIGEM. A
@@ -229,4 +244,41 @@ class NetworkLog:
             "cookies": [{"name": sanitizar(c.name), "httpOnly": c.httpOnly,
                          "secure": c.secure, "sameSite": c.sameSite}
                         for c in self.cookies],
+            # UMA superficie, e o laudo tem de dizer qual. A camada dinamica
+            # carrega a pagina de UM endereco; qualquer outra rota da mesma
+            # origem NAO foi observada. No btv isso importou: o alvo serve
+            # DUAS SPAs — o produto na raiz e um console em `/dev` — e medir
+            # so a raiz e apresentar meia cobertura como inteira.
+            "superficie_observada": sanitizar_url(self.url),
+            "nota_de_superficie": (
+                "Os checks dinamicos observaram ESTE endereco. Nenhuma outra "
+                "rota da mesma origem foi carregada: ausencia de achado aqui "
+                "nao diz nada sobre elas. Para cobrir outra superficie, rode "
+                "de novo com `base_url` apontando para ela."),
+            **_bloco_de_dev_server(self, marcas_de_dev),
         }
+
+
+def _bloco_de_dev_server(log, marcas) -> dict:
+    """Declara se o que foi observado veio de um servidor de desenvolvimento.
+
+    Nao muda veredito nenhum — muda o que o leitor entende do veredito. Um
+    dev server serve modulo sem minificar, com sourcemap embutido e sem os
+    cabecalhos que um proxy de producao poria; ler esses achados como
+    propriedade do PRODUTO seria atribuir ao alvo o comportamento da
+    ferramenta que o serviu.
+    """
+    indicios = log.indicios_de_dev_server(marcas) if marcas else []
+    if not indicios:
+        return {"servidor_de_desenvolvimento": False}
+    return {
+        "servidor_de_desenvolvimento": True,
+        "indicios_de_dev_server": indicios,
+        "nota_de_dev_server": (
+            "O endereco observado responde como SERVIDOR DE DESENVOLVIMENTO. "
+            "Modulo sem minificar, sourcemap embutido e ausencia de "
+            "cabecalhos de borda sao comportamento NORMAL desse modo — e nao "
+            "sao, por si, propriedade do artefato publicado. Os achados desta "
+            "execucao descrevem o que foi servido AQUI; para afirmar algo "
+            "sobre producao, observe o servidor de producao."),
+    }

@@ -27,6 +27,7 @@ recurso nao varrido. Se NENHUM candidato pode ser lido, o check fica
 indeterminado: teto de memoria nao e atestado de conformidade.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import CheckIndeterminado, Finding, Severidade
 from pse.trabalho_a.base import exigir_observacao
 
@@ -57,7 +58,7 @@ def segredo_servido(ctx):
     from pse.navegador.analise import segredos_em
 
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     padroes = _r(ctx, "padroes_de_segredo")
     candidatos = _candidatos(ctx, log)

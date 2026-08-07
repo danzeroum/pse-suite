@@ -99,3 +99,35 @@ tipos_de_bundle: [application/javascript, text/javascript,
 # exemplo e loopback, e esta acrescenta so o que e infraestrutura do proprio
 # navegador.
 ignorar_em_observacao: [about:blank, data, blob, chrome-extension]
+
+# ---------------------------------------------------- servidor de desenvolvimento
+# O QUE A CAMADA DINAMICA OBSERVOU: o artefato ENTREGUE, ou o encanamento do
+# dev server?
+#
+# Achado medindo o btv. S-21 acusou "107 bundles referenciando sourcemap" na
+# raiz e 84 no console — e a origem eram `/@vite/client` com
+# `sourceMappingURL=data:...base64`, `/@react-refresh` e
+# `node_modules/.vite/deps/*`. Nada disso e o bundle que o `vite build`
+# produz: e modo de desenvolvimento, que serve tudo sem minificar e com
+# sourcemap embutido POR DESIGN.
+#
+# O check nao passa a mentir menos por causa disso — a referencia existe
+# mesmo, e ele so afirma que existe. O que faltava era o laudo dizer CONTRA
+# O QUE ele mediu, para que ninguem leia "o produto vaza sourcemap" onde a
+# frase certa e "o dev server que eu observei serve sourcemap, como todo dev
+# server serve".
+#
+# Marcas de CAMINHO, nao de cabecalho: `X-Powered-By` some atras de proxy, e
+# o caminho do modulo nao.
+marcas_de_dev_server:
+  - "/@vite/client"
+  - "/@react-refresh"
+  - "/@fs/"
+  - "/@id/"
+  - "node_modules/.vite/"
+  - "/__vite_ping"
+  - "hot-update.js"
+  - "__webpack_hmr"
+  - "sockjs-node"
+  - "/_next/static/development/"
+  - "/.well-known/vite"

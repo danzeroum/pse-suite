@@ -17,6 +17,7 @@ verificada seria a suite fingindo certeza — o mesmo defeito que ela cobra
 dos outros. Quando a Fase 3 existir, a confirmacao pode elevar o peso.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.trabalho_a.base import exigir_observacao
 
@@ -29,7 +30,7 @@ def sourcemap_em_producao(ctx):
     from pse.navegador.analise import sourcemap_referenciado
 
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     sufixos = tuple(str(s).lower() for s in ctx.data[REGUA]["sufixos_de_bundle"])
     tipos = [t.lower() for t in ctx.data[REGUA]["tipos_de_bundle"]]

@@ -35,6 +35,7 @@ from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlsplit
 
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade
 from pse.trabalho_a.base import exigir_observacao
 
@@ -104,7 +105,7 @@ RX_PII_NA_ROTA = re.compile(r"[?&]([A-Za-z_][A-Za-z0-9_-]*)=")
 @check("P-23", "privacy", "PII em transito na URL", base_legal=BASE)
 def pii_em_transito(ctx):
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     pii = _pii(ctx)
     superficies = ctx.data[REGUA]["superficies_de_transito"]

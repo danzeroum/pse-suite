@@ -28,6 +28,7 @@ por S-04. Nunca indeterminado — a pre-condicao declarativa simplesmente nao
 existe, e essa e a definicao de N/A declarado.
 """
 from pse.engine.registry import check
+from pse.navegador import analise
 from pse.model import Finding, Severidade, SkipCheck
 from pse.navegador.rede import host_casa, host_de
 from pse.trabalho_a.base import exigir_observacao
@@ -38,7 +39,7 @@ BASE = "LGPD Art. 37 e 39 (registro e operador) + Art. 42"
 @check("S-18", "security", "Terceiro observado fora do manifesto", base_legal=BASE)
 def terceiro_observado(ctx):
     log = exigir_observacao(ctx, "passive")   # 5 degraus + navegador
-    ctx.relatorio("observacao_de_rede", log.sanitizado())
+    analise.relatar_observacao(ctx, log)
 
     manifesto = ctx.manifest_terceiros()
     if manifesto is None:
