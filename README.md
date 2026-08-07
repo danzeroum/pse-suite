@@ -260,6 +260,31 @@ arquivos são. Não é finding — não há defeito no alvo por ser escrito em R
 — é **estado**. Sem ele, `nenhum achado em .rs` é indistinguível de `Rust
 auditado e limpo`.
 
+### Alcance a Rust: quatro vetores, sem parser
+
+A medição do btv recomendou o degrau `literal` — quatro vetores alcançáveis
+**sem gramática nenhuma**. É o que existe hoje: **S-06** (chave hardcoded),
+**P-18** (campo sensível sem cifra), **P-19** (evento sem crypto-shredding) e
+**S-16** (persistência fora da jurisdição) reconhecem `.rs`. Nenhum parser
+foi escrito, nenhum check novo nasceu.
+
+A âncora é a **estrutura**, nunca a menção: `// let api_key = "AKIA..."` num
+comentário não dispara; a ligação `let api_key = "..."` dispara. Comentário
+de bloco **aninhado** (`/* a /* b */ c */`) é apagado inteiro, e `&'a str`
+não é confundido com literal — as três construções que um apagador genérico
+erra, cada uma para um lado perigoso.
+
+**Precisão sobre recall**, porque sem árvore o casamento é mais frágil:
+`CRÍTICO` só com formato conhecido (AKIA, `sk-`, `ghp_`, PEM); nome de
+credencial com literal longo de formato desconhecido é `ALTO`. E
+`env!("API_KEY")` — que grava o valor no binário em tempo de compilação — é
+**indeterminado com motivo**, nunca achado forçado nem verde por conveniência.
+
+`.rs` **não** entra em `COM_PARSER`. Ele tem categoria própria no bloco
+`alcance`, com os quatro checks nomeados: *ausência de achado desses quatro
+significa "olhei e está limpo"; ausência de achado de qualquer outro check
+nesses arquivos não significa nada.*
+
 ### O mapa de cobertura: *quais checks* ficaram cegos
 
 `alcance` responde *que linguagens a suite não lê*.
@@ -278,10 +303,21 @@ Quatro estados que **nunca colapsam** um no outro:
 | `FORA DE ALCANCE` | o vetor existe, em linguagem sem parser — *sem achado* é **não olhei** |
 | `NÃO APLICÁVEL` | o vetor não existe neste alvo |
 
-No btv: **47,0% do repositório lido, 53,0% cego** (em linhas). Nenhum check
-totalmente fora de alcance, **19 parcialmente cegos** — todos cegos em Rust e
-só em Rust. `AUDITADO PARCIAL` nasceu deste alvo: chamar P-01 de *auditado*
-porque a metade Python foi lida esconderia 38 mil linhas não olhadas.
+No btv: **47,0% lido por parser, 50,8% em alcance parcial (4 vetores),
+2,2% cego** (em linhas). As três fatias ficam separadas de propósito — somar
+o alcance parcial ao lido faria a proporção saltar para 97,8% e a suite
+mentiria por arredondamento.
+
+`AUDITADO PARCIAL` nasceu deste alvo: chamar P-01 de *auditado* porque a
+metade Python foi lida esconderia 38 mil linhas não olhadas. Restam **13**
+meio-cegos (eram 19).
+
+**Não-aplicável é medido, não alegado.** Para cada check com vetor em
+backend, a suite sonda o código efetivo dos `.rs` — sem comentário e sem
+literal — atrás das marcas daquele vetor; ausência de todas prova que o vetor
+não está lá. No btv isso valeu para **2** checks, não para a maioria: logger,
+hash, serde, tratamento de erro e cliente HTTP estão todos presentes no
+motor. A sonda só empurra para *não aplicável*, nunca para *auditado*.
 
 O mapa cruza **dois eixos independentes**: alcance do substrato (*a suite leu
 o código onde o vetor vive*) × estado no laudo (*o check chegou a decidir*).

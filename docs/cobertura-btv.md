@@ -13,6 +13,29 @@ Nao e para inflar cobertura nem para pedir desculpa por ela. E para que a
 decisao de escopo — *a PSE deveria aprender Rust?* — seja tomada com numero,
 nao com impressao.
 
+## Delta desta medicao
+
+O que mudou desde `pse-suite 0.13.0`, e por que. A rodada anterior mediu que
+53% do alvo estava cego e recomendou o degrau `literal`: quatro vetores
+alcancaveis sem gramatica nenhuma. Esta rodada implementou exatamente isso —
+nenhum parser, nenhum check novo, quatro checks existentes passando a
+reconhecer `.rs` por padrao textual ancorado.
+
+| | antes | agora |
+|---|---|---|
+| Linhas lidas por parser | 47.0% | **47.0%** |
+| Linhas em alcance parcial (4 vetores) | — | **50.8%** |
+| Linhas cegas para TODO check | 53.0% | **2.2%** |
+| Checks auditados de verdade | 13 | **16** |
+| Checks meio-cegos em Rust | 19 | **13** |
+
+**A leitura honesta do delta.** O numero que encolheu de verdade foi o de linhas
+invisiveis para QUALQUER check — de 53.0% para 2.2%. Mas ele encolheu porque
+38 mil linhas sairam de *cegas* e entraram em *alcance parcial*, nao em *lidas*:
+quatro checks passaram a olha-las e treze continuam sem ver nada ali. Ler a
+primeira linha da tabela como se fosse cobertura seria exatamente a fachada
+que esta serie de rodadas existe para impedir.
+
 ## Procedencia da medicao
 
 | | |
@@ -20,7 +43,7 @@ nao com impressao.
 | Alvo | `danzeroum/btv` |
 | Commit do alvo | `a3e14f4568da95cf021206aec4816815efbd303a` |
 | Medido em | 2026-08-07 |
-| Suite | `pse-suite 0.13.0 @ 38563c876d88` |
+| Suite | `pse-suite 0.14.0 @ 4f5b5656c890` |
 | Modo | pse_passive (Trabalho B estatico + camada dinamica passiva) |
 | Alvo no ar | sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true` |
 
@@ -45,9 +68,30 @@ alcance* apagaria o que ele de fato achou. Sao tres estados na pergunta e
 quatro na resposta porque o alvo real e poliglota — e fingir que nao e seria
 inventar uma simplicidade que os dados nao tem.
 
+## Alcance parcial: as linguagens que a suite NAO le e mesmo assim alcanca
+
+Terceira categoria, e ela existe para nao virar mentira nos dois sentidos.
+Dizer *lido* faria um leitor concluir que os 57 checks olharam o motor; dizer
+*nao lido* esconderia o alcance que existe, e o consumidor que corrigisse uma
+chave hardcoded no `.rs` nao entenderia de onde veio o achado.
+
+| Linguagem | Arquivos | Tecnica | Checks que alcancam |
+|---|---|---|---|
+| Rust | 137 | padrao textual ancorado (sem parser) | `S-06` `P-18` `P-19` `S-16` |
+
+**Ausencia de achado destes quatro significa *olhei e esta limpo*. Ausencia de
+achado de QUALQUER OUTRO check nestes arquivos nao significa nada** — eles nao
+foram olhados. E a mesma distincao do resto do documento, um nivel abaixo: o
+alcance textual nao le a linguagem, alcanca quatro vetores dela.
+
 ## Proporcao do alvo que a suite consegue ler
 
-**47.0% lido, 53.0% cego** — em linhas, nao em arquivos.
+**47.0% lido, 50.8% em alcance parcial (4 vetores), 2.2% cego** — em linhas, nao em arquivos.
+
+As tres fatias sao separadas de proposito. Somar o alcance parcial ao lido faria
+a proporcao saltar de 47.0% para 97.8% e a suite passaria a mentir por
+arredondamento: aquelas linhas sao olhadas por quatro checks e invisiveis para
+os outros treze que tem vetor la.
 
 Linhas de proposito: `alcance` conta arquivos (contar linhas do que nao se leu
 seria incoerente com o que aquele bloco diz), mas proporcao em arquivo engana
@@ -56,7 +100,7 @@ parser, nao ha decisao, e nenhum achado sai daqui.
 
 | Linguagem | Arquivos | Linhas | A suite le? |
 |---|---|---|---|
-| Rust | 137 | 38096 | **nao** |
+| Rust | 137 | 38096 | **parcial** (4 vetores) |
 | Python | 88 | 8506 | sim |
 | TypeScript/TSX | 77 | 8184 | sim |
 | JavaScript | 9 | 6000 | sim |
@@ -70,7 +114,7 @@ parser, nao ha decisao, e nenhum achado sai daqui.
 | SQL | 4 | 204 | sim |
 | .jsonl (nao reconhecida) | 1 | 144 | **nao** |
 | Terraform | 1 | 31 | **nao** |
-| **total** | | 75061 | 47.0% |
+| **total** | | 75061 | 47.0% lido |
 
 ## Por dominio
 
@@ -82,14 +126,14 @@ multiplicidade da matriz, nao erro de contagem.
 |---|---|---|---|---|---|---|---|
 | `frontend` | 8 | 0 | 0 | 0 | 3 | 0 | 11 |
 | `api` | 2 | 3 | 0 | 0 | 2 | 8 | 15 |
-| `backend` | 5 | 9 | 0 | 0 | 1 | 1 | 16 |
-| `data` | 8 | 6 | 0 | 0 | 1 | 0 | 15 |
+| `backend` | 9 | 5 | 0 | 0 | 1 | 1 | 16 |
+| `data` | 12 | 2 | 0 | 0 | 1 | 0 | 15 |
 | `ai` | 5 | 6 | 0 | 0 | 3 | 1 | 15 |
 
 | Estado | Checks | |
 |---|---|---|
-| **AUDITADO** | 23 | `E-05` `E-07` `E-08` `E-10` `E-13` `P-04` `P-07` `P-08` `P-09` `P-15` `P-16` `P-22` `P-23` `P-24` `S-05` `S-08` `S-14` `S-15` `S-17` `S-18` `S-19` `S-20` `S-21` |
-| **AUDITADO PARCIAL** | 19 | `E-00` `E-04` `E-11` `E-12` `P-01` `P-02` `P-03` `P-06` `P-17` `P-18` `P-19` `P-20` `S-04` `S-06` `S-10` `S-11` `S-12` `S-13` `S-16` |
+| **AUDITADO** | 29 | `E-05` `E-07` `E-08` `E-10` `E-13` `P-02` `P-03` `P-04` `P-07` `P-08` `P-09` `P-15` `P-16` `P-18` `P-19` `P-22` `P-23` `P-24` `S-05` `S-06` `S-08` `S-14` `S-15` `S-16` `S-17` `S-18` `S-19` `S-20` `S-21` |
+| **AUDITADO PARCIAL** | 13 | `E-00` `E-04` `E-11` `E-12` `P-01` `P-06` `P-17` `P-20` `S-04` `S-10` `S-11` `S-12` `S-13` |
 | **FORA DE ALCANCE** | 0 | — |
 | **NAO APLICAVEL** | 0 | — |
 | **INDETERMINADO** | 7 | `E-01` `E-02` `E-06` `P-13` `P-14` `S-03` `S-09` |
@@ -101,13 +145,13 @@ num mapa de cobertura e indistinguivel de um check que passou.
 
 ### O numero que interessa
 
-**13 dos 57 checks foram auditados DE VERDADE** — rodaram ate um
+**16 dos 57 checks foram auditados DE VERDADE** — rodaram ate um
 veredito E tiveram todo o substrato lido. Sao os unicos em que *sem achado*
 significa mesmo *olhei e esta limpo*:
 
-`E-05` `E-07` `E-10` `P-04` `P-22` `P-23` `P-24` `S-14` `S-15` `S-17` `S-19` `S-20` `S-21`
+`E-05` `E-07` `E-10` `P-03` `P-04` `P-19` `P-22` `P-23` `P-24` `S-06` `S-14` `S-15` `S-17` `S-19` `S-20` `S-21`
 
-Os outros 44 se dividem entre os que leram metade do substrato, os que
+Os outros 41 se dividem entre os que leram metade do substrato, os que
 foram pulados com motivo, os indeterminados e os que nem foram habilitados.
 Cada um desses e uma resposta legitima; nenhum deles e conformidade.
 
@@ -120,6 +164,30 @@ alcance, e ha teste que prova exatamente isso com um alvo sintetico.
 `NAO APLICAVEL` exige que o substrato nao exista: o btv tem web, tem Python,
 tem SQL e esta no ar, entao nenhum dos cinco substratos falta. Um estado que
 so aparece quando e verdade e a unica forma dele valer alguma coisa.
+
+### Nao-aplicavel MEDIDO, e nao alegado
+
+Alegar que um vetor nao existe e a forma mais confortavel de inflar cobertura,
+e seria exatamente o que este mapa foi criado para impedir. Entao a suite
+SONDA: para cada check com vetor em backend, procura no codigo efetivo dos
+`.rs` — sem comentario e sem literal — as marcas daquele vetor. Ausencia de
+todas elas e a prova de que o vetor nao esta la.
+
+A sonda so empurra para *nao aplicavel*. Presenca de marca NAO e achado:
+significa que o vetor existe e que o check segue cego naquela metade — e por
+isso o resultado abaixo e pequeno, e nao grande.
+
+| Check | Vetor ausente em |
+|---|---|
+| `P-02` | Rust |
+| `P-03` | Rust |
+
+Apenas 2 dos checks tiveram o vetor efetivamente ausente do Rust do alvo.
+A expectativa que originou a rodada era de que o Rust do btv fosse *majoritariamente*
+nao-aplicavel — motor de execucao, sem consentimento nem dark pattern. A medicao
+**nao confirma isso**: logger, hash, serde, tratamento de erro e cliente HTTP
+estao todos presentes no motor, entao os vetores de P-01, S-13, P-20, S-12 e S-04
+existem la e seguem sem ser olhados. Registrar a divergencia e o ponto de medir.
 
 ### Extensoes que o mapa nao sabe classificar
 
@@ -142,7 +210,7 @@ com motivo declarado — S-18 nao tem manifesto de terceiros para comparar, e
 mostra-lo so como `AUDITADO` diria *olhei e esta limpo* sobre um check que
 nao olhou coisa alguma.
 
-Sao 14 pulados neste alvo: `E-08` `E-12` `E-13` `P-02` `P-08` `P-15` `P-16` `P-18` `P-19` `S-05` `S-08` `S-12` `S-16` `S-18`. Pular com motivo nao bloqueia — mas nao e conformidade, e por isso nao pode
+Sao 13 pulados neste alvo: `E-08` `E-12` `E-13` `P-02` `P-08` `P-15` `P-16` `P-18` `S-05` `S-08` `S-12` `S-16` `S-18`. Pular com motivo nao bloqueia — mas nao e conformidade, e por isso nao pode
 desaparecer dentro do estado de alcance.
 
 A ultima coluna e a que decide escopo: ela nao pergunta se o check ficou cego
@@ -167,8 +235,8 @@ alguma coisa.
 | `E-12` | ai, data | AUDITADO PARCIAL | **pulado** — nenhuma exportacao de embedding/hash derivado no codigo | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
 | `E-13` | backend | AUDITADO | **pulado** — manifesto de terceiros ausente — sem ele todo host de dependencia seria achado, e ruido nao e evidencia (a ausencia do manifesto e cobrada por S-04) | JSON, YAML | — | nao |
 | `P-01` | backend | AUDITADO PARCIAL | executou | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
-| `P-02` | data | AUDITADO PARCIAL | **pulado** — catalogo de dados ausente — cobrado por P-04 | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | Rust | **sim** |
-| `P-03` | data | AUDITADO PARCIAL | executou | JavaScript, Python, SQL, TypeScript, TypeScript/TSX | Rust | **sim** |
+| `P-02` | data | AUDITADO | **pulado** — catalogo de dados ausente — cobrado por P-04 | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | — | **sim** |
+| `P-03` | data | AUDITADO | executou | JavaScript, Python, SQL, TypeScript, TypeScript/TSX | — | **sim** |
 | `P-04` | data | AUDITADO | executou | JSON, YAML | — | nao |
 | `P-05` | api | NAO HABILITADO | NAO HABILITADO | — | — | nao |
 | `P-06` | backend | AUDITADO PARCIAL | executou | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
@@ -182,8 +250,8 @@ alguma coisa.
 | `P-15` | ai | AUDITADO | **pulado** — nenhuma chamada de treino no codigo — nao ha feature a confrontar com o catalogo | Python | — | nao |
 | `P-16` | ai | AUDITADO | **pulado** — nenhuma chamada de treino no codigo — nao ha dataset de treino a inventariar | JSON, Python, YAML | — | nao |
 | `P-17` | api | AUDITADO PARCIAL | executou | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | Rust | **sim** |
-| `P-18` | backend, data | AUDITADO PARCIAL | **pulado** — catalogo de dados ausente — cobrado por P-04; sem inventario nao ha campo sensivel a confrontar | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | Rust | **sim** |
-| `P-19` | backend, data | AUDITADO PARCIAL | **pulado** — nenhuma producao de evento em barramento append-only no codigo — nao ha registro imutavel a confrontar com o direito de eliminacao | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
+| `P-18` | backend, data | AUDITADO | **pulado** — catalogo de dados ausente — cobrado por P-04; sem inventario nao ha campo sensivel a confrontar | JSON, JavaScript, Python, Rust, TypeScript, TypeScript/TSX, YAML | — | **sim** |
+| `P-19` | backend, data | AUDITADO | executou | JavaScript, Python, Rust, TypeScript, TypeScript/TSX | — | **sim** |
 | `P-20` | data | AUDITADO PARCIAL | executou | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
 | `P-22` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
 | `P-23` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
@@ -193,7 +261,7 @@ alguma coisa.
 | `S-03` | api | INDETERMINADO | INDETERMINADO | — | — | nao |
 | `S-04` | backend | AUDITADO PARCIAL | executou | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | Rust | **sim** |
 | `S-05` | backend, data | AUDITADO | **pulado** — manifesto de terceiros ausente — cobrado por S-04 | JSON, YAML | — | nao |
-| `S-06` | backend | AUDITADO PARCIAL | executou | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
+| `S-06` | backend | AUDITADO | executou | JavaScript, Python, Rust, TypeScript, TypeScript/TSX | — | **sim** |
 | `S-07` | api, backend | NAO HABILITADO | NAO HABILITADO | — | — | nao |
 | `S-08` | data, backend | AUDITADO | **pulado** — manifesto de terceiros ausente — cobrado por S-04 | JSON, YAML | — | nao |
 | `S-09` | frontend | INDETERMINADO | INDETERMINADO | — | — | nao |
@@ -203,7 +271,7 @@ alguma coisa.
 | `S-13` | api | AUDITADO PARCIAL | executou | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
 | `S-14` | backend | AUDITADO | executou | YAML, shell | — | nao |
 | `S-15` | backend, data | AUDITADO | executou | SQL | — | nao |
-| `S-16` | backend | AUDITADO PARCIAL | **pulado** — nenhuma politica de residencia de dados declarada (`data_residency` na config ou no manifesto) — sem promessa nao ha o que confrontar, e supor uma jurisdicao seria a suite decidindo pelo consumidor | JavaScript, Python, TypeScript, TypeScript/TSX | Rust | **sim** |
+| `S-16` | backend | AUDITADO | **pulado** — nenhuma politica de residencia de dados declarada (`data_residency` na config ou no manifesto) — sem promessa nao ha o que confrontar, e supor uma jurisdicao seria a suite decidindo pelo consumidor | JavaScript, Python, Rust, TypeScript, TypeScript/TSX | — | **sim** |
 | `S-17` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
 | `S-18` | frontend | AUDITADO | **pulado** — manifesto de terceiros ausente — cobrado por S-04; sem declaracao nao ha o que confrontar com o que foi observado | (aplicacao no ar) | — | nao |
 | `S-19` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
@@ -215,22 +283,22 @@ alguma coisa.
 Nao ha decisao aqui: esta rodada foi de MEDICAO. O que segue e a leitura dos
 numeros acima, assinada, para que a decisao seja tomada sobre dados.
 
-**O degrau `literal` compra 4 checks por um custo que nao e de
-parser.** P-06, S-04, S-06, S-16 dependem apenas de literais de string com posicao.
+**O degrau `literal` compra 2 checks por um custo que nao e de
+parser.** P-06, S-04 dependem apenas de literais de string com posicao.
 Rust comenta como JavaScript, e `scan.codigo_efetivo` ja apaga comentario
 preservando literal — a extensao `.rs` entraria nesse caminho sem gramatica
 nenhuma. Sao os de vetor mais universal, e aqueles cuja ausencia hoje e mais
 enganosa: `S-06` existe justamente para achar chave em codigo, e as 38 mil
 linhas de Rust do btv nunca foram olhadas por ele.
 
-**O degrau `chamada` compra 11, e ai o custo e real.** Precisa de
+**O degrau `chamada` compra 8, e ai o custo e real.** Precisa de
 `tree-sitter-rust` e — o que costuma ser esquecido — de tratar MACRO como
 chamada: o logger de Rust e `tracing::info!`, nao `logger.info()`, e um check
 que so olhe `call_expression` acha zero e diz que esta limpo. Esse e o modo
 de falhar que esta suite menos pode se permitir, porque produz verde.
 
-**O degrau `estrutura` compra 4, e nao se recomenda agora.**
-E-04, P-03, P-17, S-12 dependem de derive e de macro de rota; o custo deixa de ser
+**O degrau `estrutura` compra 3, e nao se recomenda agora.**
+E-04, P-17, S-12 dependem de derive e de macro de rota; o custo deixa de ser
 o parser e passa a ser conhecer axum, Diesel e serde um a um. Cobertura de
 fachada nasce exatamente assim — de um parser que le a arvore mas nao entende
 o framework, nao acha nada, e parece verde.
@@ -245,9 +313,9 @@ resolvesse a cobertura inteira.
 
 | Degrau | Custo | Cegos AGORA | Mesmo vetor, mas nao executaram |
 |---|---|---|---|
-| `literal` | Nenhuma gramatica. Basta varrer literais de string do `.rs` ignorando comentario — a mesma coisa que `codigo_efetivo` ja faz para `.js`, e Rust comenta igual (`//`, `/* */`). | `P-06` `S-04` `S-06` `S-16` | — |
-| `chamada` | `tree-sitter-rust`, que existe e e mantido. O trabalho real nao e o parser: e que macro (`tracing::info!`) e chamada nao sao o mesmo NO de arvore, e cada check teria de olhar os dois. | `E-00` `E-11` `E-12` `P-01` `P-02` `P-18` `P-19` `P-20` `S-10` `S-11` `S-13` | `E-01` `E-02` |
-| `estrutura` | `tree-sitter-rust` MAIS um modelo de atributo e derive — `#[derive(Serialize)]`, `#[serde(rename)]`, as macros de rota do axum. E aqui que o custo deixa de ser do parser e passa a ser de conhecer cada framework. | `E-04` `P-03` `P-17` `S-12` | — |
+| `literal` | Nenhuma gramatica. Basta varrer literais de string do `.rs` ignorando comentario — a mesma coisa que `codigo_efetivo` ja faz para `.js`, e Rust comenta igual (`//`, `/* */`). | `P-06` `S-04` | `S-06` `S-16` |
+| `chamada` | `tree-sitter-rust`, que existe e e mantido. O trabalho real nao e o parser: e que macro (`tracing::info!`) e chamada nao sao o mesmo NO de arvore, e cada check teria de olhar os dois. | `E-00` `E-11` `E-12` `P-01` `P-20` `S-10` `S-11` `S-13` | `E-01` `E-02` `P-02` `P-18` `P-19` |
+| `estrutura` | `tree-sitter-rust` MAIS um modelo de atributo e derive — `#[derive(Serialize)]`, `#[serde(rename)]`, as macros de rota do axum. E aqui que o custo deixa de ser do parser e passa a ser de conhecer cada framework. | `E-04` `P-17` `S-12` | `P-03` |
 
 A ultima coluna nao entra na conta do ganho: sao checks que sequer rodaram
 neste alvo, e somar os dois inflaria o que o parser compra. Ficam a vista

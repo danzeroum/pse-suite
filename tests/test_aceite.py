@@ -145,18 +145,30 @@ def test_comparacao_pega_lacuna_que_sumiu_em_silencio():
 
 # ==================================================== o alcance, isolado
 def test_alcance_conta_o_que_nao_le(tmp_path):
+    """Três categorias, e Rust migrou entre elas — por isso este teste mudou.
+
+    Go continua totalmente fora de alcance; Rust passou a ter alcance
+    PARCIAL (quatro vetores por padrão textual, sem parser). Colapsar as
+    duas faria o laudo dizer a mesma coisa sobre duas situações opostas.
+    """
     from pse import alcance
     (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
     (tmp_path / "b.rs").write_text("fn main() {}\n", encoding="utf-8")
     (tmp_path / "c.rs").write_text("fn f() {}\n", encoding="utf-8")
+    (tmp_path / "e.go").write_text("package main\n", encoding="utf-8")
     (tmp_path / "d.md").write_text("# doc\n", encoding="utf-8")
 
     m = alcance.medir(tmp_path)
     lidos = {x["linguagem"]: x["arquivos"] for x in m["lidos"]}
     fora = {x["linguagem"]: x["arquivos"] for x in m["fora_de_alcance"]}
+    parcial = {x["linguagem"]: x for x in m["alcance_parcial"]}
     assert lidos == {"Python": 1}
-    assert fora == {"Rust": 2}
-    assert m["arquivos_fora_de_alcance"] == 2
+    assert fora == {"Go": 1}
+    assert parcial["Rust"]["arquivos"] == 2
+    assert set(parcial["Rust"]["checks"]) == {"S-06", "P-18", "P-19", "S-16"}
+    assert "nao foram olhados" in parcial["Rust"]["nota"]
+    assert m["arquivos_fora_de_alcance"] == 1
+    assert m["arquivos_em_alcance_parcial"] == 2
     assert "NAO E ATESTADO DE CONFORMIDADE" in m["nota"]
     # Markdown não conta como lacuna: não é código nem declaração, e
     # listá-lo viraria ruído que esconde a lacuna de verdade.
@@ -194,5 +206,7 @@ def test_laudo_carrega_o_alcance(tmp_path):
     out = tmp_path / "l.json"
     main(["--path", str(tmp_path), "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
-    assert laudo["alcance"]["arquivos_fora_de_alcance"] == 1
-    assert laudo["alcance"]["fora_de_alcance"][0]["linguagem"] == "Rust"
+    assert laudo["alcance"]["arquivos_em_alcance_parcial"] == 1
+    parcial = laudo["alcance"]["alcance_parcial"][0]
+    assert parcial["linguagem"] == "Rust"
+    assert set(parcial["checks"]) == {"S-06", "P-18", "P-19", "S-16"}

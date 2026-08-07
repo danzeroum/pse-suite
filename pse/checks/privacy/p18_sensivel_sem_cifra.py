@@ -26,10 +26,28 @@ DOIS CAMINHOS PARA O VERDE (D-08), porque as duas formas sao corretas:
 Sem catalogo nao ha o que confrontar: SkipCheck, com a ausencia cobrada por
 P-04. Nunca CheckIndeterminado aqui — a pre-condicao declarativa simplesmente
 nao existe, e essa e a definicao de N/A declarado.
+
+ALCANCE A RUST (textual, ancorado, sem parser), e ele faz DUAS coisas
+distintas:
+
+  SUPRESSAO (D-08). Uma chamada de cifra num `.rs` sobre o campo conta
+  igual a uma em Python. Sem isso, um consumidor cujo motor Rust cifra de
+  verdade seria punido por o catalogo nao declarar — punir quem protegeu.
+
+  DETECCAO DO VAO. O caso que so o Rust revela: o catalogo declara
+  `encryption` com `key_management` — entao o braco declarativo fica quieto
+  — e o motor grava o campo EM CLARO mesmo assim. Declaracao e fato
+  divergindo e a coisa que esta suite inteira existe para achar, e aqui ela
+  so aparece porque o `.rs` passou a ser lido.
+
+  O braco Rust NAO duplica o achado declarativo: ele so fala de campo que o
+  catalogo ja deu por cifrado. Dois achados para o mesmo campo seriam ruido,
+  e ruido ensina o time a ignorar o pack.
 """
 import ast
 
-from pse.engine import scan
+from pse.checks import _rust
+from pse.engine import rustscan, scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade, SkipCheck
 
@@ -39,6 +57,54 @@ REGUA = "backend-infra"
 
 def _r(ctx, chave):
     return [str(t).lower() for t in ctx.data[REGUA][chave]]
+
+
+def _cifras_de_rust(ctx) -> list:
+    return _r(ctx, "cifra_de_aplicacao") + _rust.r_baixo(ctx, "cifra_de_aplicacao")
+
+
+def _campos_cifrados_em_rust(ctx, candidatos: set) -> set:
+    """Campos que aparecem no span de argumento de uma chamada de cifra.
+
+    Sem arvore nao se sabe QUAL argumento e o campo — entao a pergunta e
+    feita ao contrario: dos campos que o catalogo declarou, quais aparecem
+    dentro de uma chamada de cifra? Restringir aos candidatos e o que
+    impede o span de virar um saco de palavras.
+    """
+    marcas = _cifras_de_rust(ctx)
+    cifrados = set()
+    for _, texto in _rust.arquivos(ctx):
+        for ch in rustscan.chamadas(texto):
+            if not scan.nome_casa_tokens(ch.nome.replace("::", "."), marcas):
+                continue
+            cifrados |= set(rustscan.tokens_presentes(ch.args, candidatos))
+    return cifrados
+
+
+def _escritas_em_rust(ctx, candidatos: set) -> dict:
+    """{campo: (arquivo, chamada)} — onde um campo do catalogo e persistido.
+
+    A ancora e a chamada de persistencia; o campo e procurado no span de
+    argumento dela, e so entre os campos que o catalogo ja declarou. Uma
+    chamada que aplique cifra no proprio span nao conta como escrita em
+    claro.
+    """
+    persistencia = _rust.r_baixo(ctx, "persistencia") + \
+        [str(t).lower() for t in ctx.data[REGUA]["chamadas_de_persistencia"]] + \
+        ["execute", "query", "bind", "insert", "save", "put_item", "fetch_one",
+         "query_as", "create"]
+    cifras = _cifras_de_rust(ctx)
+    saida = {}
+    for p, texto in _rust.arquivos(ctx):
+        linhas = texto.splitlines()
+        for ch in rustscan.chamadas(texto):
+            if not scan.nome_casa_tokens(ch.nome.replace("::", "."), persistencia):
+                continue
+            if rustscan.contem_token(ch.args, cifras):
+                continue
+            for campo in rustscan.tokens_presentes(ch.args, candidatos):
+                saida.setdefault(campo, (p, ch, linhas))
+    return saida
 
 
 def _campos_cifrados_no_codigo(ctx) -> set:
@@ -94,8 +160,17 @@ def sensivel_sem_cifra(ctx):
     chaves_cifra = _r(ctx, "chaves_de_cifra")
     chaves_gerencia = _r(ctx, "chaves_de_gerencia")
     gerenciadores = _r(ctx, "gerenciadores_de_chave")
-    cifrados_no_codigo = _campos_cifrados_no_codigo(ctx)
-    findings = []
+    campos_do_catalogo = {
+        str(campo).lower()
+        for tmeta in (cat.get("tables") or {}).values()
+        for campo in ((tmeta or {}).get("fields") or {})}
+    # D-08 em Rust, e ele vale para o catalogo INTEIRO, nao so para o vao:
+    # um consumidor cujo motor cifra de verdade nao pode ser punido por o
+    # catalogo nao declarar. Punir quem protegeu e o pior sinal que uma
+    # suite pode mandar.
+    cifrados_no_codigo = _campos_cifrados_no_codigo(ctx) | \
+        _campos_cifrados_em_rust(ctx, campos_do_catalogo)
+    findings, declarados_cifrados = [], {}
 
     for tabela, tmeta in sorted((cat.get("tables") or {}).items()):
         for campo, props in sorted(((tmeta or {}).get("fields") or {}).items()):
@@ -109,7 +184,11 @@ def sensivel_sem_cifra(ctx):
             cifra = _cifra_declarada(props, chaves_cifra)
             if cifra is not None and _gerencia(cifra, chaves_gerencia,
                                                gerenciadores):
-                continue                 # D-08: cifra com chave gerenciada
+                # D-08: cifra com chave gerenciada. O braco declarativo esta
+                # satisfeito — e e exatamente aqui que o braco Rust entra,
+                # para perguntar se o motor cumpre o que o catalogo promete.
+                declarados_cifrados[baixo] = (tabela, campo)
+                continue
 
             if cifra is None:
                 falta = (
@@ -144,4 +223,48 @@ def sensivel_sem_cifra(ctx):
                 recomendacao=recomendacao,
                 base_legal=BASE, arquivo=ctx.catalog_path(),
                 linha=ctx.linha_no_catalogo("tables", tabela, "fields", campo)))
+
+    return findings + _o_vao_entre_declaracao_e_motor(
+        ctx, declarados_cifrados, cifrados_no_codigo)
+
+
+def _o_vao_entre_declaracao_e_motor(ctx, declarados: dict,
+                                    cifrados_no_codigo: set) -> list:
+    """Catalogo promete cifra; o motor Rust grava em claro.
+
+    So olha campos que o braco declarativo ja deu por resolvidos, e so
+    reclama se NENHUMA cifra — em Python ou em Rust — toca o campo. Precisao
+    sobre recall: havendo cifra em qualquer lugar, o alcance textual nao tem
+    como provar que aquela escrita especifica escapou dela.
+    """
+    if not declarados:
+        return []
+    candidatos = set(declarados) - set(cifrados_no_codigo)
+    if not candidatos:
+        return []
+
+    findings = []
+    for campo, (p, ch, linhas) in sorted(
+            _escritas_em_rust(ctx, candidatos).items()):
+        tabela, nome = declarados[campo]
+        findings.append(Finding(
+            check_id="P-18", pack="privacy", severidade=Severidade.ALTO,
+            titulo=f"Campo sensivel {tabela}.{nome} declarado cifrado e "
+                   f"gravado em claro por `{ch.nome}` (Rust)",
+            descricao=(
+                f"O catalogo declara `encryption` com `key_management` para "
+                f"{tabela}.{nome}, e o motor persiste o campo sem que nenhuma "
+                f"cifra de aplicacao toque nele — nem no `.rs`, nem no Python. "
+                f"Declaracao e fato divergindo e pior que ausencia de "
+                f"declaracao: quem le o catalogo confia numa protecao que nao "
+                f"executa. Alcance TEXTUAL: o campo foi lido do span de "
+                f"argumento da chamada, sem arvore."),
+            recomendacao=(
+                "Aplicar a cifra no caminho de escrita do motor (`aes_gcm`, "
+                "`chacha20poly1305`, `ring::aead`) com a chave vinda do "
+                "gerenciador que o catalogo ja declara — ou corrigir o "
+                "catalogo, se a promessa nao for para valer."),
+            base_legal=BASE, arquivo=scan.rel(ctx.repo, p), linha=ch.linha,
+            snippet=(linhas[ch.linha - 1].strip()[:200]
+                     if ch.linha <= len(linhas) else None)))
     return findings

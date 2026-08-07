@@ -66,6 +66,23 @@ IRRELEVANTES = {
     ".css", ".scss", ".less", ".html", ".htm", ".xml",
 }
 
+# TERCEIRA CATEGORIA, e ela existe para nao virar mentira.
+#
+# `.rs` nao esta em COM_PARSER e nunca vai estar por causa deste bloco: a
+# suite NAO le Rust. O que ela ganhou foi alcance a QUATRO VETORES por
+# padrao textual ancorado — S-06, P-18, P-19, S-16 —, e nada alem disso.
+#
+# Poe-lo em COM_PARSER faria o laudo dizer "Rust: lido", e um leitor
+# razoavel concluiria que os 57 checks olharam o motor. Deixa-lo em
+# SEM_PARSER faria o laudo esconder o alcance que existe, e o consumidor
+# que corrigiu uma chave hardcoded no `.rs` nao entenderia de onde veio o
+# achado. As duas leituras seriam falsas em direcoes opostas — por isso a
+# terceira lista, com os checks NOMEADOS.
+ALCANCE_PARCIAL = {
+    ".rs": ("Rust", "padrao textual ancorado (sem parser)",
+            ["S-06", "P-18", "P-19", "S-16"]),
+}
+
 # Linguagens que a suite reconhece pelo nome mas nao le. Existir aqui e o que
 # permite o laudo dizer "137 arquivos Rust NAO foram lidos" em vez de
 # "137 arquivos .rs" — o consumidor pensa em linguagem, nao em extensao.
@@ -93,6 +110,7 @@ def medir(repo) -> dict:
     """
     from pathlib import Path
     lidos, nao_lidos, ignorados = Counter(), Counter(), Counter()
+    parciais = Counter()
     for p in sorted(Path(repo).rglob("*")):
         if any(parte in scan.IGNORAR_DIRS for parte in p.parts):
             continue
@@ -101,6 +119,8 @@ def medir(repo) -> dict:
         ext = _extensao(p)
         if ext in COM_PARSER:
             lidos[COM_PARSER[ext][0]] += 1
+        elif ext in ALCANCE_PARCIAL:
+            parciais[ALCANCE_PARCIAL[ext][0]] += 1
         elif ext in SEM_PARSER:
             nao_lidos[SEM_PARSER[ext]] += 1
         elif ext in IRRELEVANTES or not ext:
@@ -113,13 +133,26 @@ def medir(repo) -> dict:
         if lidos.get(rotulo):
             ferramentas[rotulo] = ferramenta
 
+    tecnica = {r: (t, checks) for _, (r, t, checks) in ALCANCE_PARCIAL.items()}
     total_fora = sum(nao_lidos.values())
+    total_parcial = sum(parciais.values())
     return {
         "lidos": [{"linguagem": k, "arquivos": v, "ferramenta": ferramentas.get(k)}
                   for k, v in lidos.most_common()],
+        "alcance_parcial": [
+            {"linguagem": k, "arquivos": v,
+             "tecnica": tecnica[k][0], "checks": tecnica[k][1],
+             "nota": (f"A suite NAO le {k}. Ela alcanca {len(tecnica[k][1])} "
+                      f"vetores por {tecnica[k][0]}: {', '.join(tecnica[k][1])}. "
+                      f"Ausencia de achado desses quatro significa 'olhei e "
+                      f"esta limpo'; ausencia de achado de QUALQUER OUTRO "
+                      f"check nestes arquivos nao significa nada — eles nao "
+                      f"foram olhados.")}
+            for k, v in parciais.most_common()],
         "fora_de_alcance": [{"linguagem": k, "arquivos": v}
                             for k, v in nao_lidos.most_common()],
         "arquivos_fora_de_alcance": total_fora,
+        "arquivos_em_alcance_parcial": total_parcial,
         "nota": (
             "AUSENCIA DE ACHADO NAS LINGUAGENS ACIMA NAO E ATESTADO DE "
             "CONFORMIDADE: a suite nao tem parser para elas e nao leu nenhum "
@@ -128,5 +161,5 @@ def medir(repo) -> dict:
             "olhou e nao achou nada."
             if total_fora else
             "Todo arquivo de codigo ou declaracao do alvo esta em linguagem "
-            "que a suite le."),
+            "que a suite le, ou em linguagem de alcance parcial declarado."),
     }

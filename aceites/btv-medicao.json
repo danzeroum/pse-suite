@@ -5,15 +5,32 @@
     "slug": "btv",
     "commit": "a3e14f4568da95cf021206aec4816815efbd303a",
     "medido_em": "2026-08-07",
-    "suite": "pse-suite 0.13.0 @ 38563c876d88",
+    "suite": "pse-suite 0.14.0 @ 4f5b5656c890",
     "modo": "pse_passive (Trabalho B estatico + camada dinamica passiva)",
     "dinamico": "sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true`",
     "medicao_path": "aceites/btv-medicao.json",
-    "clone": "clone limpo do alvo, sem `node_modules` e sem `package-lock.json` gerado: medir a arvore poluida por um `npm install` inflava o lado LIDO da proporcao com JSON de dependencia, e o numero teria saido melhor do que e"
+    "clone": "clone limpo do alvo, sem `node_modules` e sem `package-lock.json` gerado: medir a arvore poluida por um `npm install` inflava o lado LIDO da proporcao com JSON de dependencia, e o numero teria saido melhor do que e",
+    "anterior": {
+      "suite": "pse-suite 0.13.0",
+      "medido_em": "2026-08-07",
+      "percentual_lido": 47.0,
+      "percentual_cego": 53.0,
+      "auditados_de_verdade": 13,
+      "parcialmente_cegos": 19,
+      "nota": "Medicao da rodada de MEDICAO, antes do alcance textual a Rust. Fica no instantaneo para que o delta seja GERADO e nao escrito a mao — numero de antes/depois digitado envelhece e passa a contradizer a tabela ao lado."
+    }
   },
   "medicao": {
     "laudo": {
       "veredito": "indeterminado",
+      "sondas": {
+        "P-02": [
+          "Rust"
+        ],
+        "P-03": [
+          "Rust"
+        ]
+      },
       "relatorios": {
         "cobertura_parcial": {
           "P-07": "metade runtime nao executada: check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo",
@@ -89,11 +106,21 @@
             "ferramenta": "linha a linha sobre codigo efetivo"
           }
         ],
-        "fora_de_alcance": [
+        "alcance_parcial": [
           {
             "linguagem": "Rust",
-            "arquivos": 137
-          },
+            "arquivos": 137,
+            "tecnica": "padrao textual ancorado (sem parser)",
+            "checks": [
+              "S-06",
+              "P-18",
+              "P-19",
+              "S-16"
+            ],
+            "nota": "A suite NAO le Rust. Ela alcanca 4 vetores por padrao textual ancorado (sem parser): S-06, P-18, P-19, S-16. Ausencia de achado desses quatro significa 'olhei e esta limpo'; ausencia de achado de QUALQUER OUTRO check nestes arquivos nao significa nada — eles nao foram olhados."
+          }
+        ],
+        "fora_de_alcance": [
           {
             "linguagem": "TOML",
             "arquivos": 24
@@ -115,7 +142,8 @@
             "arquivos": 1
           }
         ],
-        "arquivos_fora_de_alcance": 173,
+        "arquivos_fora_de_alcance": 36,
+        "arquivos_em_alcance_parcial": 137,
         "nota": "AUSENCIA DE ACHADO NAS LINGUAGENS ACIMA NAO E ATESTADO DE CONFORMIDADE: a suite nao tem parser para elas e nao leu nenhum desses arquivos. Este bloco existe porque um laudo silencioso sobre o que nao foi olhado e indistinguivel de um laudo que olhou e nao achou nada."
       },
       "checks_executados": [
@@ -169,6 +197,10 @@
         },
         {
           "id": "P-17",
+          "motivo": ""
+        },
+        {
+          "id": "P-19",
           "motivo": ""
         },
         {
@@ -264,10 +296,6 @@
         {
           "id": "P-18",
           "motivo": "catalogo de dados ausente — cobrado por P-04; sem inventario nao ha campo sensivel a confrontar"
-        },
-        {
-          "id": "P-19",
-          "motivo": "nenhuma producao de evento em barramento append-only no codigo — nao ha registro imutavel a confrontar com o direito de eliminacao"
         },
         {
           "id": "S-05",
@@ -421,7 +449,7 @@
       "Rust": {
         "arquivos": 137,
         "linhas": 38096,
-        "lida": false
+        "lida": "parcial"
       },
       "SQL": {
         "arquivos": 4,
@@ -461,10 +489,12 @@
     },
     "proporcao": {
       "linhas_lidas": 35290,
-      "linhas_cegas": 39771,
+      "linhas_em_alcance_parcial": 38096,
+      "linhas_cegas": 1675,
       "linhas_total": 75061,
       "percentual_lido": 47.0,
-      "percentual_cego": 53.0
+      "percentual_alcance_parcial": 50.8,
+      "percentual_cego": 2.2
     }
   }
 }

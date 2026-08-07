@@ -28,10 +28,19 @@ supressao le apenas codigo efetivo, sem comentario e sem literal.
 
 D-08: payload cifrado por titular, ou repositorio com rotina de destruicao
 de chave, nao dispara.
+
+ALCANCE A RUST (textual, ancorado, sem parser). Barramento append-only e
+infraestrutura de backend, e backend de motor costuma ser Rust — foi um dos
+quatro vetores que `docs/cobertura-btv.md` classificou como de existencia
+real. A ancora e a CHAMADA de producao com o span de argumento; o
+crypto-shredding continua sendo procurado no repositorio inteiro, agora
+tambem nos `.rs`, pelo mesmo motivo de antes: a rotina de destruicao de
+chave quase nunca mora ao lado do produtor.
 """
 import ast
 
-from pse.engine import scan
+from pse.checks import _rust
+from pse.engine import rustscan, scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade, SkipCheck
 
@@ -92,12 +101,81 @@ def _pii_no_payload(no, pii: set) -> list:
 def _ha_crypto_shredding(ctx, marcas) -> bool:
     """Procurada no REPOSITORIO inteiro: a rotina de destruicao de chave
     quase nunca mora ao lado do produtor, e exigi-la no mesmo arquivo
-    reprovaria toda arquitetura bem separada."""
+    reprovaria toda arquitetura bem separada.
+
+    Agora tambem nos `.rs`. E supressao, entao le SEM literal: `"crypto_shred"`
+    dentro de uma string de log nao destroi chave nenhuma.
+    """
     for p in scan.arquivos(ctx.repo, {".py"}):
         efetivo = scan.codigo_efetivo(scan.ler(p), ".py", sem_literais=True).lower()
         if any(m in efetivo for m in marcas):
             return True
+    for _, texto in _rust.arquivos(ctx):
+        if rustscan.contem_token(
+                rustscan.efetivo(texto, sem_literais=True), marcas):
+            return True
     return False
+
+
+def _uma_ligacao_atras(texto: str, args: str, linha: int) -> str:
+    """Resolve UM salto: `payload(&p)` onde `let p = format!(...)`.
+
+    Idiomatico em Rust: o payload e montado numa ligacao e so o nome entra
+    na chamada. Sem isto, o braco textual acharia zero PII no caso mais
+    comum e diria que esta limpo — o modo de falhar mais caro desta suite.
+
+    UM salto, e so um, e declarado como tal. Nao ha resolucao de escopo:
+    casa ligacoes do MESMO arquivo, ANTES da chamada, pelo nome. Se a PII
+    chega por dois saltos, por campo de struct ou por outro modulo, este
+    braco NAO ve — e essa e uma lacuna conhecida, nao um descuido. O
+    caminho para fecha-la seria arvore, e a medicao decidiu nao ter uma.
+    """
+    import re as _re
+    nomes = set(_re.findall(r"[A-Za-z_][A-Za-z0-9_]*", args))
+    if not nomes:
+        return args
+    extra = []
+    for lig in rustscan.ligacoes(texto):
+        if lig.nome in nomes and lig.linha < linha:
+            extra.append(lig.valor_bruto)
+    return args + " " + " ".join(extra)
+
+
+def _candidatos_em_rust(ctx, pii: set) -> tuple:
+    """Producao de evento em Rust com PII no span do payload.
+
+    O verbo sozinho e ambiguo (`send` de e-mail, `publish` de post), como em
+    Python: exige que o receptor OU o modulo sejam um barramento. Sem arvore,
+    "o modulo e um barramento" e lido do codigo efetivo sem literal — a
+    mencao a Kafka num docstring nao torna o arquivo um produtor.
+    """
+    produtores = set(_rust.r_baixo(ctx, "produtores")) | \
+        {str(t).lower() for t in ctx.data["backend-infra"]["produtores_de_evento"]}
+    barramentos = _rust.r_baixo(ctx, "barramentos") + \
+        [str(t).lower() for t in ctx.data["backend-infra"]["barramentos_de_evento"]]
+    cifras = _rust.r_baixo(ctx, "cifra_de_aplicacao") + \
+        [str(t).lower() for t in ctx.data["backend-infra"]["cifra_de_aplicacao"]]
+
+    candidatos, houve = [], False
+    for p, texto in _rust.arquivos(ctx):
+        modulo = rustscan.contem_token(
+            rustscan.efetivo(texto, sem_literais=True), barramentos)
+        linhas = texto.splitlines()
+        for ch in rustscan.chamadas(texto):
+            partes = ch.nome.replace("::", ".").lower().split(".")
+            if partes[-1] not in produtores:
+                continue
+            receptor = ".".join(partes[:-1])
+            if not (rustscan.contem_token(receptor, barramentos) or modulo):
+                continue
+            houve = True
+            alcance = _uma_ligacao_atras(texto, ch.args, ch.linha)
+            if rustscan.contem_token(alcance, cifras):
+                continue                 # D-08: payload ja vai cifrado
+            campos = rustscan.tokens_presentes(alcance, pii)
+            if campos:
+                candidatos.append((p, ch, campos, linhas))
+    return candidatos, houve
 
 
 @check("P-19", "privacy", "Evento com PII sem crypto-shredding", base_legal=BASE)
@@ -108,7 +186,8 @@ def evento_sem_crypto_shredding(ctx):
     cifras = _r(ctx, "cifra_de_aplicacao")
     pii = _pii(ctx)
 
-    candidatos, houve_produtor = [], False
+    candidatos_rs, houve_rs = _candidatos_em_rust(ctx, pii)
+    candidatos, houve_produtor = [], houve_rs
     for p in scan.arquivos(ctx.repo, {".py"}):
         arvore = scan.arvore(p)          # SyntaxError -> CheckIndeterminado
         texto = scan.ler(p)
@@ -129,12 +208,12 @@ def evento_sem_crypto_shredding(ctx):
         raise SkipCheck(
             "nenhuma producao de evento em barramento append-only no codigo — "
             "nao ha registro imutavel a confrontar com o direito de eliminacao")
-    if not candidatos:
+    if not candidatos and not candidatos_rs:
         return []
     if _ha_crypto_shredding(ctx, shredding):
         return []                        # D-08: a estrategia existe no repo
 
-    findings = []
+    findings = _findings_de_rust(candidatos_rs, ctx)
     for p, no, nome, campos, texto in candidatos:
         linhas = texto.splitlines()
         i = no.lineno
@@ -161,4 +240,31 @@ def evento_sem_crypto_shredding(ctx):
             base_legal=BASE,
             arquivo=scan.rel(ctx.repo, p), linha=i,
             snippet=linhas[i - 1].strip()[:200] if i <= len(linhas) else None))
+    return findings
+
+
+def _findings_de_rust(candidatos, ctx) -> list:
+    findings = []
+    for p, ch, campos, linhas in candidatos:
+        findings.append(Finding(
+            check_id="P-19", pack="privacy", severidade=Severidade.ALTO,
+            titulo=f"Evento em `{ch.nome}` carrega {campos} sem crypto-shredding "
+                   f"(Rust)",
+            descricao=(
+                f"O payload publicado num registro append-only carrega "
+                f"{campos}, e o repositorio nao tem nenhuma rotina de "
+                f"destruicao de chave por titular. Apagar e uma operacao que "
+                f"NAO EXISTE neste tipo de registro: retencao por tempo expira "
+                f"particao, nao titular, e compaction preserva a ultima versao "
+                f"da chave — que continua sendo o dado. Alcance TEXTUAL: os "
+                f"campos foram lidos do span de argumento da chamada, sem "
+                f"arvore — o achado nomeia a chamada e a linha."),
+            recomendacao=(
+                "Crypto-shredding: publicar o evento cifrado com uma chave por "
+                "titular e, na eliminacao, destruir a chave. O evento imutavel "
+                "permanece e vira ruido — que e o que a lei pede, porque dado "
+                "que ninguem consegue ler deixa de ser dado pessoal."),
+            base_legal=BASE, arquivo=scan.rel(ctx.repo, p), linha=ch.linha,
+            snippet=(linhas[ch.linha - 1].strip()[:200]
+                     if ch.linha <= len(linhas) else None)))
     return findings

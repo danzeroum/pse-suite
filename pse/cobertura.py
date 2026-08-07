@@ -60,7 +60,7 @@ que decide se um parser novo compra alguma coisa.
 from collections import Counter
 
 from pse import catalogo
-from pse.alcance import COM_PARSER, IRRELEVANTES, SEM_PARSER
+from pse.alcance import ALCANCE_PARCIAL, COM_PARSER, IRRELEVANTES, SEM_PARSER
 
 AUDITADO = "auditado"
 AUDITADO_PARCIAL = "auditado_parcial"
@@ -198,7 +198,13 @@ SUBSTRATO = {
 def _linguagens_do_alvo(alcance: dict) -> tuple:
     lidas = {x["linguagem"] for x in alcance.get("lidos") or []}
     fora = {x["linguagem"] for x in alcance.get("fora_de_alcance") or []}
-    return lidas, fora
+    # Alcance parcial conta como PRESENTE para todo mundo e como LIDA so
+    # para os checks nomeados. E o que impede as duas mentiras opostas:
+    # "Rust foi auditado" (seria falso para 15 checks) e "Rust nao foi
+    # olhado" (seria falso para os 4 que agora olham).
+    parcial = {x["linguagem"]: set(x.get("checks") or [])
+               for x in alcance.get("alcance_parcial") or []}
+    return lidas, fora | set(parcial), parcial
 
 
 # Linguagens em que codigo de SERVIDOR e escrito. Lista POSITIVA, e nao a
@@ -293,7 +299,17 @@ def classificar(check_id: str, laudo: dict) -> dict:
                           "o mapa nao consegue dizer se ele foi cego ou nao"}
     familias, nota = substrato
     alcance = laudo.get("alcance") or {}
-    lidas, fora = _linguagens_do_alvo(alcance)
+    lidas, fora, parcial = _linguagens_do_alvo(alcance)
+    # As linguagens de alcance parcial que alcancam ESTE check contam como
+    # lidas para ele — e so para ele.
+    lidas = lidas | {ling for ling, checks in parcial.items()
+                    if check_id in checks}
+    # SONDA DE SUBSTRATO: linguagem em que o vetor deste check NAO EXISTE
+    # sai da conta inteira. Nao-aplicavel medido, e nao alegado — a
+    # diferenca entre este mapa e uma tabela de marketing.
+    ausentes = set((laudo.get("sondas") or {}).get(check_id) or [])
+    fora = fora - ausentes
+    lidas = lidas - ausentes
 
     # O proprio laudo ja declara quando um check rodou PELA METADE — P-09
     # mede k-anonimato na resposta da agregacao, e em `pse_passive` a metade
@@ -519,8 +535,36 @@ resolvesse a cobertura inteira.
 # um `.json` tem 4. Contar `\n` nao e ler: nao ha parser, nao ha decisao, e
 # nenhum achado sai daqui.
 
+def sondar_substrato(repo, data: dict) -> dict:
+    """{check_id: [linguagens onde o vetor NAO existe]}.
+
+    E o que faz `nao_aplicavel` ser MEDIDO. Sem esta sonda, dizer que o
+    Rust de um alvo e "majoritariamente nao-aplicavel" seria alegacao — e
+    alegar nao-aplicabilidade e a forma mais confortavel de inflar
+    cobertura, exatamente o que este mapa foi criado para impedir.
+
+    A sonda so empurra para NAO-APLICAVEL. Marca PRESENTE nao vira achado:
+    significa que o vetor existe e que o check segue cego naquela metade.
+    """
+    from pathlib import Path
+
+    from pse.engine import rustscan, scan
+    sondas = (data.get("rust") or {}).get("sondas") or {}
+    if not sondas:
+        return {}
+    textos = [rustscan.efetivo(scan.ler(p), sem_literais=True)
+              for p in scan.arquivos(Path(repo), {".rs"})]
+    if not textos:
+        return {}
+    saida = {}
+    for check_id, marcas in sondas.items():
+        if not any(rustscan.contem_token(t, marcas) for t in textos):
+            saida[check_id] = ["Rust"]
+    return saida
+
+
 def volume_por_linguagem(repo) -> dict:
-    """{linguagem: {"arquivos": n, "linhas": n, "lida": bool}}."""
+    """{linguagem: {"arquivos": n, "linhas": n, "lida": bool|"parcial"}}."""
     from pathlib import Path
 
     from pse.engine import scan
@@ -531,6 +575,8 @@ def volume_por_linguagem(repo) -> dict:
         ext = p.suffix.lower()
         if ext in COM_PARSER:
             rotulo, lida = COM_PARSER[ext][0], True
+        elif ext in ALCANCE_PARCIAL:
+            rotulo, lida = ALCANCE_PARCIAL[ext][0], "parcial"
         elif ext in SEM_PARSER:
             rotulo, lida = SEM_PARSER[ext], False
         elif ext in IRRELEVANTES or not ext:
@@ -554,13 +600,25 @@ def proporcao(volume: dict) -> dict:
     Rust" e um fato sem tamanho — e tamanho e o que separa uma lacuna
     aceitavel de uma que invalida o laudo.
     """
-    lidas = sum(v["linhas"] for v in volume.values() if v["lida"])
-    cegas = sum(v["linhas"] for v in volume.values() if not v["lida"])
-    total = lidas + cegas
+    lidas = sum(v["linhas"] for v in volume.values() if v["lida"] is True)
+    parciais = sum(v["linhas"] for v in volume.values() if v["lida"] == "parcial")
+    cegas = sum(v["linhas"] for v in volume.values() if v["lida"] is False)
+    total = lidas + parciais + cegas
+    def pct(x):
+        return round(100 * x / total, 1) if total else 0.0
     return {
-        "linhas_lidas": lidas, "linhas_cegas": cegas, "linhas_total": total,
-        "percentual_lido": round(100 * lidas / total, 1) if total else 0.0,
-        "percentual_cego": round(100 * cegas / total, 1) if total else 0.0,
+        "linhas_lidas": lidas,
+        # Linha de alcance parcial NAO entra em `lidas`, e a separacao e o
+        # ponto: 38 mil linhas de Rust sao olhadas por QUATRO checks e
+        # invisiveis para os outros. Soma-las ao lido faria a proporcao
+        # saltar de 47% para 98% e a suite passaria a mentir por
+        # arredondamento — o alcance textual nao le a linguagem, alcanca
+        # quatro vetores dela.
+        "linhas_em_alcance_parcial": parciais,
+        "linhas_cegas": cegas, "linhas_total": total,
+        "percentual_lido": pct(lidas),
+        "percentual_alcance_parcial": pct(parciais),
+        "percentual_cego": pct(cegas),
     }
 
 
@@ -594,6 +652,7 @@ def resumir_laudo(laudo: dict) -> dict:
     relatorios = laudo.get("relatorios") or {}
     return {
         "veredito": laudo.get("veredito"),
+        "sondas": laudo.get("sondas") or {},
         "relatorios": {k: relatorios[k] for k in (
             "cobertura_parcial", "observacao_de_rede",
             "recursos_nao_varridos", "cabecalhos_informativos_ausentes")
@@ -611,8 +670,10 @@ def resumir_laudo(laudo: dict) -> dict:
     }
 
 
-def medir_alvo(repo, laudo: dict) -> dict:
+def medir_alvo(repo, laudo: dict, data: dict | None = None) -> dict:
     """Instantaneo pronto para virar `aceites/<alvo>-medicao.json`."""
+    if data is not None and "sondas" not in laudo:
+        laudo = {**laudo, "sondas": sondar_substrato(repo, data)}
     volume = volume_por_linguagem(repo)
     return {"laudo": resumir_laudo(laudo), "volume": volume,
             "proporcao": proporcao(volume)}
@@ -704,6 +765,48 @@ def gerar(medicao: dict, alvo: dict) -> str:
           "que a", "decisao de escopo — *a PSE deveria aprender Rust?* — seja "
           "tomada com numero,", "nao com impressao.", ""]
 
+    ant = alvo.get("anterior") or {}
+    if ant:
+        L += ["## Delta desta medicao", "",
+              f"O que mudou desde `{ant['suite']}`, e por que. A rodada "
+              "anterior mediu que",
+              "53% do alvo estava cego e recomendou o degrau `literal`: quatro "
+              "vetores",
+              "alcancaveis sem gramatica nenhuma. Esta rodada implementou "
+              "exatamente isso —",
+              "nenhum parser, nenhum check novo, quatro checks existentes "
+              "passando a", "reconhecer `.rs` por padrao textual ancorado.", "",
+              "| | antes | agora |", "|---|---|---|"]
+        agora_pl = sorted(c for c, v in mapa["por_check"].items()
+                          if v["estado"] == AUDITADO
+                          and v.get("no_laudo") == "executou")
+        linhas_delta = [
+            ("Linhas lidas por parser", f"{ant['percentual_lido']}%",
+             f"{prop['percentual_lido']}%"),
+            ("Linhas em alcance parcial (4 vetores)", "—",
+             f"{prop.get('percentual_alcance_parcial', 0.0)}%"),
+            ("Linhas cegas para TODO check", f"{ant['percentual_cego']}%",
+             f"{prop['percentual_cego']}%"),
+            ("Checks auditados de verdade", str(ant["auditados_de_verdade"]),
+             str(len(agora_pl))),
+            ("Checks meio-cegos em Rust", str(ant["parcialmente_cegos"]),
+             str(len(mapa["parcialmente_cegos"]))),
+        ]
+        for rotulo, antes, agora in linhas_delta:
+            L.append(f"| {rotulo} | {antes} | **{agora}** |")
+        L += ["", "**A leitura honesta do delta.** O numero que encolheu de "
+              "verdade foi o de linhas",
+              "invisiveis para QUALQUER check — de "
+              f"{ant['percentual_cego']}% para {prop['percentual_cego']}%. "
+              "Mas ele encolheu porque",
+              "38 mil linhas sairam de *cegas* e entraram em *alcance "
+              "parcial*, nao em *lidas*:",
+              "quatro checks passaram a olha-las e treze continuam sem ver "
+              "nada ali. Ler a",
+              "primeira linha da tabela como se fosse cobertura seria "
+              "exatamente a fachada",
+              "que esta serie de rodadas existe para impedir.", ""]
+
     L += ["## Procedencia da medicao", "",
           "| | |", "|---|---|",
           f"| Alvo | `{alvo['nome']}` |",
@@ -728,9 +831,42 @@ def gerar(medicao: dict, alvo: dict) -> str:
           "quatro na resposta porque o alvo real e poliglota — e fingir que "
           "nao e seria", "inventar uma simplicidade que os dados nao tem.", ""]
 
+    parc = (laudo.get("alcance") or {}).get("alcance_parcial") or []
+    if parc:
+        L += ["## Alcance parcial: as linguagens que a suite NAO le e mesmo "
+              "assim alcanca", "",
+              "Terceira categoria, e ela existe para nao virar mentira nos "
+              "dois sentidos.",
+              "Dizer *lido* faria um leitor concluir que os 57 checks olharam "
+              "o motor; dizer",
+              "*nao lido* esconderia o alcance que existe, e o consumidor que "
+              "corrigisse uma",
+              "chave hardcoded no `.rs` nao entenderia de onde veio o achado.",
+              "",
+              "| Linguagem | Arquivos | Tecnica | Checks que alcancam |",
+              "|---|---|---|---|"]
+        for x in parc:
+            L.append(f"| {x['linguagem']} | {x['arquivos']} | {x['tecnica']} | "
+                     + " ".join(f"`{c}`" for c in x.get('checks') or []) + " |")
+        L += ["", "**Ausencia de achado destes quatro significa *olhei e esta "
+              "limpo*. Ausencia de", "achado de QUALQUER OUTRO check nestes "
+              "arquivos nao significa nada** — eles nao", "foram olhados. E a "
+              "mesma distincao do resto do documento, um nivel abaixo: o",
+              "alcance textual nao le a linguagem, alcanca quatro vetores "
+              "dela.", ""]
+
     L += ["## Proporcao do alvo que a suite consegue ler", "",
-          f"**{prop['percentual_lido']}% lido, {prop['percentual_cego']}% "
-          f"cego** — em linhas, nao em arquivos.", "",
+          f"**{prop['percentual_lido']}% lido, "
+          f"{prop.get('percentual_alcance_parcial', 0.0)}% em alcance parcial "
+          f"(4 vetores), {prop['percentual_cego']}% cego** — em linhas, nao em "
+          f"arquivos.", "",
+          "As tres fatias sao separadas de proposito. Somar o alcance parcial "
+          "ao lido faria",
+          f"a proporcao saltar de {prop['percentual_lido']}% para "
+          f"{round(prop['percentual_lido'] + prop.get('percentual_alcance_parcial', 0.0), 1)}% "
+          "e a suite passaria a mentir por",
+          "arredondamento: aquelas linhas sao olhadas por quatro checks e "
+          "invisiveis para", "os outros treze que tem vetor la.", "",
           "Linhas de proposito: `alcance` conta arquivos (contar linhas do que "
           "nao se leu",
           "seria incoerente com o que aquele bloco diz), mas proporcao em "
@@ -740,10 +876,11 @@ def gerar(medicao: dict, alvo: dict) -> str:
           "",
           "| Linguagem | Arquivos | Linhas | A suite le? |", "|---|---|---|---|"]
     for k, v in sorted(medicao["volume"].items(), key=lambda kv: -kv[1]["linhas"]):
-        L.append(f"| {k} | {v['arquivos']} | {v['linhas']} | "
-                 f"{'sim' if v['lida'] else '**nao**'} |")
+        estado = {True: "sim", False: "**nao**"}.get(
+            v["lida"], "**parcial** (4 vetores)")
+        L.append(f"| {k} | {v['arquivos']} | {v['linhas']} | {estado} |")
     L += ["| **total** | | "
-          f"{prop['linhas_total']} | {prop['percentual_lido']}% |", ""]
+          f"{prop['linhas_total']} | {prop['percentual_lido']}% lido |", ""]
 
     L += ["## Por dominio", "",
           "A soma de cada linha fecha o total de checks daquele dominio. Um "
@@ -792,6 +929,37 @@ def gerar(medicao: dict, alvo: dict) -> str:
               "tem SQL e esta no ar, entao nenhum dos cinco substratos falta. "
               "Um estado que", "so aparece quando e verdade e a unica forma "
               "dele valer alguma coisa.", ""]
+
+    sondas = laudo.get("sondas") or {}
+    if sondas:
+        L += ["### Nao-aplicavel MEDIDO, e nao alegado", "",
+              "Alegar que um vetor nao existe e a forma mais confortavel de "
+              "inflar cobertura,",
+              "e seria exatamente o que este mapa foi criado para impedir. "
+              "Entao a suite",
+              "SONDA: para cada check com vetor em backend, procura no codigo "
+              "efetivo dos",
+              "`.rs` — sem comentario e sem literal — as marcas daquele vetor. "
+              "Ausencia de", "todas elas e a prova de que o vetor nao esta la.",
+              "",
+              "A sonda so empurra para *nao aplicavel*. Presenca de marca NAO "
+              "e achado:", "significa que o vetor existe e que o check segue "
+              "cego naquela metade — e por", "isso o resultado abaixo e "
+              "pequeno, e nao grande.", "",
+              "| Check | Vetor ausente em |", "|---|---|"]
+        for cid, langs in sorted(sondas.items()):
+            L.append(f"| `{cid}` | {', '.join(langs)} |")
+        L += ["", f"Apenas {len(sondas)} dos checks tiveram o vetor "
+              "efetivamente ausente do Rust do alvo.",
+              "A expectativa que originou a rodada era de que o Rust do btv "
+              "fosse *majoritariamente*",
+              "nao-aplicavel — motor de execucao, sem consentimento nem dark "
+              "pattern. A medicao", "**nao confirma isso**: logger, hash, "
+              "serde, tratamento de erro e cliente HTTP",
+              "estao todos presentes no motor, entao os vetores de P-01, "
+              "S-13, P-20, S-12 e S-04",
+              "existem la e seguem sem ser olhados. Registrar a divergencia e "
+              "o ponto de medir.", ""]
 
     if mapa["substrato_indeterminado"]:
         L += ["### Extensoes que o mapa nao sabe classificar", "",

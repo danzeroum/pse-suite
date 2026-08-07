@@ -72,10 +72,18 @@ baseline:
   # ---------------------------------------------------------------- alcance
   linguagens_no_alcance: [Python, TypeScript, "TypeScript/TSX", JavaScript,
                           YAML, JSON, SQL]
-  # A lacuna declarada. Se um dia a suite ganhar parser de Rust, este campo
-  # reprova e obriga a atualizar o baseline — a lacuna nao pode sumir do
-  # laudo em silencio, nem quando some por um bom motivo.
-  linguagens_fora_do_alcance: [Rust, TOML, Protobuf]
+  # A lacuna declarada. ESTE CAMPO JA MORDEU: `Rust` estava aqui, a suite
+  # ganhou alcance textual a quatro vetores, e o aceite reprovou — obrigando
+  # a atualizar a afirmacao em vez de deixar o laudo mudar em silencio. Era
+  # exatamente para isso que ele existia.
+  linguagens_fora_do_alcance: [TOML, Protobuf]
+
+  # Alcance PARCIAL: a suite nao le Rust e mesmo assim alcanca quatro
+  # vetores dele por padrao textual ancorado. A lista fica fixada porque o
+  # perigo desta linha e ela crescer sozinha: um quinto check entrando faria
+  # o laudo afirmar cobertura que ninguem revisou.
+  alcance_parcial:
+    Rust: [S-06, P-18, P-19, S-16]
 
 # ------------------------------------------------------------- observacoes
 # O que este aceite JA revelou, e que nenhuma fixture tinha revelado:

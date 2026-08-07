@@ -137,6 +137,24 @@ def comparar(laudo: dict, baseline: dict) -> list:
                 f"consta. Se a suite ganhou parser para ela, atualize o "
                 f"baseline; se o alvo parou de usa-la, idem. O que nao pode e "
                 f"a lacuna sumir do laudo em silencio")
+
+    # Alcance parcial: a linguagem nao e lida, e mesmo assim um conjunto
+    # NOMEADO de checks a alcanca. O baseline fixa quais — porque o valor
+    # desta linha e justamente que ela nao possa crescer em silencio: um
+    # quinto check entrando faria o laudo afirmar cobertura que ninguem
+    # revisou, e um saindo faria a cobertura encolher sem diff.
+    parcial = {x["linguagem"]: set(x.get("checks") or []) for x in
+               (laudo.get("alcance") or {}).get("alcance_parcial") or []}
+    for lingua, checks in (baseline.get("alcance_parcial") or {}).items():
+        if lingua not in parcial:
+            divergencias.append(
+                f"`{lingua}` deveria constar em alcance PARCIAL e nao consta — "
+                f"o alcance textual aos vetores dela desapareceu")
+        elif parcial[lingua] != set(checks):
+            divergencias.append(
+                f"os checks com alcance a `{lingua}` mudaram: baseline "
+                f"{sorted(checks)}, laudo {sorted(parcial[lingua])}. Check que "
+                f"entra ou sai muda o que o laudo afirma ter olhado")
     return divergencias
 
 

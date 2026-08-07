@@ -529,3 +529,61 @@ def test_fase2_nao_tem_lista_propria():
                                  ".jpg", "image/jpeg",
                                  "application/javascript"}
         assert not intruso, f"vocabulário próprio em {nome}: {sorted(intruso)}"
+
+
+def test_regua_de_rust_e_vigiada(regua):
+    """D-13 no alcance mais frágil da suite.
+
+    O alcance a Rust é textual, sem árvore: a régua É o check. Esvaziar
+    `formatos_de_credencial` faria S-06 parar de emitir CRÍTICO em Rust;
+    esvaziar `macros_nao_resolviveis` faria `env!` virar verde silencioso em
+    vez de indeterminado. Nenhuma das duas perdas apareceria num diff de
+    código.
+    """
+    rust = regua["rust"]
+    piso = {
+        "nomes_de_credencial": {"api_key", "access_token", "client_secret",
+                                "private_key", "password"},
+        "macros_nao_resolviveis": {"env", "option_env", "include_str",
+                                   "concat"},
+        "cifra_de_aplicacao": {"aes_gcm", "chacha20poly1305", "encrypt"},
+        "barramentos": {"rdkafka", "async_nats", "outbox"},
+        "produtores": {"send", "publish", "produce"},
+        "persistencia": {"PgPool", "connect", "Region"},
+        "placeholders": {"changeme", "example", "placeholder"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {str(t).lower() for t in rust[grupo]}
+        faltando = {t.lower() for t in esperado} - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de rust.yaml [{grupo}]: {sorted(faltando)} — "
+            f"o alcance a Rust é textual, então a régua É o check; remover "
+            f"encolhe a cobertura em silêncio")
+
+    assert rust["formatos_de_credencial"], (
+        "sem formato conhecido, nenhum achado em Rust chega a CRÍTICO e o "
+        "vetor mais universal da suite vira sempre ALTO")
+    teto = rust["tamanho_minimo_de_credencial"]
+    assert isinstance(teto, int) and 12 <= teto <= 64, (
+        f"mínimo de credencial implausível: {teto}. Abaixo de 12 o alcance "
+        f"textual vira gerador de falso-positivo; acima de 64 ele não acha "
+        f"chave nenhuma")
+
+
+def test_sondas_cobrem_todo_check_com_vetor_em_backend(regua):
+    """A sonda é o que faz `nao_aplicavel` ser MEDIDO. Check com vetor em
+    backend e sem sonda nunca consegue ser declarado não-aplicável — fica
+    eternamente meio-cego, mesmo num alvo onde o vetor não existe."""
+    from pse import cobertura
+    com_vetor = {c for c in cobertura.SUBSTRATO
+                 if cobertura.teria_vetor_em_linguagem_de_servidor(c)}
+    sondas = set(regua["rust"]["sondas"])
+    # Os quatro com alcance textual não precisam de sonda: eles OLHAM.
+    faltando = com_vetor - sondas - {"S-06", "P-18", "P-19", "S-16"}
+    assert not faltando, (
+        f"check com vetor em backend e sem sonda de substrato: "
+        f"{sorted(faltando)}. Sem sonda ele não consegue ser declarado "
+        f"não-aplicável nem num alvo onde o vetor comprovadamente não existe.")
+    assert not (sondas & {"S-06", "P-18", "P-19", "S-16"}), (
+        "check com alcance textual não pode ter sonda: a sonda empurra para "
+        "não-aplicável, e ele OLHA — seria apagar o alcance que existe")

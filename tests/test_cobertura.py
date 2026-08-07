@@ -303,10 +303,22 @@ def test_o_alcance_registrado_ainda_bate_com_o_alvo():
     from pse import alcance
     medido = alcance.medir(_clone_do_btv())
     fora = {x["linguagem"] for x in medido["fora_de_alcance"]}
-    assert "Rust" in fora, (
-        "o alvo mudou de forma: Rust saiu do bloco de fora-de-alcance. Se a "
-        "suite ganhou parser, refaca a medicao; se o alvo mudou, refaca "
-        "tambem — o documento nao pode continuar afirmando o que era.")
+    parcial = {x["linguagem"]: x for x in medido["alcance_parcial"]}
+
+    # Este teste ja mordeu uma vez, e foi assim que deve ser: Rust estava em
+    # `fora_de_alcance` e a suite ganhou alcance textual a quatro vetores. A
+    # trava reprovou, obrigando a atualizar a afirmacao em vez de deixar o
+    # documento continuar dizendo o que era. Agora ela vigia o outro lado.
+    assert "Rust" not in fora, (
+        "Rust voltou para fora-de-alcance total: o alcance textual dos quatro "
+        "vetores sumiu. Se foi de proposito, refaca a medicao no mesmo PR.")
+    assert "Rust" in parcial, (
+        "Rust saiu do alcance parcial. Se a suite ganhou um parser de verdade, "
+        "mova para COM_PARSER e refaca a medicao — o documento nao pode "
+        "continuar afirmando o que era.")
+    assert set(parcial["Rust"]["checks"]) == {"S-06", "P-18", "P-19", "S-16"}, (
+        "a lista de checks com alcance a Rust mudou sem a medicao ser refeita. "
+        "Check que entra ou sai muda o mapa de cobertura inteiro.")
 
 
 # --------------------------------- alcance e execucao sao eixos diferentes
