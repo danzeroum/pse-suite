@@ -33,6 +33,18 @@ from pse.navegador.rede import (CookieObservado, NetworkLog, RecursoObservado,
 ESPERA_APOS_LOAD_MS = 2_000
 TIMEOUT_NAVEGACAO_MS = 60_000
 
+# Teto por recurso. Acima dele o corpo NAO e lido e o recurso fica marcado
+# como nao avaliado — que o check reporta, porque teto de memoria nunca e
+# atestado de conformidade. Herdado da disciplina da qa-suite.
+TETO_CORPO = 512_000
+# Teto do conjunto: uma pagina com cem bundles nao pode residir inteira na
+# RAM de quem so queria auditar.
+TETO_TOTAL = 8_000_000
+# Sufixos e tipos cujo CORPO algum check varre. Fora daqui so metadados —
+# guardar o binario de um video seria pagar caro por bytes que ninguem le.
+SUFIXOS_COM_CORPO = (".js", ".mjs", ".json", ".map", ".jpg", ".jpeg", ".svg")
+TIPOS_COM_CORPO = ("javascript", "json", "image/jpeg", "svg")
+
 # Binario do navegador fora do registro do Playwright. Existe porque em
 # ambiente conteinerizado o browser costuma vir na imagem, e a versao do
 # pacote Python nem sempre casa com o build instalado — sem esta valvula, a
@@ -73,13 +85,39 @@ def observar(url: str, engine: str = None, user_agent: str = None,
         contexto.on("request", lambda r: requisicoes.append(
             RequisicaoObservada(r.url, getattr(r, "resource_type", "") or "")))
 
+        orcamento = [TETO_TOTAL]
+
+        def _quer_corpo(url: str, tipo: str) -> bool:
+            caminho = url.split("?")[0].lower()
+            return (caminho.endswith(SUFIXOS_COM_CORPO)
+                    or any(t in tipo.lower() for t in TIPOS_COM_CORPO))
+
+        def _corpo_de(resposta, url, tipo):
+            """(bytes, motivo_nao_lido). Nunca levanta: ver docstring do modulo."""
+            if not _quer_corpo(url, tipo):
+                return b"", "tipo fora do escopo de varredura"
+            if orcamento[0] <= 0:
+                return b"", "orcamento de memoria da observacao esgotado"
+            try:
+                dados = resposta.body()
+            except Exception as e:
+                return b"", f"corpo indisponivel ({type(e).__name__})"
+            if len(dados) > TETO_CORPO:
+                return b"", f"corpo acima do teto ({len(dados)} bytes)"
+            orcamento[0] -= len(dados)
+            return dados, ""
+
         def registrar_resposta(resposta):
             try:
                 u = resposta.url
+                cabecalhos = tuple((k, v) for k, v in
+                                   (resposta.headers or {}).items())
+                tipo = str((resposta.headers or {}).get("content-type", ""))
+                corpo, motivo = _corpo_de(resposta, u, tipo)
                 recursos.append(RecursoObservado(
-                    url=u, status=int(resposta.status),
-                    tipo=str((resposta.headers or {}).get("content-type", "")),
-                    da_origem=bool(host_de(u) and host_casa(host_de(u), origem))))
+                    url=u, status=int(resposta.status), tipo=tipo,
+                    da_origem=bool(host_de(u) and host_casa(host_de(u), origem)),
+                    headers=cabecalhos, corpo=corpo, motivo_nao_lido=motivo))
             except Exception:
                 pass        # instrumentacao nao pode derrubar a observacao
 

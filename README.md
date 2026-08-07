@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 **P-22 P-23** | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
-| **security** | S-09 **S-17** | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
+| **privacy** | P-13 P-14 **P-22 P-23 P-24** | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
+| **security** | S-09 **S-17 S-18 S-19 S-20 S-21** | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -177,8 +177,33 @@ cenários é cada par — confirmado nas duas, só no código, ou **só no ar** 
 mais interessante: veio de template do servidor ou tag gerenciada, e nenhuma
 leitura de repositório o encontraria). Nenhum finding é removido.
 
-Motor adaptado de [`danzeroum/qa-suite`](https://github.com/danzeroum/qa-suite)
-(MIT, mesmo dono): `navegador.py`, `trackers.py` e as fixtures de `conftest`.
+#### Fase 2 — o corpo servido (S-18 · S-19 · S-20 · P-24 · S-21)
+
+A Fase 1 olha requisição, cookie e URL. A Fase 2 lê **o que o servidor
+entregou**, e é onde a camada dinâmica passa a ver o que nenhum `grep` vê:
+
+- **S-18** — par dinâmico de S-04. S-04 conhece o terceiro que alguém
+  *escreveu*; este vê o que a página *contactou* — a tag gerenciada pelo
+  painel, o script injetado por dependência, o terceiro que o próprio
+  terceiro chama. Todo host contactado recebe IP e User-Agent do visitante.
+- **S-19** — CSP, nosniff e Referrer-Policy no documento, e **mixed
+  content** sem atenuante. Cabeçalho ausente em asset de *terceiro* não é
+  achado: é maturidade do fornecedor, e o controlador não manda no servidor
+  dele.
+- **S-20** — par dinâmico de P-06. P-06 acha a chave no repositório; esta
+  chegou ao **navegador**, logo está publicada — a correção é *rotacionar
+  antes de remover*. Corpo grande demais para ler vira **indeterminado**:
+  teto de memória não é atestado de conformidade.
+- **P-24** — EXIF-GPS em imagem publicada. Só a **presença** é reportada; a
+  coordenada nunca é lida. Autoria é observação, não achado.
+- **S-21** — `sourceMappingURL` no bundle. **MEDIO**, e a severidade carrega
+  a honestidade do método: o `.map` **não é baixado**, porque buscá-lo é
+  sondagem — Fase 3.
+
+Motor e checks adaptados de
+[`danzeroum/qa-suite`](https://github.com/danzeroum/qa-suite) (mesmo dono):
+`navegador.py`, `trackers.py`, `checks/seguranca/` e as fixtures de
+`conftest`.
 
 ### O estrato de dados (P-20) — e o P-21 que não existe
 

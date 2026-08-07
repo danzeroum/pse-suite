@@ -450,3 +450,82 @@ def test_s10_e_s11_nao_tem_lista_propria():
         assert "adversarial-patterns" in codigo
         for proibido in ("\\u200b", "\\u202e", '"exec"', "'exec'", '"request"'):
             assert proibido not in codigo, f"{proibido!r} hardcoded em {nome}"
+
+
+def test_regua_do_servido_ao_cliente_e_vigiada(regua):
+    """S-18…S-21 derivam de `servido-ao-cliente`. Esvaziar
+    `padroes_de_segredo` faz S-20 parar de ver credencial e passar a
+    devolver verde — o D-13 com a consequência mais cara desta camada."""
+    r = regua["servido-ao-cliente"]
+    for cabecalho in ("content-security-policy", "x-content-type-options",
+                      "referrer-policy"):
+        assert r["cabecalhos_exigidos"].get(cabecalho), (
+            f"S-19 pararia de cobrar `{cabecalho}` — e a explicação do porquê "
+            f"some do achado junto")
+    nomes = {p["nome"] for p in r["padroes_de_segredo"]}
+    piso = {"CHAVE_PRIVADA_PEM", "AWS_ACCESS_KEY_ID", "GITHUB_TOKEN",
+            "STRIPE_SECRET_KEY", "GOOGLE_API_KEY", "JWT", "CREDENCIAL_NOMEADA"}
+    faltando = piso - nomes
+    assert not faltando, f"formato(s) removido(s) de padroes_de_segredo: {faltando}"
+    for grupo in ("tipos_varridos_por_segredo", "sufixos_varridos_por_segredo",
+                  "sufixos_com_metadado", "sufixos_de_bundle"):
+        assert r[grupo], f"grupo `{grupo}` vazio: o check fica cego em silêncio"
+    assert r["metadados_publicados"].get("gps")
+
+
+def test_todo_padrao_de_segredo_compila_e_casa_o_proprio_exemplo(regua):
+    """Regex quebrado é ignorado por `_compilar` para não derrubar a
+    varredura inteira — o que significa que um erro de digitação cegaria o
+    formato em SILÊNCIO. Este teste é o que impede isso."""
+    import re
+    exemplos = {
+        "CHAVE_PRIVADA_PEM": "-----BEGIN RSA PRIVATE KEY-----",
+        "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+        "GITHUB_TOKEN": "ghp_" + "a" * 36,
+        "STRIPE_SECRET_KEY": "sk_live_" + "a" * 20,
+        "GOOGLE_API_KEY": "AIza" + "a" * 35,
+        "JWT": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.SflKxwRJSMeKKF2QT4",
+        "CREDENCIAL_NOMEADA": 'api_key: "valor-secreto-longo"',
+    }
+    for padrao in regua["servido-ao-cliente"]["padroes_de_segredo"]:
+        nome = padrao["nome"]
+        rx = re.compile(padrao["padrao"])          # levanta se estiver quebrado
+        exemplo = exemplos.get(nome)
+        assert exemplo, f"formato `{nome}` sem exemplo no teste — acrescente"
+        assert rx.search(exemplo), (
+            f"o padrão de `{nome}` não casa o próprio exemplo: ele está cego")
+
+
+def test_padroes_de_segredo_nao_casam_prosa_inocente(regua):
+    """Falso positivo em bateria regulatória custa a credibilidade da
+    bateria inteira. Um `token` de CSRF público não pode virar CRÍTICO."""
+    from pse.navegador.analise import segredos_em
+    padroes = regua["servido-ao-cliente"]["padroes_de_segredo"]
+    for inocente in ("Authorization: required",
+                     "var token = getCsrfToken();",
+                     "// a chave fica no servidor",
+                     "eyJquealgoassim",
+                     "const apiKey = process.env.API_KEY;"):
+        achados = [n for n, sev in segredos_em(inocente, padroes)
+                   if sev == "CRITICO"]
+        assert not achados, f"{inocente!r} virou CRÍTICO: {achados}"
+
+
+def test_fase2_nao_tem_lista_propria():
+    for pack, nome in (("security", "s18_terceiro_observado.py"),
+                       ("security", "s19_cabecalhos_e_conteudo.py"),
+                       ("security", "s20_segredo_servido.py"),
+                       ("privacy", "p24_metadado_publicado.py"),
+                       ("security", "s21_sourcemap_em_producao.py")):
+        vocabulario = _literais_de_colecao(pack, nome)
+        # `gps` fica DE FORA da lista proibida de propósito: é o rótulo que
+        # `analise.metadados_exif` devolve — protocolo interno entre o parser
+        # e o check, como `ast.Call` é protocolo com a stdlib. Removê-lo da
+        # régua não encolhe cobertura nenhuma (P-24 continua detectando, só
+        # perde o texto da explicação), e é isso que o D-13 protege. O
+        # vocabulário que ENCOLHE cobertura — tipos, sufixos, cabeçalhos e
+        # formatos de segredo — está na lista.
+        intruso = vocabulario & {"content-security-policy", "akia", ".js",
+                                 ".jpg", "image/jpeg",
+                                 "application/javascript"}
+        assert not intruso, f"vocabulário próprio em {nome}: {sorted(intruso)}"

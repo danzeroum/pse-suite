@@ -1202,3 +1202,120 @@ checks:
           <a href="/fatura?cpf=529.982.247-25">fatura</a>
           </body></html>
       espera_severidade: ALTO
+
+  # ================================================================ fase 11
+  # Camada dinamica, FASE 2 — o resto do passivo de seguranca/LGPD portado
+  # da qa-suite. Todos observam o que o navegador JA baixou: nenhum pede ao
+  # servidor um recurso que ele nao ofereceu, porque isso e sondagem, e
+  # sondagem e Fase 3, atras do gate ativo.
+  S-18:
+    pack: security
+    domain: [frontend]
+    titulo: Terceiro observado no carregamento fora do manifesto
+    base_legal: LGPD Art. 37 e 39 (registro e operador) + Art. 42
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-04, P-22]
+    canonical_mutation:
+      descricao: host de terceiro contactado no load sem constar do manifesto
+      arquivos:
+        tp.yml: |
+          integrations:
+            - name: outro-parceiro
+              hosts: [api.declarado.example.org]
+              dpa_signed: true
+      config:
+        third_party_manifest: tp.yml
+      navegador:
+        url: https://alvo.example.org/
+        requisicoes:
+          - url: https://alvo.example.org/
+            tipo: document
+          - url: https://cdn.terceiro.example.net/widget.js
+            tipo: script
+      espera_severidade: ALTO
+  S-19:
+    pack: security
+    domain: [frontend]
+    titulo: Documento sem cabecalho de seguranca, ou com mixed content
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-13]
+    canonical_mutation:
+      descricao: documento servido sem CSP nem nosniff
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/
+            status: 200
+            tipo: text/html
+            da_origem: true
+      espera_severidade: ALTO
+  S-20:
+    pack: security
+    domain: [frontend]
+    titulo: Credencial servida ao cliente em JS ou JSON de origem
+    base_legal: LGPD Art. 46 (seguranca)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [P-06, S-06]
+    canonical_mutation:
+      descricao: chave de AWS publicada no bundle do proprio alvo
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/app.js
+            status: 200
+            tipo: application/javascript
+            da_origem: true
+            corpo: 'var cfg = {key: "AKIAIOSFODNN7EXAMPLE"};'
+      espera_severidade: CRITICO
+  P-24:
+    pack: privacy
+    domain: [frontend]
+    titulo: Metadado de localizacao ou autoria em arquivo publicado
+    base_legal: LGPD Art. 5o I + Art. 6o III (minimizacao)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [P-23, P-14]
+    canonical_mutation:
+      descricao: imagem publicada com IFD de GPS no EXIF
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/foto.jpg
+            status: 200
+            tipo: image/jpeg
+            da_origem: true
+            corpo_jpeg_com_gps: true
+      espera_severidade: ALTO
+  S-21:
+    pack: security
+    domain: [frontend]
+    titulo: Bundle referencia sourcemap em producao
+    base_legal: LGPD Art. 46 (seguranca)
+    tipo: runtime
+    modo: passive
+    fase: 11
+    status: implementado
+    supports: [S-20]
+    canonical_mutation:
+      descricao: bundle declara sourceMappingURL na resposta servida
+      navegador:
+        url: https://alvo.example.org/
+        recursos:
+          - url: https://alvo.example.org/app.js
+            status: 200
+            tipo: application/javascript
+            da_origem: true
+            corpo: "//# sourceMappingURL=app.js.map"
+      espera_severidade: MEDIO

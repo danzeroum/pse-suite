@@ -65,10 +65,54 @@ class RequisicaoObservada:
 
 @dataclass(frozen=True)
 class RecursoObservado:
+    """Uma RESPOSTA observada: metadados, cabecalhos e — as vezes — o corpo.
+
+    O corpo e capturado DURANTE a observacao, e nao sob demanda como na
+    qa-suite, por uma diferenca de arquitetura: la o contexto do navegador
+    fica vivo enquanto o teste roda, entao `ler_corpo` pode ir busca-lo; aqui
+    a observacao e memorizada no Contexto e o navegador ja fechou quando os
+    checks rodam. Capturar depois seria uma segunda visita ao alvo.
+
+    Por isso a captura e SELETIVA e com TETO: so os tipos que algum check
+    varre, e so ate `TETO_CORPO`. Guardar todo asset de uma pagina em RAM
+    seria pagar caro por bytes que ninguem le.
+
+    `motivo_nao_lido` preenchido significa NAO AVALIADO — que nunca e o
+    mesmo que limpo. E o check que precisa dizer isso no laudo; um recurso
+    grande demais nao pode virar atestado de conformidade.
+    """
     url: str
     status: int = 0
     tipo: str = ""
     da_origem: bool = False
+    headers: tuple = ()
+    corpo: bytes = b""
+    motivo_nao_lido: str = ""
+
+    def cabecalho(self, nome: str) -> str:
+        """Valor do cabecalho, em minusculas na chave. "" se ausente."""
+        alvo = str(nome).strip().lower()
+        for chave, valor in self.headers:
+            if str(chave).strip().lower() == alvo:
+                return str(valor)
+        return ""
+
+    @property
+    def avaliavel(self) -> bool:
+        return bool(self.corpo) and not self.motivo_nao_lido
+
+    @property
+    def esquema(self) -> str:
+        try:
+            return urlsplit(str(self.url)).scheme.lower()
+        except ValueError:
+            return ""
+
+    def texto(self) -> str:
+        """Corpo como texto. Bytes indecodificaveis nao derrubam nada."""
+        if not self.avaliavel:
+            return ""
+        return self.corpo.decode("utf-8", errors="replace")
 
 
 @dataclass(frozen=True)

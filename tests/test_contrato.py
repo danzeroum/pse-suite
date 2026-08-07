@@ -141,7 +141,7 @@ def test_manifesto_sai_completo(capsys):
     assert m["suite_version"] and len(m["catalog_hash"]) == 64
     assert m["schema_version"] == carregar("laudo-pse-1.0.json")["properties"]["schema"]["const"]
     assert m["autoprova"]["ok"]
-    assert len(m["checks_implementados"]) + len(m["checks_previstos"]) == 52
+    assert len(m["checks_implementados"]) + len(m["checks_previstos"]) == 57
 
 
 # ------------------------------------------------------------------ D-07

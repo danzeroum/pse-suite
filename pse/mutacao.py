@@ -106,7 +106,24 @@ def _observador_declarado(nav: dict):
     depender de binario de navegador sem ganhar nada.
     """
     from pse.navegador.rede import (CookieObservado, NetworkLog,
-                                    RequisicaoObservada)
+                                    RecursoObservado, RequisicaoObservada)
+
+    def _recurso(r: dict) -> RecursoObservado:
+        corpo = r.get("corpo") or ""
+        if r.get("corpo_jpeg_com_gps"):
+            # O JPEG com EXIF nao cabe em YAML como texto; a mutacao declara
+            # a INTENCAO e o executor monta os bytes. A declaracao continua
+            # sendo dado, que e o ponto da separacao (aprovacao §4b).
+            from pse.navegador.analise import jpeg_com_exif_gps
+            corpo = jpeg_com_exif_gps()
+        if isinstance(corpo, str):
+            corpo = corpo.encode("utf-8")
+        return RecursoObservado(
+            url=r.get("url", ""), status=int(r.get("status", 200)),
+            tipo=r.get("tipo", ""), da_origem=bool(r.get("da_origem")),
+            headers=tuple((k, v) for k, v in (r.get("headers") or {}).items()),
+            corpo=corpo)
+
     log = NetworkLog(
         url=nav.get("url", "https://alvo-de-mutacao.invalido/"),
         requisicoes=tuple(RequisicaoObservada(r.get("url", ""), r.get("tipo", ""))
@@ -115,6 +132,7 @@ def _observador_declarado(nav: dict):
             name=c.get("name", ""), httpOnly=bool(c.get("httpOnly")),
             secure=bool(c.get("secure")), sameSite=str(c.get("sameSite") or ""))
             for c in (nav.get("cookies") or [])),
+        recursos=tuple(_recurso(r) for r in (nav.get("recursos") or [])),
         html=nav.get("html", ""), engine="mutacao")
 
     def observar(url, engine=None, user_agent=None, data=None, **_):
@@ -148,7 +166,12 @@ def provar(check_id: str) -> dict:
         if nav:
             # Check de navegador: alvo e atestacao sinteticos (o contrato tem
             # provas proprias), observacao vinda do YAML.
-            config = _config_runtime({"autorizacao_valida": True})
+            # A config declarativa da mutacao (catalogo de dados, manifesto
+            # de terceiros) entra junto: ha check de navegador que CRUZA a
+            # observacao com uma declaracao do consumidor, e sem ela a
+            # mutacao seria pulada em vez de avaliada.
+            config = {**_config_runtime({"autorizacao_valida": True}),
+                      **dict(mut.get("config") or {})}
             transporte = TransporteFalso([])
             os.environ.setdefault(TOKEN_ENV, "token-sintetico-de-mutacao")
             ctx = Contexto(alvo, config, modo="pse_passive",

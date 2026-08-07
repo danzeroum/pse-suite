@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.11.0
+pse-suite==0.12.0
 ```
 
 ## 2. Config declarativa
@@ -736,3 +736,65 @@ O laudo ganha um bloco `correlacoes` ligando **P-14×P-23** e **S-09×S-17**:
 
 Nenhum finding é removido: é índice, não filtro. Deduplicar perderia
 justamente a informação que só o par carrega.
+
+## 21. Camada dinâmica — Fase 2 (S-18 · S-19 · S-20 · P-24 · S-21)
+
+A Fase 1 olha requisição, cookie e URL. A Fase 2 lê **o corpo que o servidor
+entregou**. Continua tudo passivo: nenhum check desta fase clica, submete ou
+pede ao servidor um recurso que ele não ofereceu.
+
+**S-18 · terceiro observado.** Par dinâmico de S-04. Todo host que a página
+contacta recebe IP e User-Agent do visitante — operador que precisa estar
+mapeado (Art. 37) e contratado (Art. 39). Declare no manifesto:
+
+```yaml
+# .privacy/third-party-manifest.yml
+integrations:
+  - name: tag-manager
+    hosts: [tagmanager.exemplo.com]   # subdomínio herda: é o mesmo controlador
+    dpa_signed: true
+```
+
+Sem manifesto o check é **pulado** (cobrado por S-04). O inventário completo
+vai para `relatorios.terceiros_observados` mesmo sem achado — é insumo de
+ROPA, e o consumidor precisa saber o que já está certo.
+
+**S-19 · cabeçalhos e mixed content.**
+
+```
+Content-Security-Policy: default-src 'self'    # comece em Report-Only
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+```
+
+Só o **documento de origem** vira achado — cabeçalho ausente em asset de
+terceiro é maturidade do fornecedor e entra como observação. `HSTS` e
+`X-Frame-Options` também são observação: dependem de decisão de arquitetura.
+Cabeçalho presente com valor vazio conta como **ausente**.
+
+**S-20 · credencial servida.** Par dinâmico de P-06, e a urgência é outra:
+a chave no bundle está **publicada**, e todo visitante já a leu.
+
+```
+rotacione a credencial  →  depois remova do código  →  depois mova a chamada
+                                                        para o servidor
+```
+
+Nunca o contrário: apagar do código não invalida o que já foi servido. Corpo
+acima de 512 KB não é lido, e se **nenhum** candidato puder ser lido o check
+fica **indeterminado** — não avaliado nunca é limpo.
+
+**P-24 · metadado publicado.** EXIF-GPS em imagem é achado; autoria é
+observação. Remova o EXIF no pipeline de publicação, para toda imagem — o
+upload de titular é o pior caso, porque a foto vem do celular dele.
+
+**S-21 · sourcemap.** `//# sourceMappingURL` no bundle é **MEDIO**: o `.map`
+**não é baixado**. Confirmar se está publicado exige uma requisição que o
+navegador não fez — sondagem, logo Fase 3.
+
+### O que ainda NÃO existe (Fase 3, atrás do gate ativo)
+
+Clicar no banner de consentimento, submeter formulário, exercer direito de
+titular, buscar o `.map`, pedir arquivo não linkado. Tudo isso **escreve ou
+sonda** o sistema do alvo, e fica atrás de `pse_active` com atestação de
+escopo própria. Na dúvida entre passivo e ativo, ativo.

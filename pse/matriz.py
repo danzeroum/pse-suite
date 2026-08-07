@@ -70,10 +70,13 @@ LEITURA_DA_DENSIDADE = {
     "frontend":
         "Primeiro dominio cujos checks foram desenhados OLHANDO para ele "
         "(P-13, P-14, S-09 nasceram do estrato) e o UNICO auditado nas duas "
-        "camadas: **P-22, S-17 e P-23 sao dinamicos** — carregam a pagina num "
-        "navegador e observam o que so o navegador ve. E aqui que contrato e "
-        "observacao se encontram, e por isso e aqui que moram os pares de "
-        "correlacao estatico x dinamico (P-14 x P-23, S-09 x S-17).",
+        "camadas: **oito dos onze sao DINAMICOS** — carregam a pagina num "
+        "navegador e observam o que so o navegador ve. Fase 1 (P-22, S-17, "
+        "P-23) olha requisicao, cookie e URL; Fase 2 (S-18, S-19, S-20, "
+        "P-24, S-21) le o CORPO servido: terceiro contactado, cabecalho, "
+        "credencial no bundle, EXIF e sourcemap. E aqui que contrato e "
+        "observacao se encontram, e por isso e aqui que moram os quatro "
+        "pares de correlacao estatico x dinamico.",
     "api":
         "**S-12, P-17 e S-13 nasceram do estrato** — do contrato, do filtro de "
         "busca e do payload de erro. Os demais continuam sendo classificacao a "

@@ -199,13 +199,16 @@ def test_gate_morde_no_frontend(tmp_path):
 
 def test_catalogo_frontend_no_lugar():
     from pse import catalogo
-    assert len(catalogo.CATALOGO) == 52
+    assert len(catalogo.CATALOGO) == 57
     assert catalogo.previstos() == []
     # 3 estáticos (P-13/P-14/S-09) + 3 dinâmicos (P-22/S-17/P-23). O estrato
     # `frontend` é o único auditado nas duas camadas: é onde o contrato e a
     # observação se encontram, e é por isso que os pares de correlação
     # (P-14×P-23, S-09×S-17) moram aqui.
-    assert catalogo.por_dominio()["frontend"] == 6
+    # 3 estáticos + 3 dinâmicos da Fase 1 + 5 dinâmicos da Fase 2. O
+    # `frontend` é o estrato auditado nas duas camadas, e é por isso que os
+    # quatro pares de correlação moram aqui.
+    assert catalogo.por_dominio()["frontend"] == 11
     for cid, pilar in (("P-13", "privacy"), ("P-14", "privacy"),
                        ("S-09", "security")):
         m = catalogo.meta(cid)

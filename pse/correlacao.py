@@ -12,6 +12,9 @@ informacao que so o par carrega:
     e outra, e a correcao tem endereco: o `arquivo:linha` do estatico.
   * so o ESTATICO      — esta no codigo e nao apareceu na pagina observada.
     Pode ser caminho nao exercitado, feature desligada, rota nao visitada.
+    Em P-06 x S-20 muda ate a URGENCIA: chave no repositorio esta exposta a
+    quem tem o repositorio; chave no bundle esta PUBLICADA, e a correcao e
+    rotacionar antes de remover.
   * so o DINAMICO      — esta no ar e NAO esta no codigo que a suite le.
     E o caso mais interessante dos tres: veio de template do servidor, de
     tag gerenciada, de dependencia. E o exato buraco que a camada dinamica
@@ -35,6 +38,31 @@ PARES = {
                        "template do servidor, build ou componente de terceiro",
         "so_estatico": "o codigo tem o defeito e a pagina observada nao o "
                        "exercitou: rota nao visitada ou feature desligada",
+    },
+    ("S-04", "S-18"): {
+        "falha": "terceiro tratando dado do titular sem estar declarado",
+        "estatico": "S-04 le o manifesto e o codigo e ve o host que alguem "
+                    "ESCREVEU",
+        "dinamico": "S-18 ve o host que a pagina de fato contactou",
+        "so_dinamico": "o host chegou por caminho que o repositorio nao "
+                       "mostra — tag gerenciada pelo painel, script injetado "
+                       "por dependencia, ou o terceiro que o proprio terceiro "
+                       "chama",
+        "so_estatico": "o manifesto ou o codigo citam o terceiro e a pagina "
+                       "observada nao o contactou: rota nao visitada, feature "
+                       "desligada, ou integracao ja removida do runtime",
+    },
+    ("P-06", "S-20"): {
+        "falha": "credencial fora do cofre",
+        "estatico": "P-06 encontra a chave no repositorio",
+        "dinamico": "S-20 encontra a chave que chegou ao NAVEGADOR — logo, "
+                    "publicada a todos os visitantes",
+        "so_dinamico": "a chave nao esta no repositorio: veio do build, do "
+                       "template renderizado pelo servidor, do arquivo que o "
+                       "deploy escreve, ou de um pacote que embutiu a propria",
+        "so_estatico": "a chave esta no codigo e nao foi servida na pagina "
+                       "observada — continua exposta a quem tem o "
+                       "repositorio, e a urgencia e outra",
     },
     ("S-09", "S-17"): {
         "falha": "credencial de sessao exposta no cliente",

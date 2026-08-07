@@ -17,11 +17,14 @@ nao prova alvo respondendo. Um check dinamico validado so contra objeto
 fabricado e um check que nunca abriu navegador — e ninguem descobriria ate
 o primeiro alvo real.
 
-DUAS ROTAS:
+DUAS ROTAS, e cada uma serve o conjunto inteiro de vetores:
+
   /sujo   dispara "rastreador", grava cookie de analytics e cookie de sessao
-          sem atributo nenhum, e publica CPF na query de um link
-  /limpo   nao dispara nada antes do aceite, cookie de sessao completo,
-          sem PII em URL
+          sem atributo nenhum, publica CPF na query de um link, serve JS com
+          chave de API e sourcemap, imagem com EXIF-GPS, e responde sem
+          nenhum cabecalho de seguranca
+  /limpo  nada antes do aceite, cookie completo, sem PII em URL, JS sem
+          segredo nem sourcemap, imagem sem EXIF, cabecalhos presentes
 
 O "rastreador" e servido pelo PROPRIO processo, mas por um HOST DIFERENTE:
 a pagina e servida em `127.0.0.1` e a tag e buscada em `localhost`. Sao o
@@ -42,6 +45,41 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 CPF_PLANTADO = "529.982.247-25"
 EMAIL_PLANTADO = "maria@titular.example.org"
 
+# Credencial FALSA, no formato que a regua reconhece. Existe para provar
+# duas coisas ao mesmo tempo: que S-20 a encontra, e que ela NAO aparece no
+# laudo. Vale para o teste o que a fixture de `.env` vale no estatico.
+SEGREDO_PLANTADO = "AKIAIOSFODNN7EXAMPLE"
+
+JS_SUJO = (
+    "// bundle de producao\n"
+    'var cfg = {apiKey: "' + SEGREDO_PLANTADO + '"};\n'
+    "//# sourceMappingURL=app.js.map\n")
+
+JS_LIMPO = (
+    "// bundle de producao\n"
+    "var cfg = {endpoint: '/api'};\n")
+
+
+def _jpeg(com_gps: bool) -> bytes:
+    """JPEG minimo, com ou sem IFD de GPS no EXIF.
+
+    Montado byte a byte de proposito: depender de Pillow para gerar a
+    fixture faria a suite ganhar uma dependencia de imagem so para testar,
+    e a prova aqui e sobre o PARSER, que le bytes.
+    """
+    import struct
+    if not com_gps:
+        return b"\xff\xd8\xff\xdb\x00\x04\x00\x00\xff\xd9"
+    # IFD0 com uma entrada: tag 0x8825 (GPS IFD), apontando para um offset.
+    entradas = struct.pack("<H", 1) + struct.pack("<HHII", 0x8825, 4, 1, 26) \
+        + struct.pack("<I", 0)
+    tiff = b"II" + struct.pack("<H", 42) + struct.pack("<I", 8) + entradas
+    app1 = b"Exif\x00\x00" + tiff
+    return (b"\xff\xd8"
+            + b"\xff\xe1" + struct.pack(">H", len(app1) + 2) + app1
+            + b"\xff\xdb\x00\x04\x00\x00"
+            + b"\xff\xd9")
+
 PAGINA_SUJA = """<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>alvo sujo</title>
 <!-- A tag dispara ANTES de qualquer aceite, e depois do load: e o vetor
@@ -58,6 +96,8 @@ PAGINA_SUJA = """<!doctype html>
 <div id="banner">Usamos cookies. <button id="aceitar">Aceitar</button></div>
 <a id="fatura" href="/fatura?cpf=__CPF__&amp;email=__EMAIL__">
   Minha fatura</a>
+<img id="foto" src="/foto.jpg" alt="perfil">
+<script src="/app.js"></script>
 <form id="busca" method="get" action="/buscar">
   <input name="cpf" value="">
   <input name="telefone" value="">
@@ -73,6 +113,8 @@ PAGINA_LIMPA = """<!doctype html>
 <div id="banner">Usamos cookies. <button id="aceitar">Aceitar</button></div>
 <a id="fatura" href="/fatura?id=9f1c2e3a-0000-4000-8000-000000000000">
   Minha fatura</a>
+<img id="foto" src="/foto-limpa.jpg" alt="perfil">
+<script src="/app-limpo.js"></script>
 <form id="busca" method="post" action="/buscar">
   <input name="termo" value="">
   <button type="submit">Buscar</button>
@@ -87,11 +129,27 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass                      # silencio: o alvo nao polui a saida do pytest
 
-    def _responder(self, corpo: str, cookies=(), tipo="text/html; charset=utf-8"):
-        dados = corpo.encode("utf-8")
+    # Cabecalhos que o alvo LIMPO manda e o alvo SUJO nao. Servidos em toda
+    # resposta da rota limpa, inclusive nos assets — o script de terceiro
+    # pelado dentro de uma pagina blindada e justamente o elo fraco que a
+    # qa-suite ensinou a olhar.
+    CABECALHOS_SEGUROS = (
+        ("Content-Security-Policy", "default-src 'self'"),
+        ("X-Content-Type-Options", "nosniff"),
+        ("Referrer-Policy", "no-referrer"),
+        ("Strict-Transport-Security", "max-age=31536000"),
+        ("X-Frame-Options", "DENY"),
+    )
+
+    def _responder(self, corpo, cookies=(), tipo="text/html; charset=utf-8",
+                   seguro=False):
+        dados = corpo.encode("utf-8") if isinstance(corpo, str) else corpo
         self.send_response(200)
         self.send_header("Content-Type", tipo)
         self.send_header("Content-Length", str(len(dados)))
+        if seguro:
+            for nome, valor in self.CABECALHOS_SEGUROS:
+                self.send_header(nome, valor)
         for cookie in cookies:
             self.send_header("Set-Cookie", cookie)
         self.end_headers()
@@ -122,10 +180,22 @@ class _Handler(BaseHTTPRequestHandler):
             ])
 
         elif rota == "/limpo":
-            self._responder(PAGINA_LIMPA, cookies=[
+            self._responder(PAGINA_LIMPA, seguro=True, cookies=[
                 "sessionid=abc123; Path=/; HttpOnly; Secure; SameSite=Lax",
                 "cookieconsent=pendente; Path=/; SameSite=Lax",
             ])
+
+        # ---- assets do alvo SUJO: segredo, sourcemap e EXIF-GPS
+        elif rota == "/app.js":
+            self._responder(JS_SUJO, tipo="application/javascript")
+        elif rota == "/foto.jpg":
+            self._responder(_jpeg(com_gps=True), tipo="image/jpeg")
+
+        # ---- assets do alvo LIMPO
+        elif rota == "/app-limpo.js":
+            self._responder(JS_LIMPO, tipo="application/javascript", seguro=True)
+        elif rota == "/foto-limpa.jpg":
+            self._responder(_jpeg(com_gps=False), tipo="image/jpeg", seguro=True)
 
         elif rota == "/tag-de-analytics.js":
             # O "terceiro". Servido daqui de proposito: bater no Google de
