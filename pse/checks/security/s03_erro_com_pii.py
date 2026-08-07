@@ -10,6 +10,7 @@ interceptacao de webhook — exige um receptor declarado, que o contrato de
 Trabalho A ainda nao tem; fica registrada aqui como ausencia conhecida, e
 nao como algo que este check ja cobre.
 """
+from pse.checks import _dominio
 from pse.engine.registry import check
 from pse.model import Finding, Severidade
 from pse.sanitize import RX_CPF, RX_EMAIL, RX_TELEFONE
@@ -28,7 +29,15 @@ def erro_com_pii(ctx):
     resposta, trace = cliente.requisitar("GET", rota, token=token_a,
                                          identidade="titular_a")
     corpo = resposta.corpo or ""
-    achou = [rotulo for rotulo, rx in VALORES if rx.search(corpo)]
+    # Dominio reservado (RFC 2606) nao pertence a titular nenhum: um payload
+    # de erro que so traz `suporte@example.com` nao vazou dado de ninguem, e
+    # acusa-lo e o mesmo falso-positivo que P-01 carregava. Basta UM e-mail de
+    # dominio vivo para o achado voltar — a pergunta e "todos sao
+    # reservados?", nao "algum e?".
+    achou = [rotulo for rotulo, rx in VALORES
+             if rx.search(corpo)
+             and not (rotulo == "e-mail"
+                      and _dominio.so_emails_reservados(ctx, corpo))]
 
     # Nomes de campo de PII na regua curada tambem denunciam: um erro que
     # devolve {"cpf": ...} vaza mesmo que o valor esteja truncado.

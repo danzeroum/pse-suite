@@ -136,3 +136,31 @@ def test_a_regua_de_credencial_nao_suprime(regua):
     assert set(regua["credenciais"]) == {"caminhos_de_teste", "valores_sinteticos"}, (
         "grupo novo em credenciais.yaml — se for lista de supressao, a trava "
         "virou algo que o vigiado desliga movendo o segredo de arquivo")
+
+
+def test_piso_dos_dominios_reservados(regua):
+    """A lista que P-01, S-03 e S-04 leem JUNTOS desde a rodada de conserto.
+    Remover `example.com` daqui reabre os tres CRITICOs de seed que a rodada
+    de reconhecimento mediu; remover um TLD reabre a mesma classe."""
+    tp = regua["third-party-endpoints"]
+    ignorar = {str(d).lower() for d in tp["ignorar"]}
+    assert {"example.com", "example.org", "example.net", "localhost"} <= ignorar
+    tlds = {str(t).lower() for t in tp["tld_reservados"]}
+    assert {".test", ".invalid", ".localhost", ".example"} <= tlds
+
+
+def test_dominio_vivo_nunca_entra_como_reservado(regua):
+    """Piso invertido. Acrescentar um dominio real aqui cega P-01, S-03 e S-04
+    de uma vez — e o laudo segue com a mesma cara, sem achado nenhum."""
+    tp = regua["third-party-endpoints"]
+    reservados = {str(d).lower() for d in tp["ignorar"]}
+    proibidos = {"gmail.com", "outlook.com", "hotmail.com", "com", "com.br",
+                 "amazonaws.com", "googleapis.com", "sendgrid.net"}
+    intrusos = reservados & proibidos
+    assert not intrusos, (
+        f"dominio vivo tratado como reservado: {sorted(intrusos)} — isto cega "
+        f"P-01, S-03 e S-04 ao mesmo tempo, sem mudar a cara do laudo")
+    tlds = {str(t).lower() for t in tp["tld_reservados"]}
+    assert not (tlds & {".com", ".br", ".net", ".org", ".io", ".dev"}), (
+        "TLD vivo na lista de reservados — casa por sufixo e apaga a internet "
+        "inteira do alcance dos tres checks")

@@ -19,6 +19,7 @@ vem dos argumentos, e sao eles que sao julgados.
 import ast
 import re
 
+from pse.checks import _dominio
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade
@@ -49,12 +50,31 @@ def _mascarado(no: ast.AST) -> bool:
     return isinstance(no, ast.Call) and bool(RX_MASCARA.search(scan.nome_chamado(no)))
 
 
-def _valor_pii_literal(no: ast.AST) -> bool:
-    """Valor de PII escrito no proprio codigo (CPF, e-mail, telefone)."""
+def _valor_pii_literal(ctx, no: ast.AST) -> bool:
+    """Valor de PII escrito no proprio codigo (CPF, e-mail, telefone).
+
+    DOMINIO RESERVADO NAO E TITULAR. `test@example.com` num script de seed
+    produziu tres CRITICOs contra alvo real — e `example.com` ja estava na
+    lista `ignorar` da regua, consultada por S-04 e ignorada por este check.
+    A mesma regua dizia coisas opostas sobre o mesmo dominio.
+
+    A RFC 2606 reserva esses nomes justamente para que ninguem precise
+    inventar dominio em documentacao e teste; acusar quem a seguiu e punir o
+    caso correto (D-08). Um dominio reservado nao pode pertencer a titular
+    nenhum, e e isso que torna a excecao segura.
+
+    O LIMITE E ESTREITO DE PROPOSITO: vale so para o LITERAL. CPF e telefone
+    nao tem equivalente reservado e seguem valendo sempre, e `user.email`
+    vindo de variavel nem passa por aqui — quem julga isso e `_nome_pii`.
+    """
     for sub in ast.walk(no):
-        if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
-            if any(rx.search(sub.value) for rx in RX_VALOR_PII):
-                return True
+        if not (isinstance(sub, ast.Constant) and isinstance(sub.value, str)):
+            continue
+        if RX_CPF.search(sub.value) or RX_TELEFONE.search(sub.value):
+            return True
+        if RX_EMAIL.search(sub.value) and not _dominio.so_emails_reservados(
+                ctx, sub.value):
+            return True
     return False
 
 
@@ -93,7 +113,7 @@ def _python(ctx, p, termos, findings):
             continue
         motivo = None
         for arg in _argumentos(no):
-            if _valor_pii_literal(arg):
+            if _valor_pii_literal(ctx, arg):
                 motivo = "valor de dado pessoal escrito no proprio codigo"
                 break
             ident = _nome_pii(arg, termos)

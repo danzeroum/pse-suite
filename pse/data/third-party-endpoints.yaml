@@ -3,4 +3,25 @@ categorias:
   analytics: [analytics.google.com, api.segment.io, api.mixpanel.com, api.amplitude.com]
   llm: [api.openai.com, api.anthropic.com, generativelanguage.googleapis.com]
   cdn: [cdn.jsdelivr.net, cdnjs.cloudflare.com, unpkg.com]
-ignorar: [localhost, 127.0.0.1, example.com, example.org, w3.org, json-schema.org, schema.org]
+# Dominios que nao sao terceiro de verdade. Consumida por S-04 desde sempre —
+# e, desde a rodada de conserto, tambem por P-01 e S-03, para VALOR LITERAL de
+# e-mail.
+#
+# A incoerencia que isso fechou foi medida contra alvo real: `example.com` ja
+# estava aqui, S-04 o ignorava, e P-01 acusava `test@example.com` num script de
+# seed — tres CRITICOs. A mesma regua dizia duas coisas opostas sobre o mesmo
+# dominio, dependendo de qual check a lia.
+#
+# RFC 2606 reserva `example.com/.org/.net` e os TLDs `.test`, `.example`,
+# `.invalid`, `.localhost` justamente para que ninguem precise inventar
+# dominio em documentacao e teste. Acusar quem seguiu a RFC e punir o caso
+# correto (D-08).
+#
+# NAO AFROUXA PII REAL: so vale para LITERAL de e-mail em dominio reservado.
+# `user.email` vindo de variavel segue disparando, e e o vetor que importa.
+ignorar: [localhost, 127.0.0.1, example.com, example.org, example.net,
+          w3.org, json-schema.org, schema.org]
+
+# Sufixos reservados por RFC 2606 / RFC 6761. Casam pelo FIM do dominio, entao
+# `api.meuapp.test` entra sem precisar ser listado um a um.
+tld_reservados: ['.test', '.example', '.invalid', '.localhost']
