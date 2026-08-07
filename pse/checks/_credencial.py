@@ -88,6 +88,26 @@ def valores(snippet: str) -> list:
     return achados
 
 
+def _casa(marca: str, valor: str) -> bool:
+    """A marca aparece no valor DELIMITADA, nunca como pedaco de palavra.
+
+    Isto custou o 19o caso, e o reprocessamento dos 6 alvos foi quem contou.
+    `scripts/generate_test_password.py` guarda `password = "SecurePassword123!"`
+    — nao esta em `tests/`, o nome do arquivo ja tinha sido resolvido pela
+    ancora de posicao, e mesmo assim o achado caiu para MEDIO: a marca
+    `password` casava DENTRO de `SecurePassword123!`.
+
+    Era a mesma falha da ancora de caminho, uma camada abaixo, e o efeito era
+    o pior possivel — os 18 falsos-positivos consertados a custa do unico
+    verdadeiro. Com fronteira, `test-secret` e `changeme-hoje` casam, e
+    `SecurePassword123!` nao: `password` ali vem colado a `Secure`.
+
+    `_` e `-` sao fronteira; letra e digito nao sao.
+    """
+    return re.search(rf"(?<![a-z0-9]){re.escape(marca)}(?![a-z0-9])",
+                     valor.lower()) is not None
+
+
 def valor_sintetico(ctx, snippet: str) -> bool:
     """O literal capturado se declara descartavel?
 
@@ -96,7 +116,7 @@ def valor_sintetico(ctx, snippet: str) -> bool:
     merece dirigir o gate de ninguem.
     """
     marcas = _r(ctx, "valores_sinteticos")
-    return any(marca in v.lower() for v in valores(snippet) for marca in marcas)
+    return any(_casa(m, v) for v in valores(snippet) for m in marcas)
 
 
 def severidade(ctx, rel: str, snippet: str) -> Severidade:

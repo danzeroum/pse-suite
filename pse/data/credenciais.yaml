@@ -64,8 +64,15 @@ caminhos_de_teste:
 # 2. O valor e obviamente sintetico?
 #
 # Casado contra o LITERAL capturado pelo padrao do check, sem diferenciar
-# maiusculas. Vale sozinho, fora de `tests/` inclusive: `password = "xxxxx"`
-# num script de exemplo tambem nao merece dirigir o gate.
+# maiusculas e SEMPRE DELIMITADO — `_` e `-` sao fronteira, letra e digito
+# nao. Vale sozinho, fora de `tests/` inclusive: `password = "xxxxx"` num
+# script de exemplo tambem nao merece dirigir o gate.
+#
+# A DELIMITACAO custou o 19o caso, e so o reprocessamento dos 6 alvos contou.
+# `scripts/generate_test_password.py` guarda `password = "SecurePassword123!"`:
+# sem fronteira, a marca `password` casava dentro de `SecurePassword123!` e o
+# unico CRITICO REAL dos 19 caia para MEDIO — os 18 falsos consertados a custa
+# do verdadeiro, que e o oposto do que este conserto existe para fazer.
 #
 # A lista e curta de proposito. Cada termo aqui e uma credencial que a suite
 # deixa de tratar como bloqueante — inchar esta lista e a forma mais silenciosa
@@ -83,7 +90,7 @@ valores_sinteticos:
   - changeme
   - change_me
   - placeholder
-  - your_
+  - your
   - my_secret
   - foobar
   - xxxx

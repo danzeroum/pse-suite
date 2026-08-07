@@ -96,15 +96,21 @@ def test_o_decimo_nono_caso_nao_foi_cegado(tmp_path):
 
     Fora de `tests/`, valor não-sintético — o único dos 19 que merecia o
     CRÍTICO. O nome do arquivo contém `test`, e é exatamente por isso que ele
-    é o caso perigoso: uma regra ingênua ("o caminho fala em teste, rebaixa")
-    o cegaria, e a correção de 18 falsos teria custado o 1 verdadeiro.
+    é o caso perigoso, e ele cegou a suíte DUAS VEZES antes de passar:
 
-    A marca `test_` casa por PREFIXO do nome do arquivo, não por substring em
-    qualquer posição — `generate_test_password.py` não é um arquivo de teste,
-    é um script que gera senhas."""
+    1. a marca `test_` casava em qualquer posição do nome, e
+       `generate_test_password.py` virava "arquivo de teste";
+    2. corrigida a âncora de caminho, a marca `password` casava DENTRO do
+       valor real `SecurePassword123!` e o achado caía do mesmo jeito.
+
+    A segunda só apareceu no reprocessamento dos 6 alvos — o teste original
+    usava um literal inventado (`Kp7xR2mQvLt9Wz4Ny6Bd`) e passava. Por isso o
+    valor aqui é o VERDADEIRO, copiado do alvo: fixture inventada prova o que
+    quem a escreveu já imaginava."""
     res = escrever(tmp_path, {
         "scripts/generate_test_password.py":
-            'secret_key = "Kp7xR2mQvLt9Wz4Ny6Bd"\n'})
+            '"""Generate password hash for test user."""\n'
+            'password = "SecurePassword123!"\n'})
     achados = de(res, "P-06")
     assert achados, "o segredo real sumiu — a correção cegou o check"
     assert severidades(res, "P-06") == {"CRITICO"}, (
@@ -150,6 +156,18 @@ def test_diretorio_de_teste_casa_e_nome_parecido_nao(ctx):
     assert not _credencial.caminho_de_teste(ctx, "app/testsuite.py")
     assert not _credencial.caminho_de_teste(ctx, "app/latest.py")
     assert not _credencial.caminho_de_teste(ctx, "scripts/generate_test_password.py")
+
+
+def test_a_marca_casa_delimitada_e_nao_como_pedaco_de_palavra(ctx):
+    """`SecurePassword123!` contém `password` e não é sintético; `test-secret`
+    contém `test` delimitado e é. `_` e `-` são fronteira, letra e dígito
+    não."""
+    assert not _credencial.valor_sintetico(ctx, 'p = "SecurePassword123!"')
+    assert not _credencial.valor_sintetico(ctx, 'p = "Contestable9xQ"')
+    assert not _credencial.valor_sintetico(ctx, 'p = "latestKey42Zz"')
+    assert _credencial.valor_sintetico(ctx, 'p = "test-secret"')
+    assert _credencial.valor_sintetico(ctx, 'p = "changeme-antes"')
+    assert _credencial.valor_sintetico(ctx, 'p = "your_api_key_here"')
 
 
 def test_o_valor_e_julgado_e_nao_a_linha(ctx):
