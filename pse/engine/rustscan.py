@@ -305,6 +305,17 @@ def _span_balanceado(texto: str, i: int) -> tuple:
     return texto[i + 1:n], n
 
 
+# `fn nome(...)` e DEFINICAO, nao chamada — e a lista de parametros nao e
+# um span de argumento. A triagem do btv achou isto: `fn append(&mut self,
+# kind: &str, payload: Value)` entrava como producao de evento, e o span
+# varrido era a assinatura. Num repositorio onde a assinatura fosse
+# `fn append(&mut self, cpf: &str)`, o check acusaria a PROPRIA DECLARACAO
+# da funcao — um achado que nao tem como ser corrigido, porque nao ha
+# defeito nenhum ali. Vale para os quatro checks: `fn connect(...)` viraria
+# chamada de persistencia em S-16 pelo mesmo caminho.
+_DEFINICAO = re.compile(r"\bfn\s+$")
+
+
 def chamadas(texto: str):
     """Chamadas do arquivo, sobre o codigo efetivo, com o span de argumento.
 
@@ -313,12 +324,16 @@ def chamadas(texto: str):
     `logger.info()` e chamada; um check que so olhasse um dos dois acharia
     zero em Rust e diria que esta limpo, que e o modo de falhar mais caro
     desta suite. Use `macros()` para o outro lado.
+
+    DEFINICAO tambem nao e devolvida. Ver `_DEFINICAO`.
     """
     codigo = efetivo(texto)
     for m in _CHAMADA.finditer(codigo):
         abre = codigo.index("(", m.end() - 1)
         if abre > 0 and codigo[abre - 1] == "!":
             continue                    # macro: sai por `macros()`
+        if _DEFINICAO.search(codigo, max(0, m.start() - 16), m.start()):
+            continue                    # definicao: a assinatura nao e argumento
         args, _ = _span_balanceado(codigo, abre)
         yield Chamada(re.sub(r"\s+", "", m.group("nome")), args,
                       _linha_de(codigo, m.start()), m.start())

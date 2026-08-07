@@ -416,3 +416,103 @@ def test_sem_rust_nenhum_a_sonda_nao_opina():
     from pse.engine.context import Contexto
     assert cobertura.sondar_substrato(Path(tempfile.mkdtemp()),
                                       Contexto("/tmp").data) == {}
+
+
+# ===================================================================
+# O QUE A TRIAGEM DO btv REAL ENSINOU
+#
+# O primeiro alvo real nao produziu achado `.rs` nenhum — mas a triagem dos
+# CANDIDATOS revelou quatro formas que o grep ancorado considerava e nao
+# deveria. Nenhuma virou achado no btv por sorte: porque nenhum nome de PII
+# caiu no span. Sorte nao e controle, e num repositorio cujo canal
+# carregasse uma struct com `cpf` as quatro teriam disparado.
+#
+# Cada uma virou um caso permanente em `consumidor_rust_bom`.
+# ===================================================================
+
+def test_definicao_de_funcao_nao_e_chamada():
+    """`fn append(&mut self, cpf: &str)` e DEFINICAO. A lista de parametros
+    nao e um span de argumento, e um check que a varresse acusaria a
+    PROPRIA ASSINATURA — um achado que nao tem como ser corrigido, porque
+    nao ha defeito nenhum ali."""
+    texto = ("pub fn append(&mut self, cpf: &str) {}\n"
+             "pub fn connect(regiao: &str) {}\n"
+             "fn f() { store.append(cpf); }\n")
+    nomes = [c.nome for c in rustscan.chamadas(texto)]
+    assert nomes == ["store.append"], nomes
+
+
+def test_canal_tokio_nao_e_barramento_append_only():
+    """`tx.send(...)` num modulo que menciona `ledger` era elegivel. O btv
+    tem ledger no dominio: a marca aparecia em 18 arquivos e tornava
+    elegivel todo `send` deles."""
+    res = rodar(BOM)
+    assert not acha(res, "P-19")
+
+
+def test_canal_com_nome_sufixado_tambem_e_excluido():
+    """`agent_evt_tx` — o nome idiomatico. O casamento por token exato nao
+    alcancava o sufixo, e oito destes sobreviveram ao primeiro refino."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "src/a.rs": 'use crate::ledger::L;\n'
+                    'fn f(cpf: &str) {\n'
+                    '    let _ = agent_evt_tx.send(cpf);\n'
+                    '    let _ = input_tx.send(cpf);\n}\n'})
+    assert not acha(res, "P-19")
+
+
+def test_requisicao_http_nao_e_producao_de_evento():
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "src/a.rs": 'use crate::ledger::L;\n'
+                    'async fn f(cpf: &str) {\n'
+                    '    let builder = client.post(url).body(cpf);\n'
+                    '    let _ = builder.send().await;\n}\n'})
+    assert not acha(res, "P-19")
+
+
+def test_variante_de_enum_nao_e_chamada_de_metodo():
+    """Em Rust idiomatico metodo e snake_case e variante e CamelCase."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "src/a.rs": 'use crate::ledger::L;\n'
+                    'fn f(cpf: &str) { let c = UiCommand::Send(cpf); }\n'})
+    assert not acha(res, "P-19")
+
+
+def test_o_refino_nao_cegou_o_verdadeiro_produtor():
+    """A mordida dos quatro acima: se o refino tivesse ido longe demais, o
+    produtor de verdade pararia de morder e a triagem teria trocado
+    falso-positivo por falso-negativo — o defeito mais caro desta suite."""
+    res = rodar(RUIM)
+    assert acha(res, "P-19")
+    import tempfile
+    res2 = escrever(Path(tempfile.mkdtemp()), {
+        "src/a.rs": 'use crate::ledger::LedgerRepository;\n'
+                    'fn f(cpf: &str) { ledger.append(cpf); }\n'})
+    assert acha(res2, "P-19"), "receptor que E barramento tem de continuar mordendo"
+
+
+def test_a_triagem_esta_documentada():
+    """Relatorio de triagem sem evidencia e opiniao. Cada achado (e cada
+    nao-achado) do btv precisa aparecer com o trecho real."""
+    doc = (Path(__file__).resolve().parent.parent / "docs" /
+           "triagem-btv-rust.md").read_text(encoding="utf-8")
+    for cid in OS_QUATRO:
+        assert f"`{cid}`" in doc, cid
+    for termo in ("VIOLACAO PROVAVEL", "FALSO-POSITIVO PROVAVEL", "INCERTO"):
+        assert termo in doc, termo
+
+
+def test_o_relatorio_de_triagem_nao_replica_segredo():
+    """Sanitizacao vale tambem em triagem interna: o dado nao se replica em
+    claro so porque o relatorio e nosso."""
+    import re as _re
+    doc = (Path(__file__).resolve().parent.parent / "docs" /
+           "triagem-btv-rust.md").read_text(encoding="utf-8")
+    from pse.engine.context import Contexto
+    for padrao in Contexto("/tmp").data["rust"]["formatos_de_credencial"]:
+        assert not _re.search(padrao, doc), (
+            f"o relatorio de triagem carrega algo com forma de credencial "
+            f"({padrao}) em claro")

@@ -35,3 +35,10 @@ pub async fn gravar(pool: &PgPool, t: &Titular) {
         .await
         .unwrap();
 }
+
+// (7) DEFINICAO de funcao de conexao. `fn connect(...)` entrava como chamada
+//     de persistencia em S-16, e a assinatura era varrida como se fosse um
+//     span de argumento.
+pub fn connect(regiao: &str) -> String {
+    regiao.to_string()
+}

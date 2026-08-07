@@ -109,6 +109,24 @@ barramentos: [rdkafka, kafka, async_nats, nats, lapin, rabbit, pulsar,
               event_store, outbox, ledger, journal, changelog]
 produtores: [send, send_result, publish, produce, append, emit, dispatch,
              record, write_event, publish_with_headers]
+# RECEPTORES QUE NAO SAO BARRAMENTO, mesmo num modulo que fala com um.
+#
+# Achado na triagem do btv, e e o falso-positivo mais caro deste alcance.
+# O btv tem um LEDGER no dominio, entao a marca `ledger` aparece em 18
+# arquivos — e a regra "o modulo fala com barramento" tornava elegivel TODO
+# `send` daqueles arquivos: `tx.send(...)` de canal tokio, `builder.send()`
+# de requisicao HTTP do reqwest, `responder.send(...)` de oneshot. Nenhum e
+# escrita em registro append-only, e num repositorio cujo canal carregasse
+# uma struct com `cpf` o check acusaria os tres.
+#
+# 142 dos 161 candidatos do btv eram elegiveis SO pelo modulo. A regra
+# larga demais nao produziu achado ali por sorte — porque nenhum nome de PII
+# caiu no span —, e sorte nao e controle.
+receptores_que_nao_sao_barramento: [tx, rx, sender, receiver, chan, channel,
+                                    builder, req, request, resp, response,
+                                    socket, stream, writer, reader, stdout,
+                                    stderr, file, buf, buffer, responder,
+                                    notify, waker, handle, ctx, cmd]
 
 # ---------------------------------------------------------------- S-16
 # Chamadas de conexao e de cliente de armazenamento em Rust. Complementa

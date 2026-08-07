@@ -156,18 +156,46 @@ def _candidatos_em_rust(ctx, pii: set) -> tuple:
     cifras = _rust.r_baixo(ctx, "cifra_de_aplicacao") + \
         [str(t).lower() for t in ctx.data["backend-infra"]["cifra_de_aplicacao"]]
 
+    nao_barramento = _rust.r_baixo(ctx, "receptores_que_nao_sao_barramento")
+
     candidatos, houve = [], False
     for p, texto in _rust.arquivos(ctx):
         modulo = rustscan.contem_token(
             rustscan.efetivo(texto, sem_literais=True), barramentos)
         linhas = texto.splitlines()
         for ch in rustscan.chamadas(texto):
-            partes = ch.nome.replace("::", ".").lower().split(".")
+            cruas = ch.nome.replace("::", ".").split(".")
+            # `UiCommand::Send(..)` e construcao de VARIANTE de enum, nao
+            # chamada de metodo — em Rust idiomatico metodo e snake_case e
+            # variante e CamelCase. Achado na triagem do btv, onde duas
+            # entravam como producao de evento.
+            if cruas[-1][:1].isupper():
+                continue
+            partes = [x.lower() for x in cruas]
             if partes[-1] not in produtores:
                 continue
             receptor = ".".join(partes[:-1])
-            if not (rustscan.contem_token(receptor, barramentos) or modulo):
+            if rustscan.contem_token(receptor, barramentos):
+                pass                     # o receptor E um barramento: basta
+            elif not modulo:
                 continue
+            else:
+                # Fallback pelo MODULO, e ele precisou ser estreitado depois
+                # da triagem do btv. Um repositorio com `ledger` no dominio
+                # tem a marca em dezenas de arquivos, e a regra larga tornava
+                # elegivel todo `tx.send` de canal e todo `builder.send` de
+                # requisicao HTTP. Duas condicoes agora: ha receptor (chamada
+                # solta nao tem evidencia nenhuma de barramento) e ele nao e
+                # um construto reconhecidamente nao-barramento.
+                if not receptor:
+                    continue
+                # `nome_casa_tokens` e nao `contem_token`: o nome
+                # idiomatico de canal em Rust e `agent_evt_tx`, e o
+                # casamento por token exato nao alcanca o sufixo. Foi assim
+                # que oito `*_tx.send` do btv continuaram elegiveis depois
+                # do primeiro refino.
+                if scan.nome_casa_tokens(receptor, nao_barramento):
+                    continue
             houve = True
             alcance = _uma_ligacao_atras(texto, ch.args, ch.linha)
             if rustscan.contem_token(alcance, cifras):
