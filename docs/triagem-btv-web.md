@@ -340,9 +340,36 @@ veredito: a suite audita o repositorio, e o controle mora fora dele.
 protegida, nao presumida exposta. As duas presuncoes seriam erros opostos, e
 a honesta e dizer que a camada nao foi observada.
 
-*Pergunta ao dono:* o `global-ingress` e versionado em algum lugar? Se sim,
-apontar o repositorio torna a borda auditavel; enquanto nao, ela fica
-declarada e nao verificada.
+### RESPONDIDO PELO DONO — e a resposta amplia o problema
+
+O `global-ingress` **e versionado**, e serve **varios projetos internos**.
+
+Isso muda a natureza da pendencia em tres pontos:
+
+1. **A borda e auditavel** — deixa de ser infra invisivel e passa a ser
+   artefato com historico. A pendencia sai de "existe?" para "qual
+   repositorio, e ele entra no escopo?".
+
+2. **O alvo nao e do btv.** Um ingress compartilhado nao e "a borda do btv":
+   e um **plano de controle** com raio de alcance proprio. Auditar `nginx.conf`
+   e `.htpasswd` ali significa auditar a autenticacao de todos os projetos
+   atras dele de uma vez — um alvo com peso diferente, que merece atestacao
+   e recorte proprios, nao um apendice desta triagem.
+
+3. **A afirmacao do btv sobre a borda vira verificavel.** O compose declara
+   que "autenticacao e responsabilidade do ingress"; com o repositorio em
+   maos, essa frase deixa de ser promessa e passa a ser confrontavel com o
+   fato — que e como todos os outros checks desta suite funcionam.
+
+**Ainda pendente:** o nome do repositorio. Nao ha nenhum chamado
+`global-ingress` na conta; os candidatos plausiveis sao `danzeroum/docker`
+(publico) e `danzeroum/infra-state` (privado). **Nao presumi qual** — apontar
+para o repositorio errado e auditar a borda de outra coisa, que seria pior
+que nao auditar.
+
+Ate a confirmacao, a cobertura com borda segue **INDETERMINADA**, agora por
+um motivo diferente e menor: nao mais "o artefato nao existe", e sim "o
+artefato existe e ainda nao foi apontado".
 
 ---
 

@@ -70,6 +70,7 @@ decisão localizável.
 
 | Pendência | Nasceu em |
 |---|---|
+| Apontar o repositório do `global-ingress` — confirmado versionado e compartilhado por vários projetos; falta o nome | v0.17.0 |
 | Medir `/dev` no arranjo real (imagem Docker, origem compartilhada) | v0.15.1 |
 | A gramática dos 3 arquivos `.ts`/`.tsx` servidos | v0.15.0 |
 | Identidade dos SHAs do cockpit (`d6ae70ea` / `1da4d51`) | v0.13.0 |
