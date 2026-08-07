@@ -33,3 +33,26 @@ def exigir_alvo(ctx, modo_check: str):
 def novo_cliente(alvo, transporte=None) -> Cliente:
     return Cliente(alvo.get("base_url"), transporte=transporte,
                    timeout=alvo.get("timeout_s") or TIMEOUT_PADRAO)
+
+
+def exigir_observacao(ctx, modo_check: str):
+    """A porta unica da camada DINAMICA. Mesma escada, um degrau a mais.
+
+    Nenhum check de navegador abre pagina por outro caminho: o motor entra
+    DEPOIS dos cinco degraus de `exigir_alvo`, e por isso a garantia da Fase
+    2 — nada e enviado antes da atestacao passar — vale igual para o
+    navegador. Sem isto, a camada dinamica seria um segundo sistema de
+    autorizacao ao lado do ratificado, e duas respostas possiveis para a
+    mesma pergunta e o comeco de nao ter resposta nenhuma.
+
+    Playwright ausente vira CheckIndeterminado COM INSTRUCAO — nunca verde:
+    nao ter olhado e diferente de ter olhado e nao achado nada.
+    """
+    from pse.model import CheckIndeterminado
+    from pse.navegador.engines import PlaywrightAusente
+
+    _, alvo = exigir_alvo(ctx, modo_check)     # 5 degraus, healthcheck incluso
+    try:
+        return ctx.observacao_de_rede(alvo)
+    except PlaywrightAusente as e:
+        raise CheckIndeterminado(str(e)) from e

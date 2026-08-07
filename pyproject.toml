@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pse-suite"
-version = "0.10.0"
+version = "0.11.0"
 description = "Suite de evidencias de Privacidade, Seguranca e Etica por Design — padrao externo versionado, consumido por harness (nunca copiado)."
 requires-python = ">=3.10"
 dependencies = [
@@ -22,6 +22,12 @@ pse = "pse.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# Camada DINAMICA (Trabalho A por navegador). OPCIONAL de proposito: quem so
+# quer o inventario estatico nao carrega centenas de MB de navegador junto.
+# Ausente, os checks dinamicos ficam INDETERMINADOS com instrucao de
+# instalar — nunca verdes.
+#     pip install 'pse-suite[browser]' && python -m playwright install chromium
+browser = ["playwright>=1.40"]
 
 [tool.setuptools.packages.find]
 include = ["pse*"]
@@ -40,4 +46,6 @@ markers = [
   "pse_data: dominio data (catalogo, retencao, agregacao)",
   "pse_ai: dominio ai (modelo e decisao automatizada)",
   "mordida: testes negativos que provam que o gate aborta",
+  "pse_dinamico: camada dinamica (Trabalho A por navegador)",
+  "pse_navegador: exige Playwright e binario de navegador instalados",
 ]

@@ -1,4 +1,4 @@
-# Matriz pilar x dominio — os 49 checks
+# Matriz pilar x dominio — os 52 checks
 
 > **Gerado**, nunca escrito a mao: `python -m pse.matriz > docs/matriz-dominio.md`.
 > Ha teste que reprova se este arquivo divergir do catalogo — um mapa
@@ -13,12 +13,12 @@ um check pode examinar mais de um estrato.
 
 | | frontend | api | backend | data | ai | total no pilar |
 |---|---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 P-20 | P-15 P-16 | 19 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 S-08 S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 | 16 |
+| **privacy** | P-13 P-14 P-22 P-23 | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 P-20 | P-15 P-16 | 21 |
+| **security** | S-09 S-17 | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 S-08 S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 | 17 |
 | **ethics** | **—** | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04 E-05 E-06 E-07 E-09 E-10 E-11 E-12 | 14 |
-| **total no dominio** | 3 | 15 | 16 | 15 | 15 | 49 |
+| **total no dominio** | 6 | 15 | 16 | 15 | 15 | 52 |
 
-A soma da ultima linha (64) e maior que 49 porque um check aparece em
+A soma da ultima linha (67) e maior que 52 porque um check aparece em
 mais de uma coluna quando examina mais de um estrato. Nao e erro de contagem:
 e a multiplicidade do dominio, que e exatamente a razao de ele nao caber
 no prefixo do ID.
@@ -62,13 +62,13 @@ que engana quem le o mapa.
 
 | Dominio | Checks | Leitura |
 |---|---|---|
-| `frontend` | 3 | Unico dominio cujos checks foram desenhados OLHANDO para ele. Os tres nasceram do estrato. |
+| `frontend` | 6 | Primeiro dominio cujos checks foram desenhados OLHANDO para ele (P-13, P-14, S-09 nasceram do estrato) e o UNICO auditado nas duas camadas: **P-22, S-17 e P-23 sao dinamicos** — carregam a pagina num navegador e observam o que so o navegador ve. E aqui que contrato e observacao se encontram, e por isso e aqui que moram os pares de correlacao estatico x dinamico (P-14 x P-23, S-09 x S-17). |
 | `api` | 15 | **S-12, P-17 e S-13 nasceram do estrato** — do contrato, do filtro de busca e do payload de erro. Os demais continuam sendo classificacao a posteriori: vieram do Trabalho A e do inventario e foram etiquetados depois. Era a leitura critica que a propria matriz fazia deste dominio, e ela deixou de valer para o pacote fundador. |
 | `backend` | 16 | **S-14, S-15, P-18, P-19 e S-16 nasceram do estrato** — do dump que viaja entre ambientes, da role do banco, da coluna cifrada, do topico imutavel e da regiao onde o byte pousa. Nenhum desses vetores tem equivalente em outro dominio. Os demais seguem sendo os estaticos do inventario, reclassificados. |
 | `data` | 15 | Aqui a densidade nunca foi heranca preguicosa: `data` e o estrato ONDE A SUITE NASCEU — catalogo, retencao, k-anonimato e lineage vieram olhando para ele. Sobrou um buraco, e **P-20 o fecha**: hash deterministico sem chave tratado como anonimizacao, o risco que engana por parecer resolvido. S-15, P-18 e P-19 aparecem nesta coluna por inspecionarem artefato de dados (catalogo, schema, log de eventos), mas nasceram olhando o BACKEND — sao multi-dominio, nao fundadores daqui. |
 | `ai` | 15 | Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os demais foram etiquetados a posteriori. Primeiro dominio herdado a receber checks proprios. |
 
-## Os 49, um por linha
+## Os 52, um por linha
 
 | Check | Pilar | Dominio(s) | Titulo |
 |---|---|---|---|
@@ -105,6 +105,8 @@ que engana quem le o mapa.
 | `P-18` | privacy | backend, data | Campo sensivel persistido sem cifra de aplicacao com chave gerenciada |
 | `P-19` | privacy | backend, data | Log de eventos com PII sem crypto-shredding |
 | `P-20` | privacy | data | Hash determinístico sem chave tratado como anonimizacao |
+| `P-22` | privacy | frontend | Rastreador ou cookie nao essencial antes de qualquer consentimento |
+| `P-23` | privacy | frontend | PII em transito na URL, no formulario GET ou no Referer |
 | `S-01` | security | api | BOLA/IDOR — recurso de titular sem assertOwnership |
 | `S-02` | security | api | Rate limit + paginacao por cursor (anti-extracao em massa) |
 | `S-03` | security | api | Erros e webhooks sem PII no payload |
@@ -121,6 +123,7 @@ que engana quem le o mapa.
 | `S-14` | security | backend | Dump de producao restaurado em ambiente inferior sem descaracterizar |
 | `S-15` | security | backend, data | Role de banco com privilegio excessivo |
 | `S-16` | security | backend | Persistencia fora da residencia de dados declarada |
+| `S-17` | security | frontend | Cookie de sessao sem HttpOnly, Secure ou SameSite |
 
 Todo check tem ao menos um dominio, e todo prefixo corresponde ao pilar —
 as duas coisas sao verificadas em `tests/test_dominio.py`.

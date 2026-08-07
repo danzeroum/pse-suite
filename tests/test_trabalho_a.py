@@ -14,7 +14,7 @@ import pytest
 
 from pse.cli import main
 from pse.engine.runner import executar
-from pse.model import EXIT_ENTRADA_INVALIDA, EXIT_INDETERMINADO
+from pse.model import EXIT_ENTRADA_INVALIDA, EXIT_INDETERMINADO, EntradaInvalida
 from pse.trabalho_a.cliente import Resposta
 
 from helpers_alvo import (BASE, CHECKS_A, ROTA_B, TOKEN_A, UUID_B,
@@ -298,3 +298,42 @@ def test_laudo_carimba_a_atestacao_sem_segredo(tmp_path):
     assert att["attested_by"] == "dpo@exemplo.com"
     assert att["scope"] and att["expires"] and att["target_fingerprint"]
     assert "token-de-teste-a" not in bruto and "PSE_TOKEN_A" not in bruto
+
+
+# ==================================================== loopback: mudanca de regra
+@pytest.mark.mordida
+@pytest.mark.parametrize("url,aceita", [
+    ("http://127.0.0.1:8000", True),
+    ("http://localhost:8000", True),
+    ("https://staging.exemplo.com", True),
+    # A trava: casa o host de loopback EXATO, nunca por substring.
+    ("http://127.0.0.1.atacante.com", False),
+    ("http://localhost.atacante.com", False),
+    ("http://meu-localhost.com", False),
+    ("http://staging.exemplo.com", False),
+    ("http://10.0.0.5", False),
+])
+def test_http_so_e_aceito_em_loopback(url, aceita):
+    """MUDANCA DE REGRA declarada, para a camada dinamica poder ser provada
+    contra um alvo REAL.
+
+    A exigencia de https existe por UM motivo escrito: sonda em texto claro
+    vaza o proprio token de teste na rede. Em loopback nao ha rede — o
+    pacote nao passa por interface fisica, nao ha intermediario e nao ha o
+    que capturar. A razao da regra nao alcanca o caso.
+
+    Sem isto, o alvo de fixture (http://127.0.0.1) nao passaria pelo
+    contrato, e a camada dinamica so teria prova contra objeto fabricado —
+    exatamente o erro de tratar ambiente local como alvo respondendo.
+
+    A excecao e ESTREITA de proposito, e e isso que este teste fixa:
+    `127.0.0.1.atacante.com` NAO passa.
+    """
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": url, "environment": "staging"}}
+    if aceita:
+        autorizacao.validar_config(cfg, "pse_passive")
+    else:
+        with pytest.raises(EntradaInvalida) as e:
+            autorizacao.validar_config(cfg, "pse_passive")
+        assert "https" in str(e.value)

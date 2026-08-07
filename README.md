@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
+| **privacy** | P-13 P-14 **P-22 P-23** | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
+| **security** | S-09 **S-17** | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -139,6 +139,46 @@ do inventário. E o que é próprio do backend não é "código de servidor" —
 - **S-16** — residência no ponto de **escrita**. S-08 audita o egresso
   declarado no manifesto; um bucket em `us-east-1` não é integração com
   ninguém e não aparece em manifesto nenhum — mas o dado pousa lá igual.
+
+### A camada dinâmica (P-22 · S-17 · P-23) — o navegador
+
+Até aqui a suite lia repositório. Estes três **carregam a página num
+navegador virgem e observam** — e respondem uma pergunta que nenhuma leitura
+de código responde: *o que já aconteceu quando o titular ainda não clicou em
+nada?*
+
+Playwright é **opcional**: `pip install pse-suite` segue leve.
+
+```bash
+pip install 'pse-suite[browser]' && python -m playwright install chromium
+```
+
+Sem ele, os dinâmicos ficam **indeterminados com instrução de instalar** —
+exit 20, nunca verde: não ter olhado é diferente de olhar e não achar nada.
+
+- **P-22** — rastreador ou cookie não essencial disparado **antes** de
+  qualquer aceite. Art. 7º I pede consentimento *prévio*. **ALTO**, não
+  CRÍTICO, e o achado diz por quê: o nome do host não prova a finalidade do
+  tratamento — é sinal forte, não prova cabal.
+- **S-17** — cookie de sessão sem `HttpOnly`, `Secure` ou `SameSite`, como o
+  navegador o recebeu. Par dinâmico de S-09: o cookie quase nunca é escrito
+  pelo front, vem do middleware ou do gateway.
+- **P-23** — PII na query, no `<form method=get>` e no `Referer`, vista no
+  HTML entregue. Par dinâmico de P-14. **Só o nome do parâmetro entra no
+  laudo** — publicar o valor faria da evidência o segundo vazamento.
+
+O contrato de Trabalho A rege o navegador igual rege o HTTP: sem atestação
+válida **nenhuma página é aberta**, e isso é medido por contagem, não
+prometido. Uma observação por execução, compartilhada pelos três.
+
+**Correlação, não deduplicação.** P-14×P-23 e S-09×S-17 são a mesma falha em
+duas camadas; o laudo ganha um bloco `correlacoes` que diz qual dos três
+cenários é cada par — confirmado nas duas, só no código, ou **só no ar** (o
+mais interessante: veio de template do servidor ou tag gerenciada, e nenhuma
+leitura de repositório o encontraria). Nenhum finding é removido.
+
+Motor adaptado de [`danzeroum/qa-suite`](https://github.com/danzeroum/qa-suite)
+(MIT, mesmo dono): `navegador.py`, `trackers.py` e as fixtures de `conftest`.
 
 ### O estrato de dados (P-20) — e o P-21 que não existe
 

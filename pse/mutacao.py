@@ -90,6 +90,38 @@ def _config_runtime(rt: dict) -> dict:
     return {"target": alvo}
 
 
+def _observador_declarado(nav: dict):
+    """Constroi um NetworkLog a partir da mutacao declarada no catalogo.
+
+    A mutacao canonica de um check de NAVEGADOR nao pode depender de um
+    navegador: a autoprova roda em `pse --self-test`, que e o comando que o
+    consumidor executa para conferir se a suite ainda morde — e ele nao pode
+    exigir Playwright instalado para responder.
+
+    O que se prova aqui e a REGRA do check (o que separa achado de
+    nao-achado), com a observacao declarada em YAML como todo o resto. Que o
+    motor de fato observa um alvo real e outra prova, e ela vive em
+    `tests/test_navegador.py`, contra o alvo de fixture. Duas perguntas
+    diferentes, duas provas diferentes — juntar as duas faria a autoprova
+    depender de binario de navegador sem ganhar nada.
+    """
+    from pse.navegador.rede import (CookieObservado, NetworkLog,
+                                    RequisicaoObservada)
+    log = NetworkLog(
+        url=nav.get("url", "https://alvo-de-mutacao.invalido/"),
+        requisicoes=tuple(RequisicaoObservada(r.get("url", ""), r.get("tipo", ""))
+                          for r in (nav.get("requisicoes") or [])),
+        cookies=tuple(CookieObservado(
+            name=c.get("name", ""), httpOnly=bool(c.get("httpOnly")),
+            secure=bool(c.get("secure")), sameSite=str(c.get("sameSite") or ""))
+            for c in (nav.get("cookies") or [])),
+        html=nav.get("html", ""), engine="mutacao")
+
+    def observar(url, engine=None, user_agent=None, data=None, **_):
+        return log
+    return observar
+
+
 def provar(check_id: str) -> dict:
     """Aplica a mutacao canonica do check e exige que ele a encontre."""
     _carregar_checks()
@@ -109,10 +141,20 @@ def provar(check_id: str) -> dict:
 
     esperada = mut.get("espera_severidade")
     rt = mut.get("runtime")
+    nav = mut.get("navegador")
     with tempfile.TemporaryDirectory(prefix="pse-mut-") as tmp:
         alvo = Path(tmp)
         _materializar(alvo, mut.get("arquivos"))
-        if rt:
+        if nav:
+            # Check de navegador: alvo e atestacao sinteticos (o contrato tem
+            # provas proprias), observacao vinda do YAML.
+            config = _config_runtime({"autorizacao_valida": True})
+            transporte = TransporteFalso([])
+            os.environ.setdefault(TOKEN_ENV, "token-sintetico-de-mutacao")
+            ctx = Contexto(alvo, config, modo="pse_passive",
+                           transporte=transporte,
+                           observador=_observador_declarado(nav))
+        elif rt:
             config = _config_runtime(rt)
             transporte = TransporteFalso(rt.get("respostas"))
             os.environ.setdefault(TOKEN_ENV, "token-sintetico-de-mutacao")

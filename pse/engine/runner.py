@@ -62,9 +62,11 @@ def _executar_um(cid, meta, ctx, res):
 
 
 def executar(repo_path, packs: set, config: dict | None = None,
-             modo: str = "pse_inventory", transporte=None, doms=None) -> dict:
+             modo: str = "pse_inventory", transporte=None, doms=None,
+             observador=None) -> dict:
     _carregar_checks()
-    ctx = Contexto(repo_path, config, modo=modo, transporte=transporte)
+    ctx = Contexto(repo_path, config, modo=modo, transporte=transporte,
+                   observador=observador)
     inicio = time.time()
     res = {"findings": [], "checks_executados": [], "checks_pulados": [],
            "checks_indeterminados": [], "checks_nao_habilitados": []}

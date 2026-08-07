@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.10.0
+pse-suite==0.11.0
 ```
 
 ## 2. Config declarativa
@@ -644,3 +644,95 @@ acesso irrestrito é risco real, e mesmo assim não virou check:
 O que faria P-21 nascer: um artefato de policy-as-code versionado declarando
 finalidade e expiração por zona. Aí há declaração a confrontar com fato — que
 é como todos os outros funcionam.
+
+## 20. Camada dinâmica (P-22 · S-17 · P-23) — o navegador
+
+Até aqui a suite lia repositório. Estes três **carregam a página e observam**.
+
+### Instalação — Playwright é opcional
+
+```bash
+pip install pse-suite                 # estático apenas; segue leve
+pip install 'pse-suite[browser]'      # + camada dinâmica
+python -m playwright install chromium
+```
+
+Sem Playwright, os dinâmicos ficam **indeterminados (exit 20) com instrução de
+instalar** — nunca verdes. Não ter olhado é diferente de olhar e não achar
+nada, e o laudo diz qual dos dois aconteceu.
+
+`PSE_BROWSER_ENGINES=chromium,firefox` roda a matriz de engines. **Engine
+desconhecida é exit 30**, não filtro silencioso: um typo que degenerasse em
+"rodou zero engines e passou" seria a pior forma de verde falso.
+
+`PSE_BROWSER_EXECUTABLE` aponta um binário fora do registro do Playwright —
+útil em imagem de container onde o navegador já vem instalado.
+
+### O contrato de Trabalho A rege o navegador
+
+Nenhuma página é aberta antes dos cinco degraus (modo → atestação → tokens →
+healthcheck). Sem atestação válida, os três vão para `checks_indeterminados` e
+o processo sai **20** — e zero navegações são emitidas. Isso é medido por
+contagem nos testes, não prometido em docstring.
+
+Os três são **passivos**: carregam e observam. Clicar no banner e submeter
+formulário escrevem no sistema do alvo e ficam para a fase seguinte, atrás do
+gate ativo.
+
+**`http://` só é aceito em loopback** (`127.0.0.1`, `localhost`). É mudança de
+regra declarada: a exigência de https existe porque sonda em texto claro vaza o
+token na rede, e em loopback não há rede. `http://127.0.0.1.atacante.com` segue
+recusado — a exceção casa o host exato.
+
+### Configuração
+
+```yaml
+pse_suite:
+  target:
+    base_url: https://staging.exemplo.com
+    environment: staging
+    healthcheck: /health
+    trackers_allowlist:            # decisão documentada do controlador
+      - tagmanager.exemplo.com     # já opera sob consentimento gerenciado
+    authorization:
+      attested_by: nome@dominio
+      scope: [pse_passive]
+      target_fingerprint: <sha256(base_url)>
+      expires: "2026-12-31"
+```
+
+```bash
+pse --path . --config tests/qa/pse-config.yaml --modo pse_passive
+```
+
+### O que cada um observa
+
+| | Achado | Conforme |
+|---|---|---|
+| **P-22** | `_ga` gravado ou `google-analytics.com` chamado no primeiro load | tag só depois do aceite; cookie essencial (sessão, CSRF, idioma) nunca conta |
+| **S-17** | `Set-Cookie: sessionid=...` sem `HttpOnly`/`Secure`/`SameSite` | `HttpOnly; Secure; SameSite=Lax` |
+| **P-23** | `<a href="/f?cpf=...">`, `<form method=get><input name=cpf>` | identificador opaco na URL; `method=post` para dado pessoal |
+
+P-22 é **ALTO e não CRÍTICO** de propósito: o nome do host não prova a
+finalidade do tratamento. É sinal forte, não prova cabal — e o achado diz isso.
+
+### A evidência não vaza o que ela prova
+
+O valor do cookie **nunca existe** no objeto observado, e a query string entra
+no laudo com os valores apagados (`?cpf=***`). O nome do parâmetro fica: é ele
+que identifica o vazamento e orienta a correção. Um laudo que carimbasse o CPF
+observado seria o segundo vazamento, e pior que o primeiro — distribuído por
+CI, anexo de PR e caixa de e-mail.
+
+### Correlação estático × dinâmico
+
+O laudo ganha um bloco `correlacoes` ligando **P-14×P-23** e **S-09×S-17**:
+
+| Cenário | Leitura |
+|---|---|
+| `confirmado_nas_duas_camadas` | foi escrito **e** está no ar; corrija pelo `arquivo:linha` do estático |
+| `so_na_camada_estatica` | está no código e a observação não exercitou aquela rota |
+| `so_na_camada_dinamica` | está no ar e **não** está no código auditado — template do servidor, tag gerenciada, dependência |
+
+Nenhum finding é removido: é índice, não filtro. Deduplicar perderia
+justamente a informação que só o par carrega.

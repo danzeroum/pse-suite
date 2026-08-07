@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 
 from pse import catalogo, fingerprint
+from pse.correlacao import correlacionar
 from pse.model import (EXIT_CONFORME, EXIT_INDETERMINADO, EXIT_VIOLACAO_ALTA,
                        EXIT_VIOLACAO_CRITICA, Severidade, Veredito,
                        VersaoIrresolvivel)
@@ -115,6 +116,10 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         # declarada, com motivo, que nao bloqueia.
         "checks_nao_habilitados": resultados.get("checks_nao_habilitados", []),
         "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
+        # A mesma falha vista em duas camadas. Indice sobre o que ja esta no
+        # laudo — nenhum finding e removido ou alterado: deduplicar perderia
+        # justamente a informacao que so o PAR carrega (ver pse/correlacao.py).
+        "correlacoes": correlacionar(resultados["findings"]),
         # Estado, nao defeito: o consumidor precisa saber o quanto ja esta
         # certo, nao so o que esta errado.
         "relatorios": resultados.get("relatorios", {}),

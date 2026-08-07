@@ -262,6 +262,63 @@ def test_regua_do_contrato_de_api_e_vigiada(regua):
         "reprovaria qualquer campo de negócio chamado assim")
 
 
+def test_regua_dos_rastreadores_e_vigiada(regua):
+    """P-22, S-17 e P-23 derivam de `rastreadores`. Esvaziar `rastreadores`
+    cega o consentimento; esvaziar `cookies_essenciais` faz P-22 acusar o
+    cookie de sessão e o time desligar o pack. O piso protege os dois lados."""
+    r = regua["rastreadores"]
+    piso = {
+        "rastreadores": {"google-analytics.com", "googletagmanager.com",
+                         "doubleclick.net", "hotjar.com"},
+        "cookies_nao_essenciais": {"_ga", "_fbp", "_hj"},
+        "cookies_essenciais": {"session", "csrf", "consent"},
+        "cookies_de_sessao": {"session", "sessionid", "jwt", "access_token"},
+        "engines_validas": {"chromium", "firefox", "webkit"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {str(t).lower() for t in r[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de rastreadores.yaml [{grupo}]: "
+            f"{sorted(faltando)}")
+    for atributo in ("httpOnly", "secure", "sameSite"):
+        assert r["atributos_exigidos_em_sessao"].get(atributo), (
+            f"S-17 pararia de cobrar `{atributo}` — e a explicação do porquê "
+            f"some do achado junto")
+    assert "none" in [str(v).lower() for v in r["samesite_sem_protecao"]], (
+        "`SameSite=None` é explicitamente permissivo: sem ele na lista, o "
+        "cookie mais exposto passaria como protegido")
+    for superficie in ("query", "formulario_get", "referer"):
+        assert r["superficies_de_transito"].get(superficie)
+
+
+def test_cookie_essencial_e_de_sessao_nao_se_contradizem(regua):
+    """`session` está nas duas listas de propósito, e isso NÃO é conflito:
+    P-22 não o acusa (o produto precisa dele) e S-17 exige que ele venha
+    protegido. Se algum dia as listas divergissem — um cookie essencial que
+    S-17 ignorasse — a sessão ficaria sem dono. O teste fixa a interseção."""
+    r = regua["rastreadores"]
+    essenciais = {str(t).lower() for t in r["cookies_essenciais"]}
+    de_sessao = {str(t).lower() for t in r["cookies_de_sessao"]}
+    assert "session" in essenciais and "session" in de_sessao
+    nao_essenciais = {str(t).lower() for t in r["cookies_nao_essenciais"]}
+    conflito = essenciais & nao_essenciais
+    assert not conflito, (
+        f"cookie ao mesmo tempo essencial e não essencial: {sorted(conflito)} "
+        f"— P-22 daria respostas diferentes conforme a ordem da lista")
+
+
+def test_dinamicos_nao_tem_lista_propria():
+    for pack, nome in (("privacy", "p22_consentimento_observavel.py"),
+                       ("security", "s17_cookie_de_sessao.py"),
+                       ("privacy", "p23_pii_em_transito.py")):
+        fonte = _fonte(pack, nome)
+        assert "rastreadores" in fonte
+        intruso = _literais_de_colecao(pack, nome) & {
+            "google-analytics.com", "_ga", "sessionid", "httponly", "cpf"}
+        assert not intruso, f"vocabulário próprio em {nome}: {sorted(intruso)}"
+
+
 def test_regua_da_anonimizacao_e_vigiada(regua):
     """P-20 deriva de `anonimizacao`. Remover um termo de
     `construcoes_com_chave` ou de `fontes_de_sal` faz o check passar a punir

@@ -29,6 +29,38 @@ DISPARA_EM = {"passive": ("pse_passive", "pse_active"), "active": ("pse_active",
 RX_DATA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+# Hosts de loopback. Unica excecao a exigencia de https:// — ver `_e_loopback`.
+LOOPBACK = ("127.0.0.1", "localhost", "[::1]", "::1")
+
+
+def _e_loopback(base_url: str) -> bool:
+    """`http://` so e aceito quando o alvo nao sai da maquina.
+
+    MUDANCA DE REGRA, declarada. A exigencia de https existe por UM motivo
+    escrito: sonda em texto claro vaza o proprio token de teste na rede. Em
+    loopback nao ha rede — o pacote nao passa por interface fisica, nao ha
+    intermediario e nao ha o que capturar. A razao da regra nao alcanca este
+    caso.
+
+    Sem esta excecao, a camada dinamica nao teria como ser provada contra um
+    alvo REAL: o alvo de fixture serve em `http://127.0.0.1`, e gerar
+    certificado no teste exigiria dependencia nova e `ignore_https_errors`,
+    que e um afrouxamento maior que este.
+
+    Deliberadamente estreita: casa o host de loopback EXATO, nunca por
+    substring. `http://127.0.0.1.atacante.com` NAO passa, e ha teste-mordida
+    provando. Qualquer outro host em http:// segue recusado com exit 30.
+    """
+    from urllib.parse import urlsplit
+    if not str(base_url).startswith("http://"):
+        return False
+    try:
+        host = (urlsplit(str(base_url)).hostname or "").strip().lower()
+    except ValueError:
+        return False
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
 def fingerprint_alvo(base_url: str) -> str:
     return hashlib.sha256(str(base_url).strip().encode("utf-8")).hexdigest()
 
@@ -59,7 +91,7 @@ def validar_config(config: dict, modo: str):
 
     alvo = alvo_de(config)
     base_url = str(alvo.get("base_url"))
-    if not base_url.startswith("https://"):
+    if not base_url.startswith("https://") and not _e_loopback(base_url):
         raise EntradaInvalida(
             f"target.base_url deve ser https:// (recebido {base_url!r}) — uma "
             f"sonda de autorizacao em texto claro vaza o proprio token de teste")

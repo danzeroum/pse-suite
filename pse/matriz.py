@@ -68,8 +68,12 @@ FORA_DE_ESCOPO_ESTATICO = {
 
 LEITURA_DA_DENSIDADE = {
     "frontend":
-        "Unico dominio cujos checks foram desenhados OLHANDO para ele. Os "
-        "tres nasceram do estrato.",
+        "Primeiro dominio cujos checks foram desenhados OLHANDO para ele "
+        "(P-13, P-14, S-09 nasceram do estrato) e o UNICO auditado nas duas "
+        "camadas: **P-22, S-17 e P-23 sao dinamicos** — carregam a pagina num "
+        "navegador e observam o que so o navegador ve. E aqui que contrato e "
+        "observacao se encontram, e por isso e aqui que moram os pares de "
+        "correlacao estatico x dinamico (P-14 x P-23, S-09 x S-17).",
     "api":
         "**S-12, P-17 e S-13 nasceram do estrato** — do contrato, do filtro de "
         "busca e do payload de erro. Os demais continuam sendo classificacao a "

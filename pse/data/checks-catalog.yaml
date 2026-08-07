@@ -1123,3 +1123,82 @@ checks:
       config:
         catalog_path: catalog.yaml
       espera_severidade: ALTO
+
+  # ================================================================ fase 10
+  # CAMADA DINAMICA — Trabalho A por navegador. Os tres fundadores sao
+  # PASSIVOS: carregam a pagina e observam. Clicar banner e submeter
+  # formulario escrevem no sistema do alvo e ficam para depois, atras do
+  # gate ativo. Na duvida entre passivo e ativo, ativo.
+  #
+  # `status: implementado` e `modo: passive` seguem o padrao ratificado dos
+  # runtime existentes (S-01, P-05, ...): o check EXISTE; sem `target`
+  # declarado ele aparece em `checks_nao_habilitados` com motivo. Marca-lo
+  # `previsto-*` diria que nao foi escrito, o que seria falso.
+  #
+  # P-21 nao existe e nao vai existir: e a decisao assinada de fora-de-escopo
+  # estatico (zona bruta de data lake). A numeracao salta para preservar o
+  # registro — reaproveitar o ID apagaria a decisao.
+  P-22:
+    pack: privacy
+    domain: [frontend]
+    titulo: Rastreador ou cookie nao essencial antes de qualquer consentimento
+    base_legal: LGPD Art. 7o I e Art. 8o (consentimento previo e especifico)
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [P-13, S-04, E-13]
+    canonical_mutation:
+      descricao: tag de analytics dispara no primeiro load, antes de qualquer aceite
+      navegador:
+        url: https://alvo.example.org/
+        requisicoes:
+          - url: https://alvo.example.org/
+            tipo: document
+          - url: https://www.google-analytics.com/collect?v=2
+            tipo: script
+        cookies:
+          - name: _ga
+            httpOnly: false
+            secure: false
+            sameSite: Lax
+      espera_severidade: ALTO
+  S-17:
+    pack: security
+    domain: [frontend]
+    titulo: Cookie de sessao sem HttpOnly, Secure ou SameSite
+    base_legal: LGPD Art. 46 (seguranca) + OWASP A05
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [S-09]
+    canonical_mutation:
+      descricao: cookie de sessao entregue sem atributo de protecao nenhum
+      navegador:
+        url: https://alvo.example.org/
+        cookies:
+          - name: sessionid
+            httpOnly: false
+            secure: false
+            sameSite: ""
+      espera_severidade: ALTO
+  P-23:
+    pack: privacy
+    domain: [frontend]
+    titulo: PII em transito na URL, no formulario GET ou no Referer
+    base_legal: LGPD Art. 46 + Art. 6o VII (seguranca e prevencao)
+    tipo: runtime
+    modo: passive
+    fase: 10
+    status: implementado
+    supports: [P-14, S-03]
+    canonical_mutation:
+      descricao: link publica CPF na query string da propria pagina
+      navegador:
+        url: https://alvo.example.org/
+        html: |
+          <html><body>
+          <a href="/fatura?cpf=529.982.247-25">fatura</a>
+          </body></html>
+      espera_severidade: ALTO

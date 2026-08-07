@@ -88,15 +88,50 @@ def sanitizar_profundo(valor):
     return valor
 
 
+def sanitizar_url(url: str) -> str:
+    """Preserva esquema, host e caminho; apaga os VALORES da query.
+
+    A camada dinamica quebrou uma premissa que valia enquanto tudo era
+    estatico: em `sanitizar_finding`, `arquivo` era "o endereco do achado,
+    nao o seu conteudo" — verdade para `src/App.jsx`, FALSA para
+    `https://alvo/fatura?cpf=529.982.247-25`, onde o endereco E o conteudo.
+
+    O nome do parametro fica (e ele que identifica o vazamento e orienta a
+    correcao); o valor vira `***`. Um achado de "CPF na query" que
+    carimbasse o CPF teria acabado de publicar o dado do titular num
+    artefato que circula por CI, anexo de PR e caixa de e-mail.
+    """
+    from urllib.parse import parse_qsl, urlsplit, urlunsplit
+    texto = str(url or "")
+    try:
+        partes = urlsplit(texto)
+    except ValueError:
+        return sanitizar(texto)
+    if not partes.query:
+        return sanitizar(texto)
+    apagada = "&".join(f"{nome}=***"
+                       for nome, _ in parse_qsl(partes.query,
+                                                keep_blank_values=True))
+    return sanitizar(urlunsplit((partes.scheme, partes.netloc, partes.path,
+                                 apagada, "")))
+
+
+def _e_url(valor: str) -> bool:
+    return str(valor).startswith(("http://", "https://"))
+
+
 def sanitizar_finding(d: dict) -> dict:
     """Aplica a regua ao que o finding carrega de conteudo do alvo.
 
-    `arquivo` e `linha` sao preservados intactos: sao o endereco do achado,
-    nao o seu conteudo.
+    `arquivo` e preservado quando e caminho de arquivo — ali ele e endereco,
+    nao conteudo. Quando e URL, passa por `sanitizar_url`: ver a docstring
+    de la para o motivo de a premissa antiga nao sobreviver ao dinamico.
     """
     saida = dict(d)
     if saida.get("snippet"):
         saida["snippet"] = sanitizar(saida["snippet"])
     if saida.get("trace"):
         saida["trace"] = sanitizar_profundo(saida["trace"])
+    if saida.get("arquivo") and _e_url(saida["arquivo"]):
+        saida["arquivo"] = sanitizar_url(saida["arquivo"])
     return saida
