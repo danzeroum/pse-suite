@@ -146,6 +146,10 @@ def test_check_novo_sem_regenerar_a_doc_reprova(monkeypatch):
     """A mordida da primeira trava. Um check entra no catálogo, ninguém roda o
     gerador — o merge tem de fechar, nomeando a divergência."""
     novo = _id_hipotetico(77)
+    # Derivado, nunca digitado: um numero literal aqui quebraria esta mordida
+    # a cada check novo — e o teste que cobra a doc de nao envelhecer nao pode
+    # ser o primeiro a envelhecer.
+    esperado = len(catalogo.CATALOGO) + 1
     falso = dict(catalogo.CATALOGO)
     falso[novo] = {"pack": "privacy", "domain": ["data"], "tipo": "estatico",
                    "modo": "inventory", "fase": 99, "status": "implementado",
@@ -156,7 +160,7 @@ def test_check_novo_sem_regenerar_a_doc_reprova(monkeypatch):
     gerado = testes.gerar_documento()
     assert testes.corpo_comparado(commitado) != testes.corpo_comparado(gerado)
     assert novo in gerado, "a doc gerada tem de nomear o check novo"
-    assert "**58** checks" in gerado
+    assert f"**{esperado}** checks" in gerado
 
 
 @pytest.mark.mordida

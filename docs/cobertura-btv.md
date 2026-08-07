@@ -27,7 +27,7 @@ reconhecer `.rs` por padrao textual ancorado.
 | Linhas em alcance parcial (4 vetores) | — | **46.4%** |
 | Linhas cegas para TODO check | 53.0% | **2.0%** |
 | Checks auditados de verdade | 16 | **16** |
-| Checks meio-cegos em Rust | 13 | **13** |
+| Checks meio-cegos em Rust | 13 | **14** |
 
 **A leitura honesta do delta.** O numero que encolheu de verdade foi o de linhas
 invisiveis para QUALQUER check — de 53.0% para 2.0%. Mas ele encolheu porque
@@ -175,7 +175,7 @@ multiplicidade da matriz, nao erro de contagem.
 | Dominio | AUDITADO | AUDITADO PARCIAL | FORA DE ALCANCE | NAO APLICAVEL | INDETERMINADO | NAO HABILITADO | total |
 |---|---|---|---|---|---|---|---|
 | `frontend` | 8 | 0 | 0 | 0 | 3 | 0 | 11 |
-| `api` | 2 | 3 | 0 | 0 | 2 | 8 | 15 |
+| `api` | 2 | 4 | 0 | 0 | 2 | 8 | 16 |
 | `backend` | 9 | 5 | 0 | 0 | 1 | 1 | 16 |
 | `data` | 12 | 2 | 0 | 0 | 1 | 0 | 15 |
 | `ai` | 5 | 6 | 0 | 0 | 3 | 1 | 15 |
@@ -183,25 +183,25 @@ multiplicidade da matriz, nao erro de contagem.
 | Estado | Checks | |
 |---|---|---|
 | **AUDITADO** | 29 | `E-05` `E-07` `E-08` `E-10` `E-13` `P-02` `P-03` `P-04` `P-07` `P-08` `P-09` `P-15` `P-16` `P-18` `P-19` `P-22` `P-23` `P-24` `S-05` `S-06` `S-08` `S-14` `S-15` `S-16` `S-17` `S-18` `S-19` `S-20` `S-21` |
-| **AUDITADO PARCIAL** | 13 | `E-00` `E-04` `E-11` `E-12` `P-01` `P-06` `P-17` `P-20` `S-04` `S-10` `S-11` `S-12` `S-13` |
+| **AUDITADO PARCIAL** | 14 | `E-00` `E-04` `E-11` `E-12` `P-01` `P-06` `P-17` `P-20` `S-04` `S-10` `S-11` `S-12` `S-13` `S-22` |
 | **FORA DE ALCANCE** | 0 | — |
 | **NAO APLICAVEL** | 0 | — |
 | **INDETERMINADO** | 7 | `E-01` `E-02` `E-06` `P-13` `P-14` `S-03` `S-09` |
 | **NAO HABILITADO** | 8 | `E-03` `E-09` `P-05` `P-10` `P-11` `S-01` `S-02` `S-07` |
-| **total** | 57 | |
+| **total** | 58 | |
 
-A soma fecha 57/57. Nenhum check fica sem estado: um check silencioso
+A soma fecha 58/58. Nenhum check fica sem estado: um check silencioso
 num mapa de cobertura e indistinguivel de um check que passou.
 
 ### O numero que interessa
 
-**16 dos 57 checks foram auditados DE VERDADE** — rodaram ate um
+**16 dos 58 checks foram auditados DE VERDADE** — rodaram ate um
 veredito E tiveram todo o substrato lido. Sao os unicos em que *sem achado*
 significa mesmo *olhei e esta limpo*:
 
 `E-05` `E-07` `E-10` `P-03` `P-04` `P-19` `P-22` `P-23` `P-24` `S-06` `S-14` `S-15` `S-17` `S-19` `S-20` `S-21`
 
-Os outros 41 se dividem entre os que leram metade do substrato, os que
+Os outros 42 se dividem entre os que leram metade do substrato, os que
 foram pulados com motivo, os indeterminados e os que nem foram habilitados.
 Cada um desses e uma resposta legitima; nenhum deles e conformidade.
 
@@ -327,6 +327,7 @@ alguma coisa.
 | `S-19` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
 | `S-20` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
 | `S-21` | frontend | AUDITADO | executou | (aplicacao no ar) | — | nao |
+| `S-22` | api | AUDITADO PARCIAL | executou | JSON, JavaScript, Python, TypeScript, TypeScript/TSX, YAML | Rust | **sim** |
 
 ## Recomendacao de escopo
 
@@ -347,8 +348,8 @@ chamada: o logger de Rust e `tracing::info!`, nao `logger.info()`, e um check
 que so olhe `call_expression` acha zero e diz que esta limpo. Esse e o modo
 de falhar que esta suite menos pode se permitir, porque produz verde.
 
-**O degrau `estrutura` compra 3, e nao se recomenda agora.**
-E-04, P-17, S-12 dependem de derive e de macro de rota; o custo deixa de ser
+**O degrau `estrutura` compra 4, e nao se recomenda agora.**
+E-04, P-17, S-12, S-22 dependem de derive e de macro de rota; o custo deixa de ser
 o parser e passa a ser conhecer axum, Diesel e serde um a um. Cobertura de
 fachada nasce exatamente assim — de um parser que le a arvore mas nao entende
 o framework, nao acha nada, e parece verde.
@@ -365,7 +366,7 @@ resolvesse a cobertura inteira.
 |---|---|---|---|
 | `literal` | Nenhuma gramatica. Basta varrer literais de string do `.rs` ignorando comentario — a mesma coisa que `codigo_efetivo` ja faz para `.js`, e Rust comenta igual (`//`, `/* */`). | `P-06` `S-04` | `S-06` `S-16` |
 | `chamada` | `tree-sitter-rust`, que existe e e mantido. O trabalho real nao e o parser: e que macro (`tracing::info!`) e chamada nao sao o mesmo NO de arvore, e cada check teria de olhar os dois. | `E-00` `E-11` `E-12` `P-01` `P-20` `S-10` `S-11` `S-13` | `E-01` `E-02` `P-02` `P-18` `P-19` |
-| `estrutura` | `tree-sitter-rust` MAIS um modelo de atributo e derive — `#[derive(Serialize)]`, `#[serde(rename)]`, as macros de rota do axum. E aqui que o custo deixa de ser do parser e passa a ser de conhecer cada framework. | `E-04` `P-17` `S-12` | `P-03` |
+| `estrutura` | `tree-sitter-rust` MAIS um modelo de atributo e derive — `#[derive(Serialize)]`, `#[serde(rename)]`, as macros de rota do axum. E aqui que o custo deixa de ser do parser e passa a ser de conhecer cada framework. | `E-04` `P-17` `S-12` `S-22` | `P-03` |
 
 A ultima coluna nao entra na conta do ganho: sao checks que sequer rodaram
 neste alvo, e somar os dois inflaria o que o parser compra. Ficam a vista
@@ -374,7 +375,7 @@ declarada, dataset de fairness — eles caem no mesmo buraco.
 
 ### O que um parser de Rust NAO compra
 
-36 dos 57 checks nao tem vetor em linguagem de servidor nenhuma:
+36 dos 58 checks nao tem vetor em linguagem de servidor nenhuma:
 
 `E-03` `E-05` `E-06` `E-07` `E-08` `E-09` `E-10` `E-13` `P-04` `P-05` `P-07` `P-08` `P-09` `P-10` `P-11` `P-13` `P-14` `P-15` `P-16` `P-22` `P-23` `P-24` `S-01` `S-02` `S-03` `S-05` `S-07` `S-08` `S-09` `S-14` `S-15` `S-17` `S-18` `S-19` `S-20` `S-21`
 

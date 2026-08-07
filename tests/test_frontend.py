@@ -199,7 +199,7 @@ def test_gate_morde_no_frontend(tmp_path):
 
 def test_catalogo_frontend_no_lugar():
     from pse import catalogo
-    assert len(catalogo.CATALOGO) == 57
+    assert len(catalogo.CATALOGO) == 58
     assert catalogo.previstos() == []
     # 3 estáticos (P-13/P-14/S-09) + 3 dinâmicos (P-22/S-17/P-23). O estrato
     # `frontend` é o único auditado nas duas camadas: é onde o contrato e a

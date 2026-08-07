@@ -11,12 +11,12 @@ produto; a segunda e a garantia de que o produto nao mente.
 
 | Camada | O que e | Quantidade | Onde vive | Contra quem roda |
 |---|---|---|---|---|
-| **A — Checks** | O que a PSE audita num alvo | **57** checks | `pse/checks/**` | O sistema auditado |
-| **B — Testes** | O que prova que os checks funcionam | **596** funcoes / **661+** casos | `tests/**` | A propria PSE |
+| **A — Checks** | O que a PSE audita num alvo | **58** checks | `pse/checks/**` | O sistema auditado |
+| **B — Testes** | O que prova que os checks funcionam | **612** funcoes / **677+** casos | `tests/**` | A propria PSE |
 
 ---
 
-# Camada A — os 57 checks
+# Camada A — os 58 checks
 
 ## A.1 Como estao divididos
 
@@ -31,17 +31,17 @@ vive em `domain`, nunca no prefixo.
 |---|---|---|
 | ethics | `E-` | 14 |
 | privacy | `P-` | 22 |
-| security | `S-` | 21 |
+| security | `S-` | 22 |
 
 ### Por dominio — onde o risco se manifesta
 
-E lista: 57 checks produzem 72 atribuicoes.
+E lista: 58 checks produzem 73 atribuicoes.
 
 | Dominio | Checks |
 |---|---|
+| `api` | 16 |
 | `backend` | 16 |
 | `ai` | 15 |
-| `api` | 15 |
 | `data` | 15 |
 | `frontend` | 11 |
 
@@ -51,7 +51,7 @@ E lista: 57 checks produzem 72 atribuicoes.
 |---|---|
 | `estatico` | 34 |
 | `runtime` | 12 |
-| `estatico+runtime` | 10 |
+| `estatico+runtime` | 11 |
 | `ci` | 1 |
 
 ### Por modo — quem pode disparar
@@ -62,7 +62,7 @@ com a propria identidade, `active` sonda e exige revisores.
 | Modo | Checks |
 |---|---|
 | `inventory` | 35 |
-| `active` | 11 |
+| `active` | 12 |
 | `passive` | 11 |
 
 ### Desfechos possiveis
@@ -73,8 +73,8 @@ verde ou achado.
 | Desfecho | Quantos podem | O que significa |
 |---|---|---|
 | `CRITICO` | 16 | emitem a severidade que reprova fail-closed (exit 10) |
-| `pulado` | 15 | pre-requisito declarado ausente, com motivo no laudo |
-| `indeterminado` | 10 | tentou e nao decidiu — **bloqueia** (exit 20) |
+| `pulado` | 16 | pre-requisito declarado ausente, com motivo no laudo |
+| `indeterminado` | 11 | tentou e nao decidiu — **bloqueia** (exit 20) |
 
 Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`, `P-14`, `P-15`, `P-20`, `S-01`, `S-04`, `S-06`, `S-10`, `S-11`.
 
@@ -107,7 +107,7 @@ Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`
 | **P-23** | frontend | runtime / passive | ALTO | — | PII na URL, vista no HTML que o alvo de fato entregou. |
 | **P-24** | frontend | runtime / passive | ALTO | — | o que o arquivo publicado revela alem do que servia para servir. |
 
-## A.3 Pacote S — Seguranca (21)
+## A.3 Pacote S — Seguranca (22)
 
 | ID | Dominio | Tipo / Modo | Severidade | Desfechos | O que faz |
 |---|---|---|---|---|---|
@@ -132,6 +132,7 @@ Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`
 | **S-19** | frontend | runtime / passive | ALTO | — | o que o servidor DECLAROU na resposta, e o que trafegou em claro. |
 | **S-20** | frontend | runtime / passive | por tipo | indetermina | credencial servida ao navegador. Par dinamico de P-06. |
 | **S-21** | frontend | runtime / passive | MEDIO | — | o bundle que aponta para o proprio codigo-fonte. |
+| **S-22** | api | estatico+runtime / active | ALTO | indetermina, nao-habilitado, pula | a finalidade chega, e nada a amarra a uma base legal. |
 
 ## A.4 Pacote E — Etica (14)
 
@@ -154,29 +155,29 @@ Emitem `CRITICO`: `E-04`, `E-11`, `P-01`, `P-06`, `P-07`, `P-08`, `P-11`, `P-13`
 
 ---
 
-# Camada B — os 596 testes da suite
+# Camada B — os 612 testes da suite
 
-30 arquivos com teste (9020 linhas), mais 2 auxiliares (`conftest.py`, `helpers_alvo.py`). Divididos por **familia de garantia**, nao por ordem alfabetica.
+30 arquivos com teste (9302 linhas), mais 2 auxiliares (`conftest.py`, `helpers_alvo.py`). Divididos por **familia de garantia**, nao por ordem alfabetica.
 
 ## B.1 As familias
 
 | Familia | Arquivos | Funcoes | Casos |
 |---|---|---|---|
-| Um arquivo por pacote de checks | 8 | 209 | 229 |
+| Um arquivo por pacote de checks | 8 | 223 | 243 |
 | Camada dinamica — o navegador | 4 | 101 | 114 |
 | Contrato e autorizacao | 4 | 64 | 80 |
 | Cobertura honesta | 3 | 54 | 59 |
-| A regua e o catalogo (D-13) | 4 | 60 | 67 |
+| A regua e o catalogo (D-13) | 4 | 62 | 69 |
 | Provas negativas — o gate tem de morder | 5 | 71 | 71 |
 | Integracao de ponta a ponta | 2 | 37 | 41 |
 
-## B.2 Um arquivo por pacote de checks — 209 funcoes
+## B.2 Um arquivo por pacote de checks — 223 funcoes
 
 Cada estrato tecnico tem o seu: o teste vive perto do check que prova.
 
 | Arquivo | Fn | Casos | Marcadores | O que garante |
 |---|---|---|---|---|
-| `test_api_estrato.py` | 24 | 24 | `mordida`, `pse_api`, `pse_privacy`, `pse_security` | S-12, P-17, S-13 — o pacote fundador do estrato de API. |
+| `test_api_estrato.py` | 38 | 38 | `mordida`, `pse_api`, `pse_privacy`, `pse_security` | S-12, P-17, S-13 — o pacote fundador do estrato de API. |
 | `test_backend_estrato.py` | 38 | 38 | `mordida`, `pse_backend`, `pse_privacy`, `pse_security` | S-14, S-15, P-18, P-19, S-16 — o pacote fundador do estrato de backend. |
 | `test_data_estrato.py` | 22 | 22 | `mordida`, `pse_data`, `pse_privacy` | P-20 — o fundador do estrato `data`, e a decisão sobre P-21. |
 | `test_frontend.py` | 18 | 28 | `mordida`, `parametrize`, `pse_frontend` | P-13, P-14, S-09 — o domínio frontend, ancorado em AST de verdade. |
@@ -217,7 +218,7 @@ A fachada e o inimigo: os estados nao colapsam, `pulado` nao vira auditado, arqu
 | `test_cobertura_web.py` | 15 | 20 | `parametrize` | O estrato web e a maior fatia do alvo — e um arquivo ilegivel apagava o |
 | `test_html_no_alcance.py` | 10 | 10 | — | HTML era `IRRELEVANTE`, e isso escondia egresso a terceiro. |
 
-## B.6 A regua e o catalogo (D-13) — 60 funcoes
+## B.6 A regua e o catalogo (D-13) — 62 funcoes
 
 Lista curada mora em `pse/data/`, nunca no `.py` do check e nunca copiada ao consumidor; e nao muda em silencio.
 
@@ -225,7 +226,7 @@ Lista curada mora em `pse/data/`, nunca no `.py` do check e nunca copiada ao con
 |---|---|---|---|---|
 | `test_catalogo.py` | 10 | 10 | `pse_ethics` | D-12 (catalogo dos 29) + E-00 (guarda de escopo do pack de etica). |
 | `test_dominio.py` | 19 | 25 | `mordida`, `parametrize` | A matriz: pilar × domínio. |
-| `test_regua.py` | 27 | 27 | `parametrize` | D-13 — a regua curada e vigiada. |
+| `test_regua.py` | 29 | 29 | `parametrize` | D-13 — a regua curada e vigiada. |
 | `test_versao.py` | 4 | 5 | `parametrize` | Gap 5 — a versao tem UMA fonte, e ninguem a restata em silencio. |
 
 ## B.7 Provas negativas — o gate tem de morder — 71 funcoes
@@ -284,7 +285,7 @@ sem teste — ou um teste citando check que nao existe.
 
 | Situacao | Hoje | O que acontece se mudar |
 |---|---|---|
-| Checks cobertos por teste | 57 de 57 | check orfao reprova a trava |
+| Checks cobertos por teste | 58 de 58 | check orfao reprova a trava |
 | Referencias a check inexistente | 0 | referencia fantasma reprova a trava |
 | Excecoes declaradas (`CHECKS_FORA_DO_CATALOGO`) | 2 | excecao calada reprova; declarada, aparece no indice |
 
@@ -300,12 +301,13 @@ cobra dos alvos.
 - **Nenhuma linguagem de servidor alem de Python tem parser** — **LACUNA ABERTA**. A suite nomeia mas nao le: C, C#, C++, C/C++, Dart, Elixir, Erlang, Go, Gradle, HCL, Java, Kotlin, Lua, Objective-C, PHP, Perl, Protobuf, R, Ruby, Scala, Svelte, Swift, TOML, Terraform, Vue. Alcance parcial declarado: Rust (somente S-06, P-18, P-19, S-16). Ausencia de achado nessas linguagens nao e atestado de conformidade — e ausencia de leitura.
 - **Nao ha mecanismo de exclusao de caminho declaravel** — **LACUNA ABERTA**. O unico filtro e a lista fixa `scan.IGNORAR_DIRS` (`.git`, `.mypy_cache`, `.pytest_cache`, `.venv`, `__pycache__`, `build`, `dist`, `node_modules`, `venv`). O consumidor nao pode declarar caminho fora de escopo, e o autoscan da propria suite conta as fixtures de teste como achado. Fechar a lacuna exige que a exclusao seja DECLARADA e CONTADA no laudo — filtro silencioso seria a cobertura de fachada de volta pela porta dos fundos.
 - **IDs deliberadamente ausentes da sequencia do catalogo** — **LACUNA ABERTA**. Sem entrada no catalogo: `P-12`, `P-21`. Buraco honesto e melhor que check que nao verifica nada real — mas so quando o buraco esta escrito.
+- **Vetores reais deliberadamente nao implementados** — **LACUNA ABERTA**. Investigados e assinados em `docs/BURACOS-ASSUMIDOS.md` porque o check possivel verificaria a fachada, nao o direito: Zona bruta de data lake sem restrição (`P-21`) — Não há artefato versionado que distinga a zona bruta restrita da irrestrita: a decisão vive em IAM e em política de bucket, fora do repositório (desde v0.9.0); Endpoint de acesso do titular (Art. 18 II) — *"O endpoint existe"* é fraco e *"responde em tempo hábil, com o dado certo, para o titular certo"* é o que a lei pede — e isso não é verificável estaticamente nem por sonda sem impersonar um titular real (desde v0.19.0); Efeito downstream de revogação (Art. 18 IX) — Revogar consentimento tem de parar o processamento **em todos os sistemas a jusante** — filas, réplicas, data lake, parceiros. É comportamento distribuído: nenhum repositório contém a prova, e observar o efeito exigiria acesso a sistemas que não são o alvo (desde v0.19.0)
 - **Pendencias de ratificacao ainda abertas** — **LACUNA ABERTA**. Apontar o repositório do `global-ingress` — confirmado versionado e compartilhado por vários projetos; falta o nome (desde v0.17.0); Medir `/dev` no arranjo real (imagem Docker, origem compartilhada) (desde v0.15.1); A gramática dos 3 arquivos `.ts`/`.tsx` servidos (desde v0.15.0); Identidade dos SHAs do cockpit (`d6ae70ea` / `1da4d51`) (desde v0.13.0); O btv declarar `tests/qa/catalog.yaml` (habilita P-18) (desde v0.14.1); O btv declarar `data_residency` (habilita S-16) (desde v0.14.1)
 - **Parametrizacoes que este documento nao consegue contar** — **LACUNA ABERTA**. Os argvalues sao computados em tempo de execucao, entao o numero de casos destas funcoes nao entra na contagem: `test_aceite.py::test_aceite_declara_o_minimo`; `test_aceite.py::test_aceite_roda_ou_fica_pendente_com_motivo`; `test_mutacao.py::test_mutacao_canonica_reprova`; `test_regua.py::test_piso_da_regua_intacto`. O total de casos declarado abaixo e portanto um PISO, nao o numero que o pytest coleta.
 - **Checks sem teste que os cubra (orfaos)** — fechada. Nenhum — a trava do indice reprova o merge que introduzir o primeiro.
 - **Checks implementados sem mutacao canonica declarada** — fechada. Nenhum — todo check implementado declara no catalogo a violacao minima que deve produzir vermelho.
-- **Checks sem docstring de modulo** — fechada. Nenhum — a descricao de todos os 57 sai do proprio modulo.
-- **Checks previstos no catalogo e ausentes nesta versao** — fechada. Nenhum — os 57 catalogados estao implementados.
+- **Checks sem docstring de modulo** — fechada. Nenhum — a descricao de todos eles sai do proprio modulo.
+- **Checks previstos no catalogo e ausentes nesta versao** — fechada. Nenhum — os 58 catalogados estao implementados.
 
 
 <!-- fim-do-corpo-comparado -->
@@ -313,6 +315,6 @@ cobra dos alvos.
 > Tudo acima desta marca e comparado byte a byte pela trava de CI.
 > O que vier abaixo dela e volatil de proposito e nao reprova merge.
 
-- pacote: `pse-suite 0.18.0`
+- pacote: `pse-suite 0.19.0`
 - regenerar: `python -m pse.testes > docs/TESTES.md`
 - regenerar indice: `python -m pse.testes --indice > docs/INDICE-DE-TESTES.md`

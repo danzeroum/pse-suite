@@ -299,6 +299,243 @@ def test_prefixo_segue_o_pilar():
     assert catalogo.incoerencias_de_prefixo() == []
 
 
+# ==================================================== S-22
+#
+# Seis materiais de security foram avaliados nesta rodada e renderam UM check.
+# Não é falha da leitura: BOLA já era S-01, minimização já era P-05, hash como
+# anonimização já era P-20, DPA de terceiro já era S-04, dado de treino já era
+# P-15. A convergência é o resultado — a régua generalizou além dos exemplos
+# que a produziram, e a suíte parou de crescer porque cobriu o essencial.
+#
+# O vetor que sobrou é o mais fino de todos, e é por isso que ele escapou até
+# agora: S-07 verifica que a etiqueta de finalidade existe e é registrada;
+# ninguém verificava se a etiqueta tem CONSEQUÊNCIA.
+SUP = {"catalog_path": "catalog.yaml"}
+
+
+def s22(res):
+    return acha(res, "S-22")
+
+
+@pytest.mark.pse_security
+def test_s22_finalidade_lida_sem_mapa_de_base_legal_dispara():
+    res = rodar(RUIM)
+    f = s22(res)
+    assert f, "a fixture lê X-Purpose e não amarra base legal nenhuma"
+    assert f[0].severidade.name == "ALTO", (
+        "falha de limitação de finalidade é grave e não é exposição consumada "
+        "— CRÍTICO fica reservado ao que já vazou (critério de S-14/S-15)")
+    assert f[0].arquivo.endswith("finalidade.py")
+
+
+@pytest.mark.pse_security
+def test_s22_mapa_e_recusa_desligam_o_achado():
+    """D-08. Punir quem escreveu a tabela E a checagem ensinaria o time a não
+    escrever nenhuma das duas."""
+    res = rodar(BOM)
+    assert not s22(res), [(f.arquivo, f.linha, f.titulo) for f in s22(res)]
+    assert "S-22" in res["checks_executados"], "verde por não ter olhado"
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s22_comentario_de_checagem_nao_desliga(tmp_path):
+    """D-01. `# TODO: validar legal basis` é exatamente o que existe na fixture
+    ruim, e é o caso em que um grep de menção daria verde."""
+    res = escrever(tmp_path, {"api.py":
+                              "from flask import request\n"
+                              "# legal_basis: consentimento para marketing\n"
+                              "def rota():\n"
+                              "    p = request.headers.get('X-Purpose')\n"
+                              "    return repo.ler(p)\n"}, cfg=SUP)
+    assert s22(res), "comentário citando base legal desligou o achado"
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s22_mapa_decorativo_ainda_dispara(tmp_path):
+    """O segundo achado, e o mais interessante: o alvo já fez o trabalho
+    difícil de escrever a tabela, e ninguém a consulta. Uma tabela que ninguém
+    consulta é papel, e papel não é enforcement."""
+    res = escrever(tmp_path, {"api.py":
+                              "from flask import request\n"
+                              "BASES = {'marketing': 'consentimento',\n"
+                              "         'cobranca': 'execucao_de_contrato'}\n"
+                              "def rota():\n"
+                              "    p = request.headers.get('X-Purpose')\n"
+                              "    return repo.ler(p)\n"}, cfg=SUP)
+    f = s22(res)
+    assert f and "nao e aplicado" in f[0].titulo, [x.titulo for x in f]
+
+
+@pytest.mark.pse_security
+def test_s22_sem_finalidade_entrando_e_pulado(tmp_path):
+    """Sem finalidade não há o que amarrar a base nenhuma. A propagação em si
+    é cobrada por S-07 — cobrar o mesmo defeito duas vezes ensina a ignorar
+    os dois."""
+    res = escrever(tmp_path, {"api.py": "def rota():\n    return repo.ler()\n"},
+                   cfg=SUP)
+    pulados = {c["id"]: c["motivo"] for c in res["checks_pulados"]}
+    assert "S-22" in pulados and "S-07" in pulados["S-22"]
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s22_mapa_nao_literal_indetermina(tmp_path):
+    """Precisão sobre recall. Há finalidade entrando e há um identificador com
+    nome de mapa de base legal — e o que ele guarda vem de uma chamada. Chutar
+    aqui seria trocar fail-closed por adivinhação."""
+    res = escrever(tmp_path, {"api.py":
+                              "from flask import request\n"
+                              "BASES_LEGAIS = carregar_config('bases.yml')\n"
+                              "def rota():\n"
+                              "    p = request.headers.get('X-Purpose')\n"
+                              "    return repo.ler(p)\n"}, cfg=SUP)
+    indet = {c["id"]: c["motivo"] for c in res["checks_indeterminados"]}
+    assert "S-22" in indet, res["checks_executados"]
+    assert "BASES_LEGAIS" in indet["S-22"]
+
+
+@pytest.mark.pse_security
+def test_s22_declaracao_com_base_por_finalidade_conta_como_mapa(tmp_path):
+    """A forma declarada vale tanto quanto a do código — é a que
+    `consent-model.yaml` já usa. Sem consulta no código, porém, continua
+    decorativa."""
+    res = escrever(tmp_path, {
+        "consent-model.yaml": "purposes:\n"
+                              "  - id: cobranca\n"
+                              "    base_legal: execucao_de_contrato\n",
+        "api.py": "from flask import request\n"
+                  "def rota():\n"
+                  "    return repo.ler(request.headers.get('X-Purpose'))\n"},
+        cfg=SUP)
+    f = s22(res)
+    assert f and "nao e aplicado" in f[0].titulo, [x.titulo for x in f]
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s22_finalidade_disfarcada_de_base_nao_conta_como_mapa(tmp_path):
+    """`interesse_do_negocio` e `melhoria_do_produto` não são bases legais —
+    são finalidades vestidas de base, e é o erro que S-22 existe para achar.
+    Se a régua as reconhecesse, o check viraria o seu contrário."""
+    res = escrever(tmp_path, {"api.py":
+                              "from flask import request\n"
+                              "BASES = {'marketing': 'interesse_do_negocio',\n"
+                              "         'perfil': 'melhoria_do_produto'}\n"
+                              "def rota():\n"
+                              "    p = request.headers.get('X-Purpose')\n"
+                              "    if p not in BASES:\n"
+                              "        raise PermissionError(p)\n"
+                              "    return repo.ler(p)\n"}, cfg=SUP)
+    f = s22(res)
+    assert f and "sem base legal amarrada" in f[0].titulo, [x.titulo for x in f]
+
+
+@pytest.mark.pse_security
+def test_s22_e_s07_nao_sao_o_mesmo_check():
+    """A fixture ruim faz TUDO o que S-07 pede — exige 428 sem finalidade,
+    propaga e registra ator/ação/recurso/finalidade no log. E reprova em S-22,
+    porque nada diz sob que base aquela finalidade podia rodar. Um sistema
+    passa o primeiro e falha o segundo: é o caso comum, e é por isso que são
+    dois IDs e não um."""
+    from pse import catalogo
+    res = rodar(RUIM)
+    assert s22(res), "S-22 tem de disparar contra a fixture"
+    assert not acha(res, "S-07"), "S-07 não é dono deste defeito"
+    assert "Art. 6o" in catalogo.base_legal("S-22")
+    assert "Art. 37" in catalogo.base_legal("S-07")
+    assert catalogo.dominios("S-22") == ["api"]
+    assert catalogo.meta("S-22")["pack"] == "security"
+
+
+@pytest.mark.pse_security
+def test_s22_declara_a_metade_runtime_nao_executada():
+    """Meia execução silenciosa é meia-verdade no laudo. Sem a combinação
+    declarada em `target.endpoints.finalidade_incompativel`, a suíte não sai
+    inventando o que testar — e diz que não testou."""
+    res = rodar(RUIM)
+    parcial = res.get("relatorios", {}).get("cobertura_parcial", {})
+    assert "S-22" in parcial and "runtime" in parcial["S-22"]
+
+
+# ============================== os dois candidatos que NÃO viraram check
+#
+# Da mesma avaliação de seis materiais saíram dois vetores reais que foram
+# deliberadamente deixados de fora. Não é backlog: é a decisão de que o check
+# possível verificaria a fachada, não o direito — e o laudo passaria a afirmar
+# cobertura onde não há. É a mesma regra que matou P-21.
+#
+# Os testes abaixo não verificam alvo nenhum. Eles verificam que a DECISÃO
+# continua assinada — e reprovam se alguém implementar o check fraco sem
+# revisá-la, ou se a leitura sumir do mapa que o consumidor lê.
+def test_acesso_do_titular_nao_virou_check_e_a_decisao_esta_assinada():
+    """Art. 18 II. O check possível seria "existe rota de exportação?" — e
+    isso já é P-10, que roda no ar e confirma que ela responde e devolve
+    conteúdo íntegro.
+
+    O que faria dele um check NOVO seria verificar que a resposta traz os
+    dados daquele titular, todos eles, dentro do prazo. As três são
+    inverificáveis: a primeira exige conhecer o conjunto correto (só o alvo
+    sabe), a segunda exige impersonar titular real (o Trabalho A obriga
+    identidade sintética), a terceira é propriedade do processo.
+
+    Um check de "existe rota" duplicaria P-10 com nome novo, e o laudo
+    exibiria dois verdes pela mesma evidência — inflação de cobertura."""
+    from pse import matriz
+    assert ("api", "acesso_do_titular") in matriz.FORA_DE_ESCOPO_ESTATICO, (
+        "a decisão de não implementar o acesso do titular tem de estar "
+        "assinada em pse/matriz.py — buraco sem leitura é buraco escondido")
+    leitura = matriz.FORA_DE_ESCOPO_ESTATICO[("api", "acesso_do_titular")]
+    assert "P-10" in leitura, "a leitura tem de nomear o check que já cobre"
+    assert len(leitura) > 200, "leitura curta demais para uma decisão de escopo"
+
+
+def test_revogacao_downstream_nao_virou_check_e_a_decisao_esta_assinada():
+    """Art. 18 IX. O vetor é real e grave, e é por construção não observável
+    a partir do alvo: a prova exigiria enumerar e acessar sistemas a jusante
+    que não são o alvo declarado — exatamente o que o contrato do Trabalho A
+    proíbe.
+
+    A metade verificável já tem dono: P-19 (crypto-shredding no log
+    append-only) e P-07 (revogação existe, retenção pós-revogação
+    declarada)."""
+    from pse import matriz
+    assert ("data", "revogacao_downstream") in matriz.FORA_DE_ESCOPO_ESTATICO
+    leitura = matriz.FORA_DE_ESCOPO_ESTATICO[("data", "revogacao_downstream")]
+    assert "P-19" in leitura and "P-07" in leitura, (
+        "a leitura tem de nomear a metade que JÁ é verificada, senão parece "
+        "que a suíte não olha nada disso")
+    assert len(leitura) > 200
+
+
+def test_os_buracos_assumidos_chegam_aos_documentos_que_o_consumidor_le():
+    """Decisão que ninguém acha não foi tomada. Ela tem de estar nos dois
+    documentos gerados — a matriz e a seção de lacunas de TESTES.md — e o
+    gerador LÊ a tabela, não a recopia: fechado um buraco, ele some dos dois
+    no mesmo commit."""
+    from pse import testes
+    raiz = Path(__file__).resolve().parent.parent
+    doc = (raiz / "docs" / "matriz-dominio.md").read_text(encoding="utf-8")
+    assert "acesso_do_titular" in doc and "revogacao_downstream" in doc
+
+    buracos = {b["vetor"] for b in testes._buracos_assumidos()}
+    assert any("titular" in b for b in buracos), buracos
+    assert any("evoga" in b for b in buracos), buracos
+    lacuna = [i for i in testes.lacunas()
+              if i["titulo"] == "Vetores reais deliberadamente nao implementados"]
+    assert lacuna and lacuna[0]["aberta"]
+
+
+def test_convergencia_registrada_seis_materiais_um_check():
+    """Seis materiais renderem um check é RESULTADO, não falha: a régua
+    generalizou além dos exemplos que a produziram. O registro fica no
+    catálogo (fase 12 tem exatamente um check) e na docstring de S-22."""
+    from pse import catalogo
+    fase12 = [c for c, m in catalogo.CATALOGO.items() if m.get("fase") == 12]
+    assert fase12 == ["S-22"], fase12
+
+
 def test_cada_fundador_tem_mutacao_canonica():
     from pse.mutacao import provar
     for cid in FUNDADORES:

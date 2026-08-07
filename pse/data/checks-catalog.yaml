@@ -1319,3 +1319,35 @@ checks:
             da_origem: true
             corpo: "//# sourceMappingURL=app.js.map"
       espera_severidade: MEDIO
+  # -------------------------------------------------- Fase 12 — o unico check
+  # que sobreviveu a avaliacao de seis materiais de security. Os demais vetores
+  # ja tinham dono (BOLA -> S-01, minimizacao -> P-05, hash -> P-20,
+  # DPA -> S-04, dado de treino -> P-15). Convergencia e resultado, nao falha.
+  S-22:
+    pack: security
+    domain: [api]
+    titulo: Finalidade sem base legal amarrada e sem recusa da combinacao invalida
+    base_legal: LGPD Art. 6o I (finalidade) + Art. 7o (base legal)
+    tipo: estatico+runtime
+    modo: active
+    fase: 12
+    status: implementado
+    # S-07 responde "o sistema sabe PARA QUE o dado foi lido?" (Art. 37).
+    # S-22 responde "aquela finalidade podia rodar sob aquela base?" (Art. 6o).
+    # Um sistema passa o primeiro e falha o segundo — e o caso comum.
+    supports: [S-07]
+    canonical_mutation:
+      descricao: finalidade lida da requisicao sem mapa finalidade -> base legal
+      arquivos:
+        app.py: |
+          from flask import Flask, request
+
+          app = Flask(__name__)
+
+
+          @app.get("/clientes")
+          def listar():
+              finalidade = request.headers.get("X-Purpose")
+              auditoria.registrar(purpose=finalidade)
+              return repositorio.listar()
+      espera_severidade: ALTO

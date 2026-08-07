@@ -192,6 +192,10 @@ SUBSTRATO = {
     "S-19": ([RUNTIME], "cabecalhos da resposta"),
     "S-20": ([RUNTIME], "credencial no bundle servido"),
     "S-21": ([RUNTIME], "sourcemap referenciado no bundle servido"),
+    "S-22": ([PYTHON, BACKEND, DECLARACAO], "o mapa finalidade -> base legal e "
+             "a recusa da combinacao invalida. Vive no codigo de qualquer "
+             "linguagem de servidor, e tambem na declaracao (`purposes:` com "
+             "`base_legal:`) — por isso as tres familias"),
 }
 
 
@@ -454,6 +458,9 @@ EXIGENCIA_DE_PARSER = {
              "(Diesel, SeaORM) — vive em derive, nao em chamada"),
     "P-17": (ESTRUTURA, "rota de busca: o filtro esta no struct de query e "
              "na macro de rota do framework"),
+    "S-22": (ESTRUTURA, "o mapa e um dicionario e a recusa e um `raise` ou "
+             "um status — as duas coisas sao no de arvore, nunca literal "
+             "solto; em Rust seriam `HashMap` e `StatusCode::FORBIDDEN`"),
     "S-12": (ESTRUTURA, "DTO cruzado com o contrato: os nomes de campo que "
              "importam estao em `#[serde(rename)]`"),
     "E-04": (ESTRUTURA, "rota de revisao humana: definicao de rota"),

@@ -23,10 +23,10 @@ nao cobre nada (D-01).
 | **P-04** | `pse/checks/privacy/p04_catalogo.py` | `test_backend_estrato.py`, `test_cobertura.py`, `test_contrato.py`, `test_dominio.py`, `test_trabalho_b.py` | id | MEDIO: campo do catalogo sem dono, base legal e retencao | `sensitive-fields` | declaracao |
 | **P-05** | `pse/checks/privacy/p05_minimizacao.py` | `helpers_alvo.py`, `test_cobertura.py`, `test_trabalho_a.py` | id | ALTO: POST com campo fora da allowlist e aceito | — | runtime |
 | **P-06** | `pse/checks/privacy/p06_chave_segregada.py` | `test_contrato.py`, `test_dinamico_fase2.py`, `test_mordida.py`, `test_mutacao.py`, `test_trabalho_b.py` | id | CRITICO: chave de pseudonimizacao em texto claro na fonte | — | python, qualquer_backend |
-| **P-07** | `pse/checks/privacy/p07_consentimento.py` | `test_dominio.py`, `test_fase3.py` | id | CRITICO: rota protegida por consentimento responde 200 sem consentimento | — | declaracao, runtime |
+| **P-07** | `pse/checks/privacy/p07_consentimento.py` | `test_api_estrato.py`, `test_dominio.py`, `test_fase3.py` | id | CRITICO: rota protegida por consentimento responde 200 sem consentimento | — | declaracao, runtime |
 | **P-08** | `pse/checks/privacy/p08_sensivel_li.py` | `test_contrato.py`, `test_dominio.py`, `test_trabalho_b.py` | id | CRITICO: dado sensivel com base legal legitimo interesse | — | declaracao |
 | **P-09** | `pse/checks/privacy/p09_k_anonimato.py` | `test_dominio.py`, `test_fase3.py` | id | ALTO: agregacao exposta devolve celula com 2 titulares | — | runtime |
-| **P-10** | `pse/checks/privacy/p10_portabilidade.py` | `test_fase3.py` | id | ALTO: exportacao responde sem hash e sem estrutura declarada | — | runtime |
+| **P-10** | `pse/checks/privacy/p10_portabilidade.py` | `test_api_estrato.py`, `test_fase3.py` | id | ALTO: exportacao responde sem hash e sem estrutura declarada | — | runtime |
 | **P-11** | `pse/checks/privacy/p11_oraculo.py` | `helpers_alvo.py`, `test_trabalho_a.py` | id | CRITICO: recurso alheio responde 403 e inexistente responde 404 | — | runtime |
 | **P-13** | `pse/checks/privacy/p13_consentimento_pre_marcado.py` | `test_catalogo.py`, `test_cobertura.py`, `test_cobertura_web.py`, `test_dominio.py`, `test_frontend.py` | id | CRITICO: checkbox de consentimento com checked literal e sem handler | `frontend-terms` | web |
 | **P-14** | `pse/checks/privacy/p14_pii_no_cliente.py` | `test_catalogo.py`, `test_cobertura.py`, `test_cobertura_web.py`, `test_dinamico.py`, `test_dominio.py`, `test_frontend.py`, `test_ratificacao.py` | id | CRITICO: CPF gravado no localStorage e e-mail montado em query string | `frontend-terms`, `pii-patterns` | web |
@@ -34,7 +34,7 @@ nao cobre nada (D-01).
 | **P-16** | `pse/checks/privacy/p16_dataset_sem_governanca.py` | `test_catalogo.py`, `test_ia_estrato.py` | id | ALTO: dataset carregado para treino sem entrada em `datasets` | `adversarial-patterns` | declaracao, python |
 | **P-17** | `pse/checks/privacy/p17_filtro_sensivel_na_busca.py` | `test_api_estrato.py`, `test_catalogo.py` | id | ALTO: rota de busca aceita ?raca= sem allowlist de filtros | `api-contract`, `prohibited-filters`, `sensitive-fields` | declaracao, python, qualquer_backend |
 | **P-18** | `pse/checks/privacy/p18_sensivel_sem_cifra.py` | `test_aceite.py`, `test_backend_estrato.py`, `test_catalogo.py`, `test_cobertura.py`, `test_dominio.py`, `test_ratificacao.py`, `test_regua.py`, `test_rust.py` | id | ALTO: campo sensivel no catalogo sem cifra nem gerencia de chave | `backend-infra`, `sensitive-fields` | declaracao, python, qualquer_backend |
-| **P-19** | `pse/checks/privacy/p19_evento_sem_crypto_shredding.py` | `test_aceite.py`, `test_backend_estrato.py`, `test_catalogo.py`, `test_cobertura.py`, `test_dominio.py`, `test_regua.py`, `test_rust.py` | id | ALTO: CPF publicado em topico append-only sem chave por titular | `backend-infra`, `pii-patterns`, `sensitive-fields` | python, qualquer_backend |
+| **P-19** | `pse/checks/privacy/p19_evento_sem_crypto_shredding.py` | `test_aceite.py`, `test_api_estrato.py`, `test_backend_estrato.py`, `test_catalogo.py`, `test_cobertura.py`, `test_dominio.py`, `test_regua.py`, `test_rust.py` | id | ALTO: CPF publicado em topico append-only sem chave por titular | `backend-infra`, `pii-patterns`, `sensitive-fields` | python, qualquer_backend |
 | **P-20** | `pse/checks/privacy/p20_hash_como_anonimizacao.py` | `test_catalogo.py`, `test_data_estrato.py`, `test_dominio.py`, `test_indice.py` | id | ALTO: sha256 nu de CPF gravado em coluna declarada anonima | `anonimizacao`, `pii-patterns`, `sensitive-fields` | python, qualquer_backend |
 | **P-22** | `pse/checks/privacy/p22_consentimento_observavel.py` | `test_catalogo.py`, `test_dinamico.py` | id | ALTO: tag de analytics dispara no primeiro load, antes de qualquer aceite | `rastreadores` | runtime |
 | **P-23** | `pse/checks/privacy/p23_pii_em_transito.py` | `test_catalogo.py`, `test_dinamico.py` | id | ALTO: link publica CPF na query string da propria pagina | `pii-patterns`, `rastreadores`, `sensitive-fields` | runtime |
@@ -50,7 +50,7 @@ nao cobre nada (D-01).
 | **S-04** | `pse/checks/security/s04_manifesto_terceiros.py` | `test_aceite.py`, `test_backend_estrato.py`, `test_dinamico_fase2.py`, `test_html_no_alcance.py`, `test_ia_terceiros.py`, `test_trabalho_b.py` | id | ALTO: host de terceiro no codigo sem entrada no manifesto | `third-party-endpoints` | declaracao, python, qualquer_backend, web |
 | **S-05** | `pse/checks/security/s05_egresso.py` | `test_fase3.py` | id | ALTO: integracao no manifesto sem egress_fields declarados | `sensitive-fields` | declaracao |
 | **S-06** | `pse/checks/security/s06_chave_global.py` | `test_aceite.py`, `test_cobertura.py`, `test_dominio.py`, `test_mordida.py`, `test_ratificacao.py`, `test_regua.py`, `test_rust.py`, `test_trabalho_b.py` | id | CRITICO: credencial de parceiro hardcoded | — | python, qualquer_backend, web |
-| **S-07** | `pse/checks/security/s07_finalidade.py` | `test_fase3.py` | id | ALTO: requisicao sem X-Purpose e atendida com 200 | — | runtime |
+| **S-07** | `pse/checks/security/s07_finalidade.py` | `test_api_estrato.py`, `test_fase3.py` | id | ALTO: requisicao sem X-Purpose e atendida com 200 | — | runtime |
 | **S-08** | `pse/checks/security/s08_transferencia_internacional.py` | `test_backend_estrato.py` | id | ALTO: destino fora do BR sem base de transferencia declarada | — | declaracao |
 | **S-09** | `pse/checks/security/s09_token_no_cliente.py` | `test_catalogo.py`, `test_cobertura.py`, `test_cobertura_web.py`, `test_dinamico.py`, `test_frontend.py` | id | ALTO: token de sessao guardado no localStorage | `frontend-terms` | web |
 | **S-10** | `pse/checks/security/s10_injecao_de_prompt.py` | `test_catalogo.py`, `test_ia_estrato.py` | import+id | CRITICO: entrada do usuario concatenada no prompt sem tratamento | `adversarial-patterns` | python, qualquer_backend |
@@ -65,6 +65,7 @@ nao cobre nada (D-01).
 | **S-19** | `pse/checks/security/s19_cabecalhos_e_conteudo.py` | `test_catalogo.py`, `test_dinamico_fase2.py` | id | ALTO: documento servido sem CSP nem nosniff | `servido-ao-cliente` | runtime |
 | **S-20** | `pse/checks/security/s20_segredo_servido.py` | `test_catalogo.py`, `test_dinamico_fase2.py` | id | CRITICO: chave de AWS publicada no bundle do proprio alvo | `servido-ao-cliente` | runtime |
 | **S-21** | `pse/checks/security/s21_sourcemap_em_producao.py` | `test_catalogo.py`, `test_dinamico_fase2.py` | id | MEDIO: bundle declara sourceMappingURL na resposta servida | `servido-ao-cliente` | runtime |
+| **S-22** | `pse/checks/security/s22_base_legal_por_finalidade.py` | `test_api_estrato.py`, `test_catalogo.py` | id | ALTO: finalidade lida da requisicao sem mapa finalidade -> base legal | `api-contract`, `legal-basis` | declaracao, python, qualquer_backend |
 
 ## Pacote E — Etica
 
@@ -119,9 +120,9 @@ declarada, aparece aqui; calada, reprova.
 |---|---|
 | `test_aceite.py` | `P-01`, `P-18`, `P-19`, `S-04`, `S-06`, `S-14`, `S-16` |
 | `test_alvo_local.py` | — |
-| `test_api_estrato.py` | `P-17`, `S-12`, `S-13` |
+| `test_api_estrato.py` | `P-07`, `P-10`, `P-17`, `P-19`, `S-07`, `S-12`, `S-13`, `S-22` |
 | `test_backend_estrato.py` | `P-04`, `P-18`, `P-19`, `S-04`, `S-08`, `S-14`, `S-15`, `S-16` |
-| `test_catalogo.py` | `E-00`, `E-04`, `E-05`, `E-07`, `E-08`, `E-11`, `E-12`, `E-13`, `P-13`, `P-14`, `P-15`, `P-16`, `P-17`, `P-18`, `P-19`, `P-20`, `P-22`, `P-23`, `P-24`, `S-09`, `S-10`, `S-11`, `S-12`, `S-13`, `S-14`, `S-15`, `S-16`, `S-17`, `S-18`, `S-19`, `S-20`, `S-21` |
+| `test_catalogo.py` | `E-00`, `E-04`, `E-05`, `E-07`, `E-08`, `E-11`, `E-12`, `E-13`, `P-13`, `P-14`, `P-15`, `P-16`, `P-17`, `P-18`, `P-19`, `P-20`, `P-22`, `P-23`, `P-24`, `S-09`, `S-10`, `S-11`, `S-12`, `S-13`, `S-14`, `S-15`, `S-16`, `S-17`, `S-18`, `S-19`, `S-20`, `S-21`, `S-22` |
 | `test_cobertura.py` | `P-04`, `P-05`, `P-13`, `P-14`, `P-18`, `P-19`, `S-06`, `S-09`, `S-16` |
 | `test_cobertura_web.py` | `P-13`, `P-14`, `S-09` |
 | `test_contrato.py` | `E-04`, `P-01`, `P-02`, `P-04`, `P-06`, `P-08` |
@@ -153,6 +154,6 @@ declarada, aparece aqui; calada, reprova.
 > Tudo acima desta marca e comparado byte a byte pela trava de CI.
 > O que vier abaixo dela e volatil de proposito e nao reprova merge.
 
-- pacote: `pse-suite 0.18.0`
+- pacote: `pse-suite 0.19.0`
 - regenerar: `python -m pse.testes > docs/TESTES.md`
 - regenerar indice: `python -m pse.testes --indice > docs/INDICE-DE-TESTES.md`

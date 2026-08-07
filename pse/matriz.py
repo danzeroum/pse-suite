@@ -64,6 +64,36 @@ FORA_DE_ESCOPO_ESTATICO = {
         "que declare finalidade e expiracao por zona — ai ha declaracao a "
         "confrontar com fato, que e como todos os outros funcionam. Buraco "
         "honesto e melhor que check que nao verifica nada real.",
+    ("api", "acesso_do_titular"):
+        "**Endpoint de acesso do titular (Art. 18 II). Investigado, NAO "
+        "implementado.** O check possivel verificaria que a rota de exportacao "
+        "existe — e isso JA e P-10, que roda no ar e confirma que ela responde "
+        "e devolve conteudo integro. O que faria dele um check novo seria "
+        "verificar que a resposta traz OS DADOS DAQUELE titular, TODOS eles, "
+        "DENTRO DO PRAZO. Nenhuma das tres e verificavel: a primeira exige "
+        "conhecer o conjunto correto, que so o alvo sabe; a segunda exige "
+        "impersonar titular real, que o contrato do Trabalho A proibe "
+        "(identidade sintetica e obrigatoria); a terceira e propriedade do "
+        "processo, nao do sistema. Um check de 'existe rota' duplicaria P-10 "
+        "com nome novo, e o laudo exibiria dois verdes pela mesma evidencia — "
+        "inflacao de cobertura. **O que o faria nascer:** o catalogo ligando "
+        "campo declarado a resposta de exportacao, que tornaria 'todos eles' "
+        "um fato confrontavel.",
+    ("data", "revogacao_downstream"):
+        "**Efeito downstream de revogacao (Art. 18 IX). Investigado, NAO "
+        "implementado.** O vetor e real e grave: o titular revoga, o sistema "
+        "principal para, e o dado segue sendo processado no data lake, na "
+        "fila de eventos e no parceiro que recebeu copia semana passada. E "
+        "tambem, por construcao, NAO OBSERVAVEL a partir do alvo — a prova "
+        "exigiria enumerar os sistemas a jusante (nao estao no repositorio), "
+        "acessa-los (nao sao o alvo declarado, e sondar terceiro sem "
+        "autorizacao e o que o contrato do Trabalho A proibe) e correlacionar "
+        "revogacao com ausencia de processamento numa janela indeterminada. A "
+        "metade verificavel JA tem dono: P-19 exige crypto-shredding no log "
+        "append-only e P-07 exige que a revogacao exista com retencao "
+        "pos-revogacao declarada. Sobre o efeito distribuido a suite nao "
+        "afirma nada. **O que o faria nascer:** manifesto de sistemas a "
+        "jusante por finalidade, declarado pelo alvo.",
 }
 
 LEITURA_DA_DENSIDADE = {

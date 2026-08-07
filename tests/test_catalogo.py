@@ -29,7 +29,8 @@ def test_catalogo_cobre_os_29_do_plano():
     assert {"S-14", "S-15", "P-18", "P-19", "S-16", "P-20"} <= set(catalogo.CATALOGO)
     assert {"P-22", "S-17", "P-23"} <= set(catalogo.CATALOGO)
     assert {"S-18", "S-19", "S-20", "P-24", "S-21"} <= set(catalogo.CATALOGO)
-    assert len(catalogo.CATALOGO) == len(PLANO) + 28
+    assert {"S-22"} <= set(catalogo.CATALOGO)
+    assert len(catalogo.CATALOGO) == len(PLANO) + 29
 
 
 def test_registro_e_catalogo_nao_derivam():
@@ -82,8 +83,8 @@ def test_laudo_carrega_cobertura(tmp_path):
           "--config", str(FIX / "consumidor_bom" / "pse-config.yaml"),
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
-    assert laudo["cobertura"]["catalogo_total"] == 57
-    assert laudo["cobertura"]["implementados_nos_packs"] == 57
+    assert laudo["cobertura"]["catalogo_total"] == 58
+    assert laudo["cobertura"]["implementados_nos_packs"] == 58
     # O campo continua no laudo mesmo vazio: some-lo quando nao ha previstos
     # faria o consumidor perder a diferenca entre "nenhum pendente" e
     # "esta versao nem sabe responder isso".

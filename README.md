@@ -55,7 +55,7 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
 | **privacy** | P-13 P-14 **P-22 P-23 P-24** | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
-| **security** | S-09 **S-17 S-18 S-19 S-20 S-21** | S-01 S-02 S-03 S-07 S-12 S-13 | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
+| **security** | S-09 **S-17 S-18 S-19 S-20 S-21** | S-01 S-02 S-03 S-07 S-12 S-13 **S-22** | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -63,6 +63,11 @@ que é univalorada. Um check pertence a *um* pilar e pode pertencer a *vários*
 domínios (S-07 é api+backend), então o domínio vive em `domain`, que é lista,
 e nunca no prefixo. Mapa completo e os buracos em
 [`docs/matriz-dominio.md`](docs/matriz-dominio.md), gerado do catálogo.
+
+Os vetores investigados e **deliberadamente não implementados** — porque o
+check possível verificaria a fachada, não o direito — ficam assinados em
+[`docs/BURACOS-ASSUMIDOS.md`](docs/BURACOS-ASSUMIDOS.md). Buraco honesto é
+melhor que check que não verifica nada real.
 
 O inventário completo — o que cada check faz, quais testes o cobrem e o que
 **não** está testado — vive em [`docs/TESTES.md`](docs/TESTES.md) e
@@ -343,7 +348,7 @@ O mapa cruza **dois eixos independentes**: alcance do substrato (*a suite leu
 o código onde o vetor vive*) × estado no laudo (*o check chegou a decidir*).
 Juntá-los seria o mesmo erro numa escala menor — S-18 tem substrato íntegro e
 foi **pulado** por não haver manifesto para comparar. Cruzando os dois:
-**13 dos 57 checks foram auditados de verdade** no btv. Os outros 44 leram
+**16 dos 58 checks foram auditados de verdade** no btv. Os outros 42 leram
 metade, foram pulados com motivo, ficaram indeterminados ou nem habilitados —
 respostas legítimas, nenhuma delas conformidade.
 

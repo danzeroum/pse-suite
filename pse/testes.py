@@ -371,14 +371,14 @@ def cobertura_de_checks(fichas=None) -> dict:
     Os dois defeitos:
 
       * ORFAO — check no catalogo que nenhum teste exercita. A doc listaria
-        57 checks e 559 testes sem nunca provar que os segundos cobrem os
+        os checks e os testes sem nunca provar que os segundos cobrem os
         primeiros; e isso que faz do indice uma prova e nao uma lista.
       * FANTASMA — teste citando ID que nao existe no catalogo. Ou o check
         foi renomeado e o teste ficou para tras, ou o teste cita um ID
         deliberadamente inexistente e nao declarou isso.
 
     A prova de mutacao NAO conta como cobertura, e a exclusao e deliberada:
-    ela parametriza sobre `catalogo.implementados()` e alcanca os 57 por
+    ela parametriza sobre `catalogo.implementados()` e alcanca TODOS por
     construcao. Se contasse, nenhum check jamais seria orfao e a trava nao
     provaria nada. Ela prova que o inverso canonico fica vermelho; nao prova
     que o caso conforme fica quieto, nem que o skip nomeia o motivo.
@@ -515,6 +515,31 @@ def _pendencias_ratificadas() -> list:
     return saida
 
 
+def _buracos_assumidos() -> list:
+    """Os vetores investigados e deliberadamente nao implementados.
+
+    Lidos de `docs/BURACOS-ASSUMIDOS.md`, nao recopiados: fechado um buraco,
+    ele some deste documento no mesmo commit em que sai daquela tabela. Uma
+    lista de lacunas que precisa ser lembrada e uma lista que envelhece.
+    """
+    arquivo = DIR_DOCS / "BURACOS-ASSUMIDOS.md"
+    if not arquivo.is_file():
+        return []
+    dentro, saida = False, []
+    for linha in arquivo.read_text(encoding="utf-8").splitlines():
+        if linha.startswith("## "):
+            dentro = linha.strip().lower().endswith("os buracos")
+            continue
+        if not dentro or not linha.startswith("|"):
+            continue
+        celulas = [c.strip() for c in linha.strip("|").split("|")]
+        if len(celulas) < 4 or not celulas[0].isdigit():
+            continue
+        saida.append({"vetor": celulas[1], "motivo": celulas[2],
+                      "nasceu_em": celulas[3]})
+    return saida
+
+
 def lacunas() -> list:
     """O estado real do que a suite NAO cobre. Cada item sai de uma sonda."""
     cs = checks()
@@ -570,6 +595,19 @@ def lacunas() -> list:
                   "real — mas so quando o buraco esta escrito."),
         },
         {
+            "titulo": "Vetores reais deliberadamente nao implementados",
+            "aberta": bool(_buracos_assumidos()),
+            "detalhe": (
+                "Investigados e assinados em `docs/BURACOS-ASSUMIDOS.md` "
+                "porque o check possivel verificaria a fachada, nao o "
+                "direito: "
+                + "; ".join(f"{b['vetor']} — {b['motivo']} (desde "
+                            f"{b['nasceu_em']})"
+                            for b in _buracos_assumidos())
+                if _buracos_assumidos() else
+                "Nenhum — todo vetor investigado virou check."),
+        },
+        {
             "titulo": "Pendencias de ratificacao ainda abertas",
             "aberta": bool(_pendencias_ratificadas()),
             "detalhe": "; ".join(
@@ -609,13 +647,13 @@ def lacunas() -> list:
                 ", ".join("`%s`" % c for c in sem_docstring)
                 + " — a descricao destes cai para o titulo do catalogo."
                 if sem_docstring else
-                "Nenhum — a descricao de todos os 57 sai do proprio modulo."),
+                "Nenhum — a descricao de todos eles sai do proprio modulo."),
         },
         {
             "titulo": "Checks previstos no catalogo e ausentes nesta versao",
             "aberta": bool(previstos),
             "detalhe": (", ".join("`%s`" % c for c in previstos) if previstos
-                        else "Nenhum — os 57 catalogados estao implementados."),
+                        else f"Nenhum — os {len(cs)} catalogados estao implementados."),
         },
     ]
     return itens

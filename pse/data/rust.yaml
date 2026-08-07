@@ -207,3 +207,8 @@ sondas:
   S-12: [serde, Serialize, Deserialize, utoipa, ToSchema, openapi, schemars]
   S-13: [Error, anyhow, thiserror, backtrace, panic, unwrap, expect,
          IntoResponse, ResponseError]
+  # S-22: a finalidade chegando ao servidor Rust. Sao os nomes do cabecalho e
+  # das chaves de finalidade, mais os extratores dos frameworks — sem nenhum
+  # deles no alvo, o vetor de S-22 comprovadamente nao existe ali.
+  S-22: [x-purpose, x_purpose, purpose, finalidade, proposito,
+         legal_basis, base_legal, HeaderMap, headers, TypedHeader]

@@ -342,6 +342,46 @@ def test_regua_da_anonimizacao_e_vigiada(regua):
             f"{sorted(faltando)} — remover daqui faz P-20 punir o caso correto")
 
 
+def test_regua_da_base_legal_e_vigiada(regua):
+    """S-22 deriva de `legal-basis`. Remover uma base do Art. 7o faz o check
+    parar de reconhecer o mapa de quem acertou, e o alvo correto passa a
+    receber achado — o D-13 com a consequência invertida."""
+    lb = regua["legal-basis"]
+    bases = {str(b).lower() for b in lb["bases"]}
+    piso = {"consentimento", "consent", "obrigacao_legal", "legal_obligation",
+            "contrato", "contract", "legitimo_interesse", "legitimate_interest",
+            "tutela_da_saude", "protecao_da_vida", "exercicio_de_direitos",
+            "protecao_do_credito", "politica_publica", "pesquisa"}
+    faltando = piso - bases
+    assert not faltando, (
+        f"base(s) removida(s) de legal-basis.yaml: {sorted(faltando)} — sem "
+        f"elas S-22 deixa de reconhecer o mapa correto e passa a acusar quem "
+        f"amarrou a finalidade direito")
+    for grupo in ("cabecalhos", "chaves", "extratores_de_cabecalho"):
+        assert lb["superficie"][grupo], f"superficie[{grupo}] vazia"
+    for grupo in ("chamadas", "excecoes", "status"):
+        assert lb["rejeicao"][grupo], f"rejeicao[{grupo}] vazia"
+    assert {"purposes", "finalidades"} <= {c.lower() for c in
+                                           lb["declaracao"]["containers"]}
+
+
+def test_finalidade_disfarcada_nunca_entra_como_base_legal(regua):
+    """O piso invertido, e o mais importante desta régua. `analytics` e
+    `melhoria_do_produto` são FINALIDADES; tratá-las como base legal é o
+    defeito que S-22 existe para achar. Se alguém as acrescentasse à lista, o
+    check passaria a abençoar exatamente o que deveria reprovar — e o teste
+    ficaria verde, porque o achado sumiria."""
+    bases = {str(b).lower() for b in regua["legal-basis"]["bases"]}
+    proibidas = {"analytics", "melhoria_do_produto", "interesse_do_negocio",
+                 "business_interest", "product_improvement", "marketing",
+                 "personalizacao", "experiencia_do_usuario"}
+    intrusas = proibidas & bases
+    assert not intrusas, (
+        f"finalidade(s) tratada(s) como base legal em legal-basis.yaml: "
+        f"{sorted(intrusas)}. Nenhuma delas está no Art. 7o nem no Art. 11 — "
+        f"acrescentá-las inverte o sentido de S-22.")
+
+
 def test_p20_nao_reimplementa_a_regua_de_pii(regua):
     """O identificador de P-20 vem de `pii-patterns`, sem o grupo
     `credenciais` — hashear senha é o que se deve fazer, e incluí-la faria o
