@@ -5,7 +5,7 @@
 > classificacao de cada caso e leitura do contexto.
 >
 > **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.14.0 →
-> 0.14.1 · **data:** 2026-08-07
+> 0.14.2 · **data:** 2026-08-07 · **duas rodadas de triagem**
 >
 > **A PSE aponta; o dono valida.** Este documento nao decide nada sobre o
 > btv. Ele separa o que a suite afirma do que ela nao consegue afirmar, e
@@ -41,7 +41,7 @@ de PII caiu no span. Sorte nao e controle.
 | Classificacao | Quantidade |
 |---|---|
 | **VIOLACAO PROVAVEL** | **0** |
-| **FALSO-POSITIVO PROVAVEL** | **0** achados · **4 padroes latentes corrigidos** |
+| **FALSO-POSITIVO PROVAVEL** | **0** achados · **7 padroes latentes corrigidos** |
 | **INCERTO — precisa do dono** | **4** (2 checks pulados + 2 sondas hipoteticas) |
 
 Zero incerto seria suspeito num grep fragil. Nao ha zero incerto: ha quatro,
@@ -191,6 +191,143 @@ achados na fixture ruim:   1  ->    1  ->   1   (inalterado)
 O refino cortou 39% dos candidatos **sem trocar falso-positivo por
 falso-negativo** — ha teste-mordida provando que o produtor legitimo
 (`ledger.append`) continua mordendo.
+
+---
+
+## 2b. SEGUNDA RODADA — os candidatos de `P-18`
+
+A primeira rodada olhou os candidatos de `P-19`. A segunda olhou os de
+`P-18`, e achou o falso-positivo **mais numeroso** do alcance inteiro.
+
+### (e) LEITURA contada como persistencia — 10 dos 17 sites
+
+**Evidencia** — `crates/btv-store/src/btv.rs:556`:
+
+```rust
+self.conn.query_row(
+    "SELECT created_ts, email, nome FROM users WHERE id = ?1",
+    params![id],
+    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+)
+```
+
+P-18 pergunta se um campo sensivel e **GRAVADO** sem cifra. Um `SELECT` nao
+grava nada. Acusar este site produziria um achado que o time nao consegue
+corrigir — nao ha escrita ali para consertar.
+
+**Correcao:** `query_row`, `query_map`, `query_as`, `query_scalar`,
+`fetch_*`, `recall` e afins deixam de contar como escrita.
+
+### (f) …mas o NOME nao pode decidir sozinho — e o btv provou
+
+**Evidencia** — `crates/btv-store/src/pg.rs:715`:
+
+```rust
+let id: i64 = sqlx::query_scalar(
+    "INSERT INTO users (tenant_id, nome, email, papel, ativo, created_ts, pin_hash)
+     VALUES ($1, $2, $3, $4, true, $5, $6) RETURNING id",
+)
+```
+
+Nome de **leitura**, SQL de **escrita**. Uma lista de nomes proibidos,
+sozinha, teria produzido **falso-negativo no site que mais importa** —
+trocando um defeito por outro pior.
+
+**Correcao:** o verbo do SQL vence o nome da chamada; o nome so decide
+quando nao ha SQL no span. Ha teste-guarda na regua contra esvaziar
+`verbos_sql_de_escrita`.
+
+### (g) `PASSWORD` como palavra-chave do SQL, nao como coluna
+
+**Evidencia** — `crates/btv-store/src/pg.rs:1276`:
+
+```rust
+sqlx::query(
+    "DO $$ BEGIN
+         CREATE ROLE btv_app_teste LOGIN PASSWORD '<mascarado>'
+             NOSUPERUSER NOBYPASSRLS;
+     EXCEPTION WHEN duplicate_object THEN NULL; END $$",
+)
+```
+
+`password` casou como campo sensivel estando ali como **palavra-chave do
+SQL**. Administrar role de banco e assunto de S-15; um achado de P-18 aqui
+mandaria o time cifrar uma keyword.
+
+**Correcao:** DDL de role/user (`CREATE ROLE`, `ALTER USER`, `GRANT`, …)
+sai do escopo de P-18.
+
+### O embrulho de cifra opaco — INDETERMINADO, nao achado nem verde
+
+A triagem nomeou *"cifra em outra linha"*. As duas formas realistas ja eram
+suprimidas pela varredura de cifra do repositorio inteiro (ha teste). Sobrou
+uma terceira, que **nao e decidivel**:
+
+```rust
+let blob = to_ciphertext(&t.cpf);            // embrulho da casa, fora da regua
+sqlx::query("INSERT INTO t (cpf) VALUES ($1)").bind(&blob).execute(p);
+```
+
+A coluna esta no literal e o valor vem de um identificador que a regua nao
+reconhece como cifra. **A regua nao e editavel pelo consumidor** — entao
+inventar achado puniria quem cifrou, e inventar verde absolveria quem nao
+cifrou. Terceira saida, a mesma de `env!` em S-06: **CheckIndeterminado com
+motivo**, dizendo o que torna o site decidivel.
+
+Quando o campo aparece FORA do literal (`.bind(&t.cpf)`), o valor cru esta
+ali e nao ha ambiguidade — vira achado. Ha teste-mordida dos dois lados.
+
+### Efeito medido da segunda rodada
+
+```
+sonda P-18 no btv (sem o portao do catalogo):
+  candidatos     17
+  ELIMINADOS     11   10 leituras + 1 DDL de role
+  SOBREVIVEM      6   escritas de verdade
+```
+
+Os seis sobreviventes, todos gravando `email`:
+
+| Arquivo | Linha | Chamada |
+|---|---|---|
+| `crates/btv-store/src/btv.rs` | 64 | `conn.execute_batch` |
+| `crates/btv-store/src/btv.rs` | 521 | `self.conn.execute` |
+| `crates/btv-store/src/btv.rs` | 1142 | `self.conn.execute` |
+| `crates/btv-store/src/pg.rs` | 715 | `sqlx::query_scalar` (INSERT) |
+| `crates/btv-store/src/pg.rs` | 721 | `bind` |
+| `crates/btv-store/tests/migracao_pre_tenant.rs` | 75 | `conn.execute_batch` |
+
+**Estes seis NAO sao achados.** P-18 esta pulado no btv, e continua pulado —
+sem catalogo nao ha promessa a confrontar. Eles sao a resposta a pergunta
+*"o que P-18 olharia se o btv declarasse catalogo"*, e ficam como **INCERTO
+(i)**, nao como violacao.
+
+---
+
+## 2c. O laudo do btv, estabilizado
+
+Reprocessado apos as duas rodadas de refino:
+
+| | v0.14.0 (antes) | v0.14.2 (depois) |
+|---|---|---|
+| exit code | 20 | 20 |
+| checks executados | 29 | 29 |
+| achados totais | 6 | 6 |
+| **achados `.rs`** | **0** | **0** |
+
+**O laudo nao mudou uma virgula.** Os refinos cortaram CANDIDATOS, nao
+achados — porque o btv nao tinha nenhum. O ganho e para o proximo alvo Rust,
+nao para este:
+
+```
+candidatos P-19:  161 -> 98   (-39%)
+candidatos P-18:   17 ->  6   (-65%)
+achados no btv:     0 ->  0   (inalterado)
+achados na fixture ruim: os 4 continuam disparando
+```
+
+Essa ultima linha e a trava contra o modo de falhar obvio de um refino:
+cortar demais e trocar falso-positivo por falso-negativo.
 
 ---
 

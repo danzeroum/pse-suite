@@ -551,6 +551,17 @@ def test_regua_de_rust_e_vigiada(regua):
         "produtores": {"send", "publish", "produce"},
         "persistencia": {"PgPool", "connect", "Region"},
         "placeholders": {"changeme", "example", "placeholder"},
+        # Aprendidos na triagem contra o btv real. Cada um destes grupos
+        # existe porque um caso CORRETO estava sendo acusado — remover um
+        # termo daqui traz o falso-positivo de volta, e falso-positivo num
+        # alvo real ensina o time a ignorar o pack inteiro.
+        "receptores_que_nao_sao_barramento": {"tx", "sender", "builder",
+                                              "responder", "stream"},
+        "leituras_de_persistencia": {"query_row", "query_map", "query_as",
+                                     "fetch_one", "select"},
+        "verbos_sql_de_escrita": {"insert", "update"},
+        "verbos_sql_de_leitura": {"select"},
+        "ddl_de_credencial_de_banco": {"create role", "create user"},
     }
     for grupo, esperado in piso.items():
         presentes = {str(t).lower() for t in rust[grupo]}
@@ -563,6 +574,19 @@ def test_regua_de_rust_e_vigiada(regua):
     assert rust["formatos_de_credencial"], (
         "sem formato conhecido, nenhum achado em Rust chega a CRÍTICO e o "
         "vetor mais universal da suite vira sempre ALTO")
+    # A ORDEM entre escrita e leitura e o que impede o refino de virar
+    # falso-negativo: `query_scalar("INSERT ...")` tem nome de leitura e faz
+    # escrita, e o btv tem exatamente esse site. Se `verbos_sql_de_escrita`
+    # esvaziar, o nome passa a decidir sozinho e aquele INSERT some do laudo.
+    assert rust["verbos_sql_de_escrita"], (
+        "sem verbo de escrita a régua decide por NOME de chamada, e "
+        "`query_scalar(\"INSERT ...\")` — que existe no btv — vira "
+        "falso-negativo silencioso")
+    assert not (set(map(str.lower, rust["verbos_sql_de_escrita"]))
+                & set(map(str.lower, rust["verbos_sql_de_leitura"]))), (
+        "verbo em escrita E leitura ao mesmo tempo: a decisão fica dependendo "
+        "da ordem do código, não da régua")
+
     teto = rust["tamanho_minimo_de_credencial"]
     assert isinstance(teto, int) and 12 <= teto <= 64, (
         f"mínimo de credencial implausível: {teto}. Abaixo de 12 o alcance "

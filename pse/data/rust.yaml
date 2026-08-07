@@ -137,6 +137,37 @@ persistencia: [PgPool, PgPoolOptions, MySqlPool, SqlitePool, AnyPool,
                Bucket::new, S3Client, StorageClient, MongoClient,
                ClientOptions, redis::Client, Pool::builder]
 
+# ------------------------------------------------- P-18: escrita vs leitura
+# A TRIAGEM DO btv ACHOU ISTO, e e o falso-positivo mais numeroso do alcance.
+#
+# P-18 pergunta se um campo sensivel e PERSISTIDO sem cifra. Um `SELECT` nao
+# persiste nada — e dos 17 sites que a sonda levantou no btv, DEZ eram
+# leitura: `query_row("SELECT created_ts, email, nome FROM users ...")`,
+# `query_map`, `query_as`. Acusar um SELECT de gravar em claro e um achado
+# que o time nao consegue corrigir, porque nao ha escrita ali.
+#
+# A ORDEM IMPORTA, e o btv provou por que: `sqlx::query_scalar("INSERT INTO
+# users (..., email, ...)")` tem NOME de leitura e faz ESCRITA. Uma lista de
+# nomes proibidos, sozinha, produziria falso-NEGATIVO exatamente no site que
+# mais importa. Entao o verbo do SQL vence o nome da chamada, e o nome so
+# decide quando nao ha SQL no span.
+leituras_de_persistencia: [query_row, query_map, query_as, query_scalar,
+                           fetch_one, fetch_all, fetch_optional, fetch,
+                           select, find, load, get, read, recall, list,
+                           count, exists, scan_iter]
+verbos_sql_de_escrita: [insert, update, upsert, merge, copy, replace,
+                        "create table", "alter table"]
+verbos_sql_de_leitura: [select]
+# DDL de credencial de BANCO — nao e dado de titular.
+#
+# `sqlx::query("... CREATE ROLE btv_app_teste LOGIN PASSWORD '...'")` casava
+# `password` como campo sensivel: a palavra estava ali como PALAVRA-CHAVE DO
+# SQL, nao como coluna. Administrar role de banco e assunto de S-15, nao de
+# P-18 — e um achado aqui mandaria o time cifrar uma keyword.
+ddl_de_credencial_de_banco: ["create role", "create user", "alter role",
+                             "alter user", "drop role", "drop user",
+                             "grant ", "revoke "]
+
 # ---------------------------------------------------------------- sondas
 # SONDA DE SUBSTRATO — o que faz `nao_aplicavel` ser MEDIDO, e nao alegado.
 #

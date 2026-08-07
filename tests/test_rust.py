@@ -516,3 +516,119 @@ def test_o_relatorio_de_triagem_nao_replica_segredo():
         assert not _re.search(padrao, doc), (
             f"o relatorio de triagem carrega algo com forma de credencial "
             f"({padrao}) em claro")
+
+
+# ===================================================================
+# SEGUNDA RODADA DE TRIAGEM — leitura, DDL de role, e o embrulho opaco.
+#
+# A primeira rodada olhou os CANDIDATOS de P-19. Esta olhou os de P-18, e
+# achou o falso-positivo mais numeroso do alcance: dez dos dezessete sites
+# do btv eram LEITURA. `SELECT` nao persiste nada.
+# ===================================================================
+
+def test_leitura_nao_e_persistencia():
+    """P-18 pergunta se o campo sensivel e GRAVADO sem cifra. Acusar um
+    `SELECT` e um achado que o time nao consegue corrigir — nao ha escrita
+    ali para consertar."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "catalog.yaml": CATALOGO_CIFRADO,
+        "src/a.rs": 'fn g(c: &Conn) {\n'
+                    '    c.query_row("SELECT cpf FROM t WHERE id = ?1", '
+                    'params![1], |r| r.get(0));\n'
+                    '    c.query_map("SELECT cpf FROM t", params![], |r| '
+                    'r.get(0));\n}\n'})
+    assert not acha(res, "P-18")
+    assert "P-18" not in {c["id"] for c in res["checks_indeterminados"]}
+
+
+def test_o_sql_vence_o_nome_da_chamada():
+    """A trava contra trocar falso-positivo por falso-negativo, e o btv
+    provou que ela e necessaria: `sqlx::query_scalar("INSERT INTO users
+    (..., email, ...)")` tem NOME de leitura e faz ESCRITA. Uma lista de
+    nomes proibidos, sozinha, produziria falso-negativo no site que mais
+    importa."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "catalog.yaml": CATALOGO_CIFRADO,
+        "src/a.rs": 'fn g(p: &PgPool, cpf: &str) {\n'
+                    '    sqlx::query_scalar("INSERT INTO t (cpf) VALUES ($1)")\n'
+                    '        .bind(cpf).fetch_one(p);\n}\n'})
+    assert acha(res, "P-18"), (
+        "nome de leitura com SQL de escrita tem de continuar mordendo")
+
+
+def test_ddl_de_role_nao_e_dado_de_titular():
+    """`CREATE ROLE ... PASSWORD '...'` casava `password` como campo
+    sensivel: a palavra esta ali como PALAVRA-CHAVE DO SQL, nao como
+    coluna. Administrar role de banco e assunto de S-15 — um achado aqui
+    mandaria o time cifrar uma keyword."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "catalog.yaml": "tables:\n  t:\n    fields:\n      password:\n"
+                        "        class: sensitive\n"
+                        "        encryption:\n          algorithm: aes\n"
+                        "          key_management: aws-kms\n",
+        "src/a.rs": 'async fn g(p: &PgPool) {\n'
+                    '    sqlx::query("CREATE ROLE app LOGIN PASSWORD '
+                    "'x'\").execute(p).await;\n}\n"})
+    assert not acha(res, "P-18")
+
+
+def test_embrulho_de_cifra_desconhecido_vira_indeterminado():
+    """A terceira saida, e a mesma de `env!` em S-06.
+
+    `query("INSERT INTO t (cpf) ...").bind(&blob)` — a coluna esta no
+    literal e o valor vem de um identificador que a regua nao reconhece como
+    cifra. Pode ser um embrulho da casa ou o campo cru renomeado. A regua
+    NAO e editavel pelo consumidor, entao inventar achado puniria quem
+    cifrou e inventar verde absolveria quem nao cifrou.
+    """
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "catalog.yaml": CATALOGO_CIFRADO,
+        "src/a.rs": 'fn to_ciphertext(v: &str) -> Vec<u8> { v.as_bytes().to_vec() }\n'
+                    'fn g(p: &PgPool, t: &Titular) {\n'
+                    '    let blob = to_ciphertext(&t.cpf);\n'
+                    '    sqlx::query("INSERT INTO t (cpf) VALUES ($1)")'
+                    '.bind(&blob).execute(p);\n}\n'})
+    assert not acha(res, "P-18")
+    ind = {c["id"]: c["motivo"] for c in res["checks_indeterminados"]}
+    assert "P-18" in ind
+    assert "cifra" in ind["P-18"] and "decidir" in ind["P-18"]
+
+
+def test_campo_cru_ligado_direto_nao_e_ambiguo():
+    """A mordida do teste acima: quando o campo aparece FORA do literal
+    (`.bind(&t.cpf)`), o valor cru esta ali e nao ha ambiguidade nenhuma.
+    Se tudo virasse indeterminado, o check pararia de morder."""
+    import tempfile
+    res = escrever(Path(tempfile.mkdtemp()), {
+        "catalog.yaml": CATALOGO_CIFRADO,
+        "src/a.rs": 'fn g(p: &PgPool, t: &Titular) {\n'
+                    '    sqlx::query("INSERT INTO t (cpf) VALUES ($1)")'
+                    '.bind(&t.cpf).execute(p);\n}\n'})
+    assert acha(res, "P-18")
+    assert "P-18" not in {c["id"] for c in res["checks_indeterminados"]}
+
+
+def test_cifra_em_outra_linha_e_em_outra_funcao_suprime():
+    """A forma que a triagem nomeou. As duas variantes realistas — cifra na
+    linha anterior com o mesmo nome, e cifra numa funcao a parte — ja eram
+    suprimidas pela varredura de cifra do repositorio inteiro. Fica o teste
+    para que continuem sendo."""
+    import tempfile
+    for corpo in (
+            'fn g(p: &PgPool, t: &Titular) {\n'
+            '    let cpf = aes_gcm::encrypt(&chave(), &t.cpf);\n'
+            '    sqlx::query("INSERT INTO t (cpf) VALUES ($1)").bind(&cpf)'
+            '.execute(p);\n}\n',
+            'fn cifrar(v: &str) -> Vec<u8> { aes_gcm::encrypt(&chave(), v.as_bytes()) }\n'
+            'fn g(p: &PgPool, t: &Titular) {\n'
+            '    let blob = cifrar(&t.cpf);\n'
+            '    sqlx::query("INSERT INTO t (cpf) VALUES ($1)").bind(&blob)'
+            '.execute(p);\n}\n'):
+        res = escrever(Path(tempfile.mkdtemp()), {
+            "catalog.yaml": CATALOGO_CIFRADO, "src/a.rs": corpo})
+        assert not acha(res, "P-18"), corpo
+        assert "P-18" not in {c["id"] for c in res["checks_indeterminados"]}
