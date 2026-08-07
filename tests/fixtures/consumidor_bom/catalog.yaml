@@ -20,3 +20,6 @@ tables:
         purpose: relatorio_de_diversidade
         legal_basis: consentimento   # sensivel NUNCA com legitimo interesse (P-08)
         retention_years: 2
+        encryption:                  # P-18: sensivel cifrado na APLICACAO...
+          algorithm: AES-256-GCM
+          key_management: aws-kms    # ...com a chave fora dela (P-06)

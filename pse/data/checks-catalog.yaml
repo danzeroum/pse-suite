@@ -968,3 +968,111 @@ checks:
           def falha(e):
               return jsonify({"trace": traceback.format_exc()}), 500
       espera_severidade: ALTO
+
+  # ================================================================ fase 8
+  # Pacote fundador do estrato de backend. Mesmo diagnostico que a matriz
+  # fez sobre `api`: 11 checks, todos herdados do inventario. O que e
+  # proprio do backend nao e "codigo de servidor" — e a INFRA que so existe
+  # deste lado: o dump que viaja entre ambientes, a role do banco, a coluna
+  # cifrada, o topico imutavel e a regiao onde o byte pousa.
+  S-14:
+    pack: security
+    domain: [backend]
+    titulo: Dump de producao restaurado em ambiente inferior sem descaracterizar
+    base_legal: LGPD Art. 46 (seguranca) + Art. 6o VIII (prevencao)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-06, S-15]
+    canonical_mutation:
+      descricao: dump de producao restaurado em staging sem pseudonimizacao
+      arquivos:
+        refresh.sh: |
+          pg_dump "$PROD_DATABASE_URL" > dump_prod.sql
+          psql "$STAGING_DATABASE_URL" < dump_prod.sql
+      espera_severidade: ALTO
+  S-15:
+    pack: security
+    domain: [backend, data]
+    titulo: Role de banco com privilegio excessivo
+    base_legal: LGPD Art. 46 + Art. 6o III (minimizacao)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-04, S-14]
+    canonical_mutation:
+      descricao: GRANT SELECT ON ALL TABLES em vez de concessao por coluna
+      arquivos:
+        migracao.sql: |
+          GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_readonly;
+      espera_severidade: ALTO
+  P-18:
+    pack: privacy
+    domain: [backend, data]
+    titulo: Campo sensivel persistido sem cifra de aplicacao com chave gerenciada
+    base_legal: LGPD Art. 46 + Art. 11 (dado sensivel)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-06, P-04, S-15]
+    canonical_mutation:
+      descricao: campo sensivel no catalogo sem cifra nem gerencia de chave
+      arquivos:
+        catalog.yaml: |
+          tables:
+            users:
+              fields:
+                biometria:
+                  class: sensitive
+                  owner: seguranca
+                  purpose: autenticacao
+                  legal_basis: consentimento
+                  retention_years: 1
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  P-19:
+    pack: privacy
+    domain: [backend, data]
+    titulo: Log de eventos com PII sem crypto-shredding
+    base_legal: LGPD Art. 18 VI (eliminacao) + Art. 16
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [P-03, E-08]
+    canonical_mutation:
+      descricao: CPF publicado em topico append-only sem chave por titular
+      arquivos:
+        eventos.py: |
+          from kafka import KafkaProducer
+
+          producer = KafkaProducer()
+
+
+          def f(cliente):
+              producer.send("clientes", {"cpf": cliente.cpf})
+      espera_severidade: ALTO
+  S-16:
+    pack: security
+    domain: [backend]
+    titulo: Persistencia fora da residencia de dados declarada
+    base_legal: LGPD Art. 33 (transferencia internacional)
+    tipo: estatico
+    modo: inventory
+    fase: 8
+    status: implementado
+    supports: [S-08]
+    canonical_mutation:
+      descricao: politica declara BR e a escrita vai para regiao dos EUA
+      arquivos:
+        persistencia.py: |
+          import boto3
+
+          s3 = boto3.client("s3", region_name="us-east-1")
+      config:
+        data_residency: BR
+      espera_severidade: ALTO

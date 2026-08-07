@@ -1,0 +1,88 @@
+# Regua do estrato de backend — S-14, S-15, P-18, P-19, S-16.
+#
+# O que e proprio do backend nao e "codigo de servidor": e a INFRA que so
+# existe deste lado — o dump que viaja entre ambientes, a role do banco, a
+# coluna cifrada, o topico imutavel e a regiao onde o byte pousa. Nenhum
+# desses vetores tem equivalente no frontend, na borda ou no modelo.
+#
+# Vive AQUI, nunca dentro do .py (D-13), e ha piso vigiado em
+# tests/test_regua.py. Todas as marcas sao NOMES DE FATO: comando que roda,
+# chamada que executa, chave de catalogo que o parser encontra.
+
+# ---------------------------------------------------------------- S-14
+# Ferramentas que RESTAURAM um dump. E a acao, nao a palavra "backup".
+restauradores_de_dump: [psql, pg_restore, pgrestore, mysql, mariadb,
+                        mongorestore, mongoimport, sqlite3, sqlcmd, bcp,
+                        snowsql, bq, clickhouse-client, redis-cli]
+# Marcas de ambiente. Casam por continencia no token, porque nome de arquivo
+# e de variavel colam tudo: `dump_prod.sql`, `$STAGING_URL`, `db-prd-01`.
+marcas_de_producao: [prod, producao, production, live, prd]
+marcas_de_nao_producao: [staging, stg, homolog, homologacao, dev,
+                         desenvolvimento, test, teste, qa, sandbox, preview,
+                         ephemeral, efemero]
+# D-08: o passo que descaracteriza. Se ele EXECUTA no mesmo script, o dump
+# que chega ao ambiente inferior nao carrega mais o titular.
+pseudonimizacao: [anonymize, anonimiz, pseudonymize, pseudonimiz, mask,
+                  mascar, scrub, redact, obfusc, faker, synthetic, sintetic,
+                  sanitiz, tokeniz, dummify]
+
+# ---------------------------------------------------------------- S-15
+# Privilegios que nao se concede a uma aplicacao.
+privilegios_amplos: [all privileges, all]
+# Alvos que varrem o schema inteiro em vez de nomear a tabela.
+alvos_amplos: [all tables, all sequences, all functions, all routines]
+# Roles que existem para administrar, nunca para a aplicacao usar.
+roles_de_superusuario: [postgres, root, admin, sa, superuser, rdsadmin]
+
+# ---------------------------------------------------------------- P-18
+# Cifra a NIVEL DE APLICACAO: o dado ja chega cifrado ao banco, entao um
+# dump, uma replica ou um DBA com SELECT nao leem o valor.
+cifra_de_aplicacao: [encrypt, cifra, cifrar, fernet, aesgcm, aes_gcm,
+                     chacha, seal, envelope, encrypted_type, encryptedfield,
+                     encrypted_column, pgp_sym_encrypt, kms_encrypt]
+# Onde a chave e gerenciada. Chave que a aplicacao guarda no proprio codigo
+# e problema de P-06; aqui interessa se HA gerencia.
+gerenciadores_de_chave: [kms, vault, keyvault, key_vault, secretsmanager,
+                         secrets_manager, cloudkms, cloud_kms, hsm, keyring,
+                         akeyless, doppler]
+# Chaves do catalogo onde a cifra e declarada.
+chaves_de_cifra: [encryption, cifra, encrypted, at_rest]
+chaves_de_gerencia: [key_management, key_manager, kms, gerencia_de_chave]
+
+# ---------------------------------------------------------------- P-19
+# Barramentos e armazenamentos de evento. O que os une: o registro e
+# APPEND-ONLY, entao apagar uma linha nao e uma operacao disponivel.
+barramentos_de_evento: [kafka, producer, eventstore, event_store, eventbus,
+                        event_bus, eventlog, event_log, pulsar, kinesis,
+                        rabbit, nats, outbox, changelog, journal, ledger]
+# O verbo que grava no barramento.
+produtores_de_evento: [send, produce, publish, append, emit, dispatch,
+                       record, write_event, log_event]
+# D-08: a unica estrategia de eliminacao que funciona em registro imutavel —
+# cifrar por titular e destruir a chave. O evento continua la e vira ruido.
+crypto_shredding: [crypto_shred, cryptoshred, destroy_key, destruir_chave,
+                   revoke_key, revogar_chave, delete_key, forget_key,
+                   shred_key, key_per_subject, chave_por_titular,
+                   subject_key, tombstone]
+
+# ---------------------------------------------------------------- S-16
+# Onde o byte pousa. Chamadas que abrem conexao ou cliente de armazenamento.
+chamadas_de_persistencia: [create_engine, create_client, connect, client,
+                           resource, bucket, sessionmaker, connection_pool,
+                           createpool, blobserviceclient, storage]
+# Regiao -> jurisdicao. Lista curada: nao e o mapa do mundo, e o conjunto de
+# regioes que os provedores usam com nome estavel.
+regioes:
+  BR: [sa-east-1, southamerica-east1, brazilsouth, brazilsoutheast, br-sao,
+       br-gru, brazil]
+  US: [us-east-1, us-east-2, us-west-1, us-west-2, us-central1, us-east1,
+       us-west1, eastus, westus, centralus, us-gov-west-1]
+  EU: [eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1,
+       europe-west1, europe-west3, europe-north1, westeurope, northeurope,
+       francecentral, germanywestcentral]
+  APAC: [ap-southeast-1, ap-southeast-2, ap-northeast-1, ap-northeast-2,
+         ap-south-1, asia-east1, asia-northeast1, southeastasia, eastasia,
+         australiaeast]
+# Chaves de configuracao onde a politica de residencia e declarada.
+chaves_de_residencia: [data_residency, residencia_de_dados, jurisdicao,
+                       jurisdiction, data_region]

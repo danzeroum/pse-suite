@@ -520,3 +520,77 @@ return jsonify({"erro": "interno", "correlacao": cid}), 500
 A distinção é onde o traceback **chega**: retorno ou construtor de resposta é
 achado; chamada de log não é. Punir observabilidade empurraria o time a apagar
 o traceback em vez de sanear a resposta.
+
+## 18. Estrato de backend (S-14 · S-15 · P-18 · P-19 · S-16)
+
+Cinco vetores de infraestrutura que só existem deste lado do sistema.
+
+**S-14 · dump de produção em ambiente inferior.**
+
+```bash
+pg_dump "$PROD_URL" > dump_prod.sql
+psql "$STAGING_URL" < dump_prod.sql            # ALTO
+
+pg_dump "$PROD_URL" > dump_prod.sql            # conforme
+python scripts/anonimizar_dump.py dump_prod.sql dump_anon.sql
+psql "$STAGING_URL" < dump_anon.sql
+```
+
+O achado exige origem de produção **e** destino inferior na mesma linha —
+`pg_dump prod > prod.sql` é só backup e não dispara. O passo de
+descaracterização precisa rodar **antes** do restore, no mesmo arquivo (um
+pipeline partido em dois arquivos é um limite declarado no check). Pega
+também no YAML do CI, que é onde o restore de fato roda.
+
+**S-15 · role com privilégio excessivo.**
+
+```sql
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO app;  -- ALTO: vale para o futuro
+GRANT ALL PRIVILEGES ON clientes TO app_etl;         -- ALTO: inclui DELETE
+GRANT SELECT ON clientes TO app;                     -- ALTO: tabela com PII
+GRANT SELECT (id, cidade) ON clientes TO app;        -- conforme: por coluna
+```
+
+**P-18 · sensível sem cifra de aplicação.** Declare no catálogo:
+
+```yaml
+genero:
+  class: sensitive
+  encryption:
+    algorithm: AES-256-GCM
+    key_management: aws-kms       # KMS | Vault | HSM — fora da aplicação
+```
+
+Dois caminhos para o verde: a declaração acima, **ou** uma cifra de aplicação
+aplicada ao campo no código. Cifra declarada **sem** `key_management` continua
+sendo achado — a chave que a aplicação guarda viaja junto com o dump.
+
+**P-19 · eliminação em log append-only.**
+
+```python
+producer.send("clientes", {"cpf": c.cpf})                    # ALTO
+producer.send("clientes", cifrar_por_titular({...}, c.id))   # conforme
+def esquecer(titular_id): return destroy_key(titular_id)     # conforme
+```
+
+A rotina de crypto-shredding é procurada no **repositório inteiro** — ela
+quase nunca mora ao lado do produtor, e exigi-la no mesmo arquivo reprovaria
+toda arquitetura bem separada.
+
+**S-16 · residência no ponto de escrita.**
+
+```yaml
+# tests/qa/pse-config.yaml
+pse_suite:
+  data_residency: BR        # sem esta linha o check é PULADO, não presumido
+```
+
+```python
+boto3.client("s3", region_name="us-east-1")   # ALTO com data_residency: BR
+boto3.client("s3", region_name="sa-east-1")   # conforme
+```
+
+Sem `data_residency` declarado o check é **pulado com motivo**. Supor `BR`
+porque a LGPD é brasileira seria a suite decidindo pelo consumidor uma coisa
+que é dele — há operação legítima com residência europeia, e achado inventado
+custa mais confiança do que achado ausente.

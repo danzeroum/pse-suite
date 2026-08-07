@@ -53,10 +53,17 @@ LEITURA_DA_DENSIDADE = {
         "depois. Era a leitura critica que a propria matriz fazia deste "
         "dominio, e ela deixou de valer para o pacote fundador.",
     "backend":
-        "A posteriori. Sao os estaticos do inventario, reclassificados.",
+        "**S-14, S-15, P-18, P-19 e S-16 nasceram do estrato** — do dump que "
+        "viaja entre ambientes, da role do banco, da coluna cifrada, do topico "
+        "imutavel e da regiao onde o byte pousa. Nenhum desses vetores tem "
+        "equivalente em outro dominio. Os demais seguem sendo os estaticos do "
+        "inventario, reclassificados.",
     "data":
-        "A posteriori, mas o mais coerente dos quatro herdados: catalogo, "
-        "retencao, k-anonimato e lineage sao genuinamente do estrato de dados.",
+        "A posteriori, mas o mais coerente dos herdados: catalogo, retencao, "
+        "k-anonimato e lineage sao genuinamente do estrato de dados. **S-15, "
+        "P-18 e P-19 aparecem aqui por inspecionarem artefato de dados** "
+        "(catalogo, schema, log de eventos), mas nasceram olhando o BACKEND — "
+        "contam como multi-dominio, nao como fundadores deste estrato.",
     "ai":
         "Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os "
         "demais foram etiquetados a posteriori. Primeiro dominio herdado a "

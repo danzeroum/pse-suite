@@ -262,6 +262,69 @@ def test_regua_do_contrato_de_api_e_vigiada(regua):
         "reprovaria qualquer campo de negócio chamado assim")
 
 
+def test_regua_da_infra_de_backend_e_vigiada(regua):
+    """S-14, S-15, P-18, P-19 e S-16 derivam de `backend-infra`. Esvaziar um
+    grupo aqui apaga um vetor de infra inteiro — e infra é justamente onde
+    ninguém revisita a decisão depois de tomada."""
+    infra = regua["backend-infra"]
+    piso = {
+        "restauradores_de_dump": {"psql", "pg_restore", "mysql", "mongorestore"},
+        "marcas_de_producao": {"prod", "producao", "production"},
+        "marcas_de_nao_producao": {"staging", "homolog", "dev", "qa"},
+        "pseudonimizacao": {"anonymize", "anonimiz", "mask", "scrub", "faker"},
+        "privilegios_amplos": {"all privileges", "all"},
+        "alvos_amplos": {"all tables"},
+        "cifra_de_aplicacao": {"encrypt", "fernet"},
+        "gerenciadores_de_chave": {"kms", "vault", "hsm"},
+        "barramentos_de_evento": {"kafka", "event_store", "outbox"},
+        "produtores_de_evento": {"send", "produce", "publish", "append"},
+        "crypto_shredding": {"crypto_shred", "destroy_key", "revoke_key"},
+        "chamadas_de_persistencia": {"create_engine", "client", "bucket"},
+        "chaves_de_residencia": {"data_residency"},
+    }
+    for grupo, esperado in piso.items():
+        presentes = {str(t).lower() for t in infra[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de backend-infra.yaml [{grupo}]: "
+            f"{sorted(faltando)}")
+    for juris in ("BR", "US", "EU"):
+        assert infra["regioes"].get(juris), (
+            f"jurisdição '{juris}' sem região mapeada: S-16 pararia de "
+            f"reconhecer aquele destino")
+    assert "sa-east-1" in infra["regioes"]["BR"], (
+        "sem a região nacional, S-16 acusaria toda escrita brasileira")
+    assert "us-east-1" in infra["regioes"]["US"]
+
+
+def test_regiao_nao_pertence_a_duas_jurisdicoes(regua):
+    """Uma região em duas jurisdições faria S-16 aprovar e reprovar a mesma
+    escrita conforme a ordem do dicionário — não-determinismo silencioso."""
+    vistas = {}
+    for juris, regioes in regua["backend-infra"]["regioes"].items():
+        for r in regioes:
+            anterior = vistas.get(str(r).lower())
+            assert anterior is None, (
+                f"região {r!r} mapeada para {anterior} e {juris}")
+            vistas[str(r).lower()] = juris
+
+
+def test_fundadores_de_backend_nao_tem_lista_propria():
+    esperado = {
+        ("security", "s14_dump_de_producao.py"): {"psql", "prod", "staging",
+                                                  "anonymize"},
+        ("security", "s16_residencia_na_escrita.py"): {"us-east-1", "sa-east-1",
+                                                       "create_engine", "br"},
+        ("privacy", "p18_sensivel_sem_cifra.py"): {"kms", "vault", "encrypt"},
+        ("privacy", "p19_evento_sem_crypto_shredding.py"): {"kafka", "send",
+                                                            "crypto_shred"},
+    }
+    for (pack, nome), proibidos in esperado.items():
+        assert "backend-infra" in _fonte(pack, nome)
+        intruso = _literais_de_colecao(pack, nome) & proibidos
+        assert not intruso, f"vocabulário próprio em {nome}: {sorted(intruso)}"
+
+
 def test_p17_nao_tem_lista_propria_de_campo_proibido():
     """O filtro proibido de P-17 vem de `prohibited-filters` e
     `sensitive-fields`, as mesmas réguas de E-05 e P-08. Se tivesse lista

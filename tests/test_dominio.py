@@ -59,8 +59,12 @@ def test_a_matriz_cruza_de_verdade():
      lambda ids: {"P-01", "P-13", "P-14"} <= set(ids) and "S-06" not in ids),
     (["--domain", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
     (["--packs", "data"], lambda ids: "P-02" in ids and "S-06" not in ids),
+    # P-18 e P-19 sao multi-dominio: nasceram olhando o backend e inspecionam
+    # artefato de dados (o catalogo, o log de eventos). Entram no cruzamento
+    # por isso — e a matriz registra que NAO nasceram do estrato `data`.
     (["--pilar", "privacy", "--domain", "data"],
-     lambda ids: set(ids) <= {"P-02", "P-03", "P-04", "P-07", "P-08", "P-09"}),
+     lambda ids: set(ids) <= {"P-02", "P-03", "P-04", "P-07", "P-08", "P-09",
+                              "P-18", "P-19"}),
 ])
 def test_cli_filtra_por_pilar_dominio_e_cruzamento(tmp_path, flags, esperado):
     out = tmp_path / "l.json"

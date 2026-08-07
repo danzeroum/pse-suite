@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 **P-17** | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | P-15 P-16 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 **S-12 S-13** | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | S-10 S-11 |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 **P-17** | P-01 P-06 **P-18 P-19** | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 | P-15 P-16 |
+| **security** | S-09 | S-01 S-02 S-03 S-07 **S-12 S-13** | S-04 S-05 S-06 S-07 E-13* **S-14 S-15 S-16** | S-05 S-08 S-15 | S-10 S-11 |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -116,6 +116,29 @@ lê o mapa. Estes três nascem da pergunta *o que é próprio de uma borda?*
   de framework, e `debug=True` no servidor. `log.exception` não é achado —
   punir observabilidade empurraria o time a apagar o log em vez de sanear a
   resposta.
+
+### O estrato de backend (S-14 · S-15 · P-18 · P-19 · S-16)
+
+Mesmo diagnóstico que a matriz fazia sobre `api`: 11 checks, todos herdados
+do inventário. E o que é próprio do backend não é "código de servidor" — é a
+**infraestrutura que só existe deste lado**.
+
+- **S-14** — dump de produção restaurado em ambiente inferior sem
+  descaracterizar. É o vazamento que não passa por API nenhuma: sem rota, sem
+  token de titular e sem log de acesso. O pack de borda inteiro não o alcança.
+- **S-15** — `GRANT SELECT ON ALL TABLES` é uma decisão de minimização tomada
+  uma vez e herdada para sempre — inclusive pelas tabelas que ainda não
+  existem. Concessão por coluna não dispara.
+- **P-18** — P-06 pergunta se a chave está segregada, e só aparece quando já
+  há cifra. Este pergunta o passo anterior: **tem cifra?** Criptografia de
+  disco não conta — ela protege contra o roubo do disco físico, não contra
+  quem já tem conexão ao banco.
+- **P-19** — o Art. 18 VI num registro append-only. Apagar não é uma operação
+  que exista: retenção expira partição, não titular. Ou há crypto-shredding,
+  ou a eliminação foi respondida ao titular sem ter acontecido.
+- **S-16** — residência no ponto de **escrita**. S-08 audita o egresso
+  declarado no manifesto; um bucket em `us-east-1` não é integração com
+  ninguém e não aparece em manifesto nenhum — mas o dado pousa lá igual.
 
 ## Os dois trabalhos
 
