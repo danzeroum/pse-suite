@@ -3,8 +3,8 @@
 > Escrito a mao. Os NUMEROS vieram de instrumentacao reproduzivel; a
 > classificacao e leitura de contexto.
 >
-> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.15.1 ·
-> **data:** 2026-08-07 · **duas superficies medidas**
+> **Alvo:** `danzeroum/btv` @ `a3e14f45` (clone limpo) · **suite:** 0.16.0 ·
+> **data:** 2026-08-07 · **duas superficies, dev E producao**
 >
 > **A PSE aponta; o dono valida.** O btv nao foi alterado.
 
@@ -110,9 +110,13 @@ foram efetivamente percorridos. O zero e real.
 
 | Classificacao | Quantidade |
 |---|---|
-| **VIOLACAO PROVAVEL** | **0** |
-| **FALSO-POSITIVO PROVAVEL** | **2** (S-21 nas duas superficies — ver 4b) |
-| **INCERTO — precisa do dono** | **5** (3 arquivos + S-19 + arranjo de `/dev`) |
+| **VIOLACAO PROVAVEL** | **2** — `S-19` nas duas superficies (ver 4c) |
+| **FALSO-POSITIVO CONFIRMADO** | **2** — `S-21` nas duas, era andaime de dev server |
+| **INCERTO — precisa do dono** | **3** (os 3 arquivos nao analisados) |
+
+A medicao contra o artefato de producao (4c) resolveu dois dos cinco
+incertos anteriores em direcoes OPOSTAS: `S-21` caiu para zero e `S-19`
+persistiu. Nenhum dos dois teria sido decidido sem medir o artefato.
 
 Nao ha lista de violacoes a devolver, e nao ha falso-positivo a triar: **os
 checks de frontend nao produziram achado nenhum contra o btv**, nem antes
@@ -214,13 +218,83 @@ significam:
 normal do modo e nao propriedade do artefato publicado. Nenhum veredito
 mudou — mudou o que o leitor entende do veredito.
 
-### Limite desta medicao, declarado
+### Limite desta medicao — e ele foi levantado
 
-O console foi servido em **porta propria** (Vite em `127.0.0.1:5179`), e nao
-aninhado em `/dev` atras do servidor Rust. Origem separada em vez de origem
-compartilhada: cookie, `SameSite` e cabecalho podem diferir do arranjo real.
-Para medir o arranjo de producao seria preciso subir a imagem Docker com as
-duas `dist` buildadas — **pendencia registrada, nao presumida limpa**.
+O console foi servido em porta propria (Vite em `127.0.0.1:5179`), nao
+aninhado em `/dev`. **Essa pendencia esta fechada:** ver 4c.
+
+---
+
+## 4c. A medicao contra o ARTEFATO, e o que ela decidiu
+
+O `btv dashboard` foi compilado (`cargo build --release -p btv-cli`), as duas
+SPAs buildadas (`vite build`), e o binario subido com
+`BTV_WEB_DIR=btv-web/dist` e `BTV_DEV_WEB_DIR=web/dist` — **um processo,
+mesma origem, raiz e `/dev`**, exatamente como o `Dockerfile` os monta.
+
+> **O que difere do container.** O daemon Docker nao esta disponivel neste
+> ambiente, entao a imagem nao foi buildada. O que subiu foi o MESMO binario
+> com as MESMAS duas `dist` e as MESMAS duas variaveis que o Dockerfile
+> define — o arranjo de servico e identico; o que falta e o isolamento do
+> container e o **ingress**. Declarado, nao presumido.
+
+### O veredito que so o artefato podia dar
+
+| | dev server | **producao** |
+|---|---|---|
+| Requisicoes (raiz / `/dev`) | 119 / 93 | **7 / 4** |
+| `S-21` sourcemap | MEDIO (107) / MEDIO (84) | **0 / 0** |
+| `S-19` cabecalhos | ALTO / ALTO | **ALTO / ALTO** |
+| `P-22` `P-23` `P-24` `S-17` `S-20` | sem achado | sem achado |
+| Cookies | nenhum | nenhum |
+| Hosts (raiz) | `fonts.googleapis.com` | `fonts.googleapis.com` |
+
+**`S-21` era andaime — confirmado.** Contra o bundle real, os 107 e os 84
+sourcemaps viraram **zero**. A suspeita de 4b estava certa, e agora esta
+medida: o que S-21 via era `/@vite/client` e `node_modules/.vite/deps/*`,
+encanamento do modo de desenvolvimento. Reclassificado de *falso-positivo
+provavel* para **falso-positivo confirmado sobre o artefato**.
+
+**`S-19` era real — confirmado.** Persistiu em ALTO nas duas superficies
+contra o artefato. Nao era ausencia de cabecalho de dev server: o binario
+`btv dashboard` nao define `content-security-policy`,
+`x-content-type-options` nem `referrer-policy` (ja verificado no codigo, e
+agora observado no ar). Reclassificado de *incerto* para **achado real sobre
+o dashboard**, com uma ressalva que segue valendo: **a borda nao foi
+observada**. Se um ingress poe esses cabecalhos, o usuario final nao os
+perde. A PSE mediu o dashboard direto, sem ingress na frente.
+
+**`fonts.googleapis.com` sobrevive ao build.** Nao era artefato de dev: o
+produto contacta o terceiro tambem em producao. O console `/dev` nao
+contacta nenhum.
+
+### O basic auth: declarado, nao observado
+
+A PSE mediu `127.0.0.1:7878` **direto**, sem o ingress. Fato observado: o
+dashboard responde `200` na raiz e em `/dev` sem pedir credencial nenhuma.
+O `docker-compose.prod.yml` declara que autenticacao e responsabilidade do
+ingress (basic auth com `.htpasswd`), e o ingress **nao foi observado** —
+e infra externa ao artefato.
+
+**Isto e registro de fato, nao veredito.** A suite nao afirma que `/dev`
+esta exposto: ela afirma o que viu (dashboard sem auth propria) e o que nao
+viu (a borda). Se a composicao das duas coisas e adequada **e julgamento do
+dono**.
+
+### `artefato` — o campo que evita a confusao virar rotina
+
+A atestacao ganhou `target.artefato: producao | desenvolvimento`. A suite
+**nao consegue** descobrir isso sozinha — um `vite preview` e um deploy real
+servem bundle igualmente minificado, e inferir "producao" da ausencia de
+indicios seria inventar um fato sobre o alvo. Entao o operador declara, a
+suite observa, e o laudo cruza os dois:
+
+* declarado `producao` + indicios de dev server observados →
+  **`contradicao_de_artefato`**, em voz alta. Ha teste-mordida: apontar a
+  atestacao de producao para o Vite dispara.
+* declarado `producao` sem indicio contrario → nota dizendo que a suite
+  **nao verificou** a declaracao, so nao viu indicio contra.
+* nada declarado → o laudo diz o que observou e nao afirma se e o artefato.
 
 ---
 
@@ -265,9 +339,10 @@ cookie; o console nao contacta terceiro; a raiz contacta
 `fonts.googleapis.com`.
 
 **Nao afirma:** nada sobre os tres arquivos nao analisados; nada sobre a
-postura de PRODUCAO das duas SPAs (o que foi observado foi dev server);
-nada sobre `/dev` no arranjo real (origem compartilhada atras do servidor
-Rust); nada sobre exposicao ou risco de `/dev` — isso e veredito do dono;
-nada sobre os `.rs`, que tem alcance proprio e limitado.
+BORDA (ingress, basic auth, proxy, WAF, CDN) — o dashboard foi medido
+direto; nada sobre exposicao ou risco de `/dev`, que e veredito do dono;
+nada sobre o comportamento dentro do container (a imagem Docker nao pode ser
+buildada neste ambiente); nada sobre os `.rs`, que tem alcance proprio e
+limitado.
 
 **O btv nao foi alterado.**

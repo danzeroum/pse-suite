@@ -224,7 +224,7 @@ class NetworkLog:
                     vistos.append(m)
         return vistos
 
-    def sanitizado(self, marcas_de_dev=()) -> dict:
+    def sanitizado(self, marcas_de_dev=(), artefato_declarado="") -> dict:
         """A projecao que pode ir para o laudo.
 
         Passa pelo MESMO sanitizador do resto da suite, na ORIGEM. A
@@ -255,30 +255,60 @@ class NetworkLog:
                 "rota da mesma origem foi carregada: ausencia de achado aqui "
                 "nao diz nada sobre elas. Para cobrir outra superficie, rode "
                 "de novo com `base_url` apontando para ela."),
-            **_bloco_de_dev_server(self, marcas_de_dev),
+            **_bloco_de_artefato(self, marcas_de_dev, artefato_declarado),
         }
 
 
-def _bloco_de_dev_server(log, marcas) -> dict:
-    """Declara se o que foi observado veio de um servidor de desenvolvimento.
+def _bloco_de_artefato(log, marcas, declarado="") -> dict:
+    """Cruza o que foi DECLARADO com o que foi OBSERVADO.
 
-    Nao muda veredito nenhum — muda o que o leitor entende do veredito. Um
-    dev server serve modulo sem minificar, com sourcemap embutido e sem os
-    cabecalhos que um proxy de producao poria; ler esses achados como
-    propriedade do PRODUTO seria atribuir ao alvo o comportamento da
-    ferramenta que o serviu.
+    DUAS PERGUNTAS, e junta-las seria repetir o erro do mapa de cobertura
+    numa terceira escala.
+
+      declarado  o operador afirma, na atestacao, contra que artefato esta
+                 medindo. A suite NAO consegue descobrir isso sozinha: um
+                 `vite preview` e um deploy real servem bundle igualmente
+                 minificado, e inferir "producao" da ausencia de indicios
+                 seria a suite inventando um fato sobre o alvo.
+      observado  indicios de dev server no que foi servido. Isso a suite ve.
+
+    O cruzamento e o que interessa: `producao` DECLARADO com indicios de dev
+    server OBSERVADOS e contradicao, e ela aparece em voz alta. Quem apontou
+    a atestacao de producao para um `vite dev` precisa saber antes de ler os
+    achados como se fossem do artefato publicado.
     """
     indicios = log.indicios_de_dev_server(marcas) if marcas else []
-    if not indicios:
-        return {"servidor_de_desenvolvimento": False}
-    return {
-        "servidor_de_desenvolvimento": True,
-        "indicios_de_dev_server": indicios,
-        "nota_de_dev_server": (
+    saida = {
+        "artefato_declarado": declarado or "nao_declarado",
+        "servidor_de_desenvolvimento": bool(indicios),
+    }
+    if indicios:
+        saida["indicios_de_dev_server"] = indicios
+        saida["nota_de_dev_server"] = (
             "O endereco observado responde como SERVIDOR DE DESENVOLVIMENTO. "
             "Modulo sem minificar, sourcemap embutido e ausencia de "
             "cabecalhos de borda sao comportamento NORMAL desse modo — e nao "
             "sao, por si, propriedade do artefato publicado. Os achados desta "
             "execucao descrevem o que foi servido AQUI; para afirmar algo "
-            "sobre producao, observe o servidor de producao."),
-    }
+            "sobre producao, observe o servidor de producao.")
+    if declarado == "producao" and indicios:
+        saida["contradicao_de_artefato"] = (
+            "A atestacao declara `artefato: producao` e o alvo respondeu com "
+            f"indicios de servidor de desenvolvimento ({', '.join(indicios)}). "
+            "Uma das duas coisas esta errada, e o laudo nao adivinha qual — "
+            "mas os achados NAO podem ser lidos como propriedade do artefato "
+            "publicado enquanto a contradicao existir.")
+    if declarado == "producao" and not indicios:
+        saida["nota_de_producao"] = (
+            "A atestacao declara `artefato: producao` e nada no que foi "
+            "servido contradiz isso. A suite NAO verifica a declaracao — ela "
+            "so registra que nao viu indicio contrario. O que ficou de fora "
+            "desta observacao (ingress, proxy, WAF, CDN) segue sem ser "
+            "observado, e ausencia de observacao nunca e atestado.")
+    if not declarado:
+        saida["nota_de_artefato"] = (
+            "A atestacao nao declara `artefato`. O laudo diz o que observou e "
+            "nao afirma se isso e o artefato publicado — declarar "
+            "`artefato: producao` ou `artefato: desenvolvimento` no alvo faz "
+            "essa distincao entrar no laudo.")
+    return saida

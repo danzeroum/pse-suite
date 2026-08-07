@@ -20,6 +20,8 @@ publicado.
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from pse.engine.context import Contexto
 from pse.navegador import analise
 from pse.navegador.rede import NetworkLog, RecursoObservado, RequisicaoObservada
@@ -139,3 +141,110 @@ def test_a_url_da_superficie_passa_pelo_sanitizador():
     d = _log("https://app.exemplo.test/busca?cpf=12345678901").sanitizado(MARCAS)
     assert "12345678901" not in d["superficie_observada"]
     assert "cpf" in d["superficie_observada"]
+
+
+# =========================================================================
+# ARTEFATO DECLARADO x ARTEFATO OBSERVADO
+#
+# A licao que a medicao de producao fechou: dev server e producao sao alvos
+# DIFERENTES, e os achados de um nao valem para o outro. Contra o btv real:
+#
+#   S-21 sourcemap    dev 107 e 84  ->  producao 0 e 0   (era andaime)
+#   S-19 cabecalhos   dev ALTO      ->  producao ALTO    (era real)
+#   requisicoes       dev 119 e 93  ->  producao 7 e 4
+#
+# Sem a distincao, os dois achados teriam o mesmo peso — e um deles nao
+# existia.
+# =========================================================================
+
+def test_declarado_e_observado_sao_campos_SEPARADOS():
+    """A suite NAO consegue descobrir sozinha se mediu producao: um `vite
+    preview` e um deploy real servem bundle igualmente minificado. O que ela
+    sabe e o que OBSERVOU; o resto e declaracao do operador."""
+    d = _log("https://app.exemplo.test/").sanitizado(MARCAS, "producao")
+    assert d["artefato_declarado"] == "producao"
+    assert d["servidor_de_desenvolvimento"] is False
+
+
+def test_producao_declarada_com_indicio_de_dev_e_CONTRADICAO():
+    """A trava. Quem apontou a atestacao de producao para um `vite dev`
+    precisa saber ANTES de ler os achados como propriedade do artefato."""
+    d = _log("http://127.0.0.1:5178/",
+             ["http://127.0.0.1:5178/@vite/client"]).sanitizado(
+                 MARCAS, "producao")
+    assert "contradicao_de_artefato" in d
+    assert "/@vite/client" in d["contradicao_de_artefato"]
+    assert d["servidor_de_desenvolvimento"] is True
+
+
+def test_sem_contradicao_a_nota_de_producao_nao_promete_o_que_nao_viu():
+    """Declarar producao e nao ver indicio contrario NAO e verificar a
+    declaracao. O que ficou fora da observacao (ingress, proxy, WAF, CDN)
+    segue sem ser observado."""
+    d = _log("https://app.exemplo.test/").sanitizado(MARCAS, "producao")
+    assert "contradicao_de_artefato" not in d
+    assert "NAO verifica a declaracao" in d["nota_de_producao"]
+    assert "ingress" in d["nota_de_producao"]
+
+
+def test_sem_declaracao_o_laudo_nao_infere_producao():
+    """Inferir `producao` da ausencia de indicio seria a suite inventando um
+    fato sobre o alvo — o oposto do que este bloco existe para fazer."""
+    d = _log("https://app.exemplo.test/").sanitizado(MARCAS)
+    assert d["artefato_declarado"] == "nao_declarado"
+    assert "nota_de_artefato" in d
+    assert "nao afirma" in d["nota_de_artefato"]
+
+
+def test_desenvolvimento_declarado_nao_produz_contradicao():
+    """Declarar o que se esta medindo e o caso honesto, e ele nao pode ser
+    punido: dev declarado + dev observado e coerencia, nao conflito."""
+    d = _log("http://127.0.0.1:5178/",
+             ["http://127.0.0.1:5178/@vite/client"]).sanitizado(
+                 MARCAS, "desenvolvimento")
+    assert "contradicao_de_artefato" not in d
+    assert d["artefato_declarado"] == "desenvolvimento"
+    assert d["servidor_de_desenvolvimento"] is True
+
+
+# ------------------------------------------- o valor declarado e fechado
+def test_artefato_desconhecido_e_entrada_invalida():
+    """Um typo (`prod`, `producao ` com espaco) que passasse silenciosamente
+    faria o laudo dizer `artefato_declarado: prod` e ninguem cruzaria nada —
+    a declaracao viraria decoracao."""
+    from pse.model import EntradaInvalida
+    from pse.trabalho_a.autorizacao import validar_config
+    for ruim in ("prod", "production", "dev", "", "producao!"):
+        with pytest.raises(EntradaInvalida) as e:
+            validar_config({"target": {"base_url": "https://a.test",
+                                       "environment": "staging",
+                                       "artefato": ruim}}, "pse_passive")
+        assert "artefato" in str(e.value), ruim
+
+
+def test_os_dois_valores_aceitos_passam():
+    from pse.trabalho_a.autorizacao import ARTEFATOS, validar_config
+    assert set(ARTEFATOS) == {"producao", "desenvolvimento"}
+    for bom in ARTEFATOS:
+        validar_config({"target": {
+            "base_url": "https://a.test", "environment": "staging",
+            "artefato": bom,
+            "authorization": {"attested_by": "dono@exemplo.test",
+                              "scope": ["pse_passive"],
+                              "expires": "2030-01-01"}}}, "pse_passive")
+
+
+def test_ausencia_de_artefato_continua_valida():
+    """Campo NOVO e OPCIONAL: config existente nao pode quebrar."""
+    from pse.trabalho_a.autorizacao import validar_config
+    validar_config({"target": {
+        "base_url": "https://a.test", "environment": "staging",
+        "authorization": {"attested_by": "dono@exemplo.test",
+                          "scope": ["pse_passive"],
+                          "expires": "2030-01-01"}}}, "pse_passive")
+
+
+def test_o_relator_propaga_a_declaracao_do_alvo(tmp_path):
+    ctx = Contexto(tmp_path, config={"target": {"artefato": "producao"}})
+    analise.relatar_observacao(ctx, _log("https://app.exemplo.test/"))
+    assert ctx.relatorios["observacao_de_rede"]["artefato_declarado"] == "producao"

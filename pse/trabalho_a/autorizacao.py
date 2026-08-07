@@ -90,12 +90,26 @@ def habilitado(config: dict) -> bool:
     return bool(alvo_de(config).get("base_url"))
 
 
+# Valores aceitos em `target.artefato`. Lista fechada de proposito: um typo
+# (`producao ` com espaco, `prod`) que passasse silenciosamente faria o laudo
+# dizer `artefato_declarado: prod` e ninguem cruzaria nada — a declaracao
+# viraria decoracao. Valor desconhecido e exit 30, antes de qualquer byte.
+ARTEFATOS = ("producao", "desenvolvimento")
+
+
 def validar_config(config: dict, modo: str):
     """Recusas que acontecem ANTES de o runner rodar — nenhuma requisicao.
 
     Sao as unicas que produzem exit 30: o consumidor pediu algo que a suite
     nao faz, e descobrir isso no meio da execucao ja seria tarde.
     """
+    artefato = alvo_de(config).get("artefato")
+    if artefato is not None and str(artefato).strip().lower() not in ARTEFATOS:
+        raise EntradaInvalida(
+            f"`artefato: {artefato!r}` nao e um valor aceito. Use "
+            f"{' ou '.join(ARTEFATOS)} — a declaracao existe para o laudo "
+            f"poder cruzar o que foi DECLARADO com o que foi OBSERVADO, e um "
+            f"valor que ninguem reconhece nao cruza com nada.")
     if modo not in MODOS:
         raise EntradaInvalida(f"modo invalido: {modo!r}; use {list(MODOS)}")
     if modo == "pse_inventory":

@@ -173,6 +173,8 @@ def relatar_observacao(ctx, log):
     laudo que diz a verdade em seis relatorios e cala no setimo, e qual
     apareceria dependeria da ordem de execucao.
     """
+    from pse.trabalho_a.autorizacao import alvo_de
     marcas = (ctx.data.get("servido-ao-cliente") or {}).get(
         "marcas_de_dev_server") or ()
-    ctx.relatorio("observacao_de_rede", log.sanitizado(marcas))
+    declarado = str(alvo_de(ctx.config).get("artefato") or "").strip().lower()
+    ctx.relatorio("observacao_de_rede", log.sanitizado(marcas, declarado))
