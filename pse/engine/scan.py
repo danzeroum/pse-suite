@@ -17,15 +17,29 @@ IGNORAR_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__",
                 "dist", "build", ".mypy_cache", ".pytest_cache"}
 TAMANHO_MAX = 2_000_000  # 2MB
 
+# A FAMILIA ECMASCRIPT, NUM LUGAR SO.
+#
+# Ela vivia copiada em cinco conjuntos de extensao (P-01, P-06, S-04, S-06,
+# E-04), e foi exatamente assim que `.tsx` e `.jsx` ficaram de fora de TODOS:
+# ninguem lembra de editar cinco listas iguais. A rodada de reconhecimento
+# mediu o preco — 281 arquivos React invisiveis nos 6 alvos, e um
+# `console.log(user.cpf)` num componente nao existia para a suite inteira.
+#
+# Silencio que parece verde e o pior defeito que um laudo pode ter, e este
+# era da propria suite. Centralizado para que a proxima extensao entre em um
+# lugar so e alcance os cinco checks de uma vez.
+ECMASCRIPT = {".js", ".jsx", ".ts", ".tsx"}
+
 # Comentario de linha por extensao.
 _CMT_LINHA = {
     ".py": ("#",), ".sh": ("#",), ".yaml": ("#",), ".yml": ("#",),
     ".env": ("#",), ".rb": ("#",),
     ".sql": ("--",),
-    ".js": ("//",), ".ts": ("//",), ".go": ("//",), ".java": ("//",),
+    ".go": ("//",), ".java": ("//",),
+    **{e: ("//",) for e in ECMASCRIPT},
 }
 # Extensoes com comentario de bloco /* ... */
-_CMT_BLOCO = {".js", ".ts", ".go", ".java", ".sql", ".css"}
+_CMT_BLOCO = {".go", ".java", ".sql", ".css"} | ECMASCRIPT
 # Extensoes com string de tres aspas.
 _TRIPLA = {".py"}
 

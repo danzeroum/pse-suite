@@ -17,7 +17,8 @@ PADRAO = (r"(\b(api_key|apikey|access_token)\s*=\s*[\"'][^\"']{12,}[\"']"
 @check("S-06", "security", "Credencial de parceiro hardcoded", base_legal="LGPD Art. 46")
 def chave_global(ctx):
     findings = []
-    for p in scan.arquivos(ctx.repo, {".py", ".js", ".ts", ".go", ".java", ".env", ".yaml", ".yml"}):
+    for p in scan.arquivos(ctx.repo, scan.ECMASCRIPT | {".py", ".go", ".java", ".env",
+                                              ".yaml", ".yml"}):
         rel = scan.rel(ctx.repo, p)
         for linha, snippet in scan.grep(p, PADRAO):
             sev = _credencial.severidade(ctx, rel, snippet)

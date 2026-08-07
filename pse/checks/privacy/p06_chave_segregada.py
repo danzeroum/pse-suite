@@ -17,7 +17,7 @@ PADRAO = r"\b(hmac_key|secret_key|private_key|senha|password)\s*=\s*[\"'][^\"']{
 @check("P-06", "privacy", "Chave de pseudonimizacao no codigo", base_legal="LGPD Art. 46")
 def chave_segregada(ctx):
     findings = []
-    for p in scan.arquivos(ctx.repo, {".py", ".js", ".ts", ".go", ".java", ".env"}):
+    for p in scan.arquivos(ctx.repo, scan.ECMASCRIPT | {".py", ".go", ".java", ".env"}):
         rel = scan.rel(ctx.repo, p)
         for linha, snippet in scan.grep(p, PADRAO):
             sev = _credencial.severidade(ctx, rel, snippet)

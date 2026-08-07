@@ -4,7 +4,7 @@ from pse.engine.registry import check
 from pse.model import Finding, Severidade
 
 RX_HOST = re.compile(r"https?://([a-z0-9][a-z0-9.-]*\.[a-z]{2,})", re.I)
-EXTS = {".py", ".js", ".ts", ".go", ".java", ".yaml", ".yml", ".env"}
+EXTS = scan.ECMASCRIPT | {".py", ".go", ".java", ".yaml", ".yml", ".env"}
 
 
 def _categoria(host, conhecidos):

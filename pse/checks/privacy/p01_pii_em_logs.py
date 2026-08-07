@@ -24,7 +24,7 @@ from pse.engine.registry import check
 from pse.model import Finding, Severidade
 from pse.sanitize import RX_CPF, RX_EMAIL, RX_TELEFONE
 
-OUTRAS = {".js", ".ts", ".go", ".java"}
+OUTRAS = scan.ECMASCRIPT | {".go", ".java"}
 
 RX_LOG = re.compile(r"^(logger|logging|log|console)$|^(logger|logging|console)\.|"
                     r"^print$|\.(info|warn|warning|error|debug|critical|exception|log)$",

@@ -19,7 +19,7 @@ RX_REVISAO = re.compile(
     r"revisao_humana|human_in_the_loop|human_review|fila_revisao|para_analista", re.I)
 
 PY = {".py"}
-OUTRAS = {".js", ".ts", ".java", ".go"}
+OUTRAS = scan.ECMASCRIPT | {".java", ".go"}
 
 
 def _revisa(no: ast.AST) -> bool:
