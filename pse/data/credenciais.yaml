@@ -1,0 +1,103 @@
+# Regua de contexto de credencial — P-06 e S-06.
+#
+# Ela NAO decide se algo e credencial: isso continua sendo o padrao do check.
+# Ela decide a SEVERIDADE, respondendo uma pergunta so: este achado dirige o
+# gate, ou fica visivel sem bloquear?
+#
+# POR QUE ELA EXISTE. A rodada de reconhecimento contra 6 alvos reais mediu:
+# dos 19 CRITICOs de credencial, 18 estavam sob `tests/` — `test-secret`,
+# `wrong-password`, um token propositalmente invalido num teste de rejeicao.
+# Em Central_Inteligencia_Juridica os TRES CRITICOs que produziram exit 10
+# eram fixtures. O veredito do laudo estava sendo dirigido por
+# falso-positivo.
+#
+# E o D-08 virado contra a propria suite. CRITICO falso ensina a ignorar a
+# categoria inteira — e quando ela e ignorada, o 19o caso (real, fora de
+# `tests/`, valor nao-sintetico) passa junto com os 18.
+#
+# REBAIXA, NUNCA SUPRIME. Ignorar `tests/` seria a trava que o vigiado
+# desliga movendo o segredo para um arquivo de teste — e segredo real vaza em
+# teste com frequencia. MEDIO mantem o achado no laudo e o tira do gate; o
+# operador continua vendo, o CI para de reprovar pelo motivo errado.
+#
+# As duas listas sao FATO VERIFICAVEL, nao mencao (D-01): a primeira olha o
+# caminho do arquivo, a segunda olha o proprio literal capturado. Nenhuma
+# delas le comentario, e nenhuma delas faz achado sumir.
+
+# --------------------------------------------------------------------------
+# 1. O caminho e de teste?
+#
+# Casado contra o caminho relativo ao repositorio, normalizado com `/`, sem
+# diferenciar maiusculas. A marca declara ONDE ela casa, e a posicao nao e
+# detalhe: a primeira versao casava `test_` em qualquer lugar do nome e
+# classificava `scripts/generate_test_password.py` como arquivo de teste —
+# justamente o 19o caso, o unico REAL dos 19 CRITICOs medidos. Consertar 18
+# falsos-positivos teria custado o unico verdadeiro.
+#
+#   /x/   componente de DIRETORIO — `/tests/` casa `app/tests/a.py`
+#         e nao casa `app/testsuite.py`
+#   ^x    o nome do arquivo COMECA com x  — `^test_` casa `test_login.py`
+#                                           e nao casa `generate_test_x.py`
+#   x$    o nome SEM EXTENSAO termina com x — `_test$` casa `login_test.go`
+#   x     qualquer outra marca casa como pedaco do nome do arquivo
+caminhos_de_teste:
+  - /tests/
+  - /test/
+  - /spec/
+  - /specs/
+  - /fixtures/
+  - /fixture/
+  - /__tests__/
+  - /__mocks__/
+  - /testdata/
+  - /e2e/
+  - /cypress/
+  - conftest
+  - ^test_
+  - _test$
+  - .test.
+  - .spec.
+  - _spec$
+  - .fixture.
+
+# --------------------------------------------------------------------------
+# 2. O valor e obviamente sintetico?
+#
+# Casado contra o LITERAL capturado pelo padrao do check, sem diferenciar
+# maiusculas. Vale sozinho, fora de `tests/` inclusive: `password = "xxxxx"`
+# num script de exemplo tambem nao merece dirigir o gate.
+#
+# A lista e curta de proposito. Cada termo aqui e uma credencial que a suite
+# deixa de tratar como bloqueante — inchar esta lista e a forma mais silenciosa
+# de desligar P-06 e S-06, e por isso `tests/test_regua.py` vigia o piso E
+# reprova a entrada de termos que casariam com segredo de verdade.
+valores_sinteticos:
+  - test
+  - teste
+  - example
+  - exemplo
+  - dummy
+  - fake
+  - mock
+  - sample
+  - changeme
+  - change_me
+  - placeholder
+  - your_
+  - my_secret
+  - foobar
+  - xxxx
+  # NAO acrescente marca puramente numerica aqui. `123456` chegou a entrar e
+  # rebaixou as DUAS mutacoes canonicas (`...-1234567890`, `...-0123456789`):
+  # uma sequencia de digitos aparece dentro de segredo real com facilidade, e
+  # marca que rebaixa por acidente e pior que marca que falta — a primeira
+  # tira do gate um segredo vivo, a segunda so deixa um falso-positivo.
+  - password
+  - senha123
+  - secret123
+  - notarealkey
+  - invalid
+  - invalido
+  - wrong
+  - errado
+  - deadbeef

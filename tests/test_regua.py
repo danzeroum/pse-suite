@@ -34,6 +34,23 @@ PISO = {
 }
 
 
+# `credenciais` tem o piso INVERTIDO alem do normal: aqui, ACRESCENTAR termo
+# encolhe a cobertura. Cada valor sintetico e uma credencial que a suite deixa
+# de tratar como bloqueante, e inchar essa lista e a forma mais silenciosa de
+# desligar P-06 e S-06 — mais silenciosa que apagar o check, porque os
+# achados continuam saindo, em MEDIO, e o laudo parece o mesmo.
+VALORES_QUE_NAO_PODEM_ENTRAR = {
+    # Sequencia de digitos aparece dentro de segredo real com facilidade.
+    # `123456` chegou a entrar e rebaixou as DUAS mutacoes canonicas.
+    "123456", "1234567890", "0123456789", "000000", "111111",
+    # Radicais curtos demais: casariam com metade dos segredos do mundo.
+    "a", "ab", "abc", "key", "secret", "token", "pass", "pwd",
+    # Marcas que descrevem AMBIENTE, nao valor descartavel. Um segredo de
+    # staging e um segredo.
+    "staging", "homolog", "dev", "local", "sandbox", "qa",
+}
+
+
 @pytest.fixture(scope="module")
 def regua(tmp_path_factory):
     return Contexto(tmp_path_factory.mktemp("vazio")).data
@@ -72,3 +89,50 @@ def test_ignorar_nao_engole_host_real(regua):
     assert not excedente, (
         f"hosts fora da lista de exemplos entraram em `ignorar`: {sorted(excedente)}"
     )
+
+
+# ============================================ a regua do conserto de severidade
+def test_piso_dos_caminhos_de_teste(regua):
+    """Remover uma marca daqui faz P-06/S-06 voltarem a reprovar o CI por
+    causa de fixture — o defeito que a rodada de reconhecimento mediu."""
+    marcas = {str(m).lower() for m in regua["credenciais"]["caminhos_de_teste"]}
+    piso = {"/tests/", "/fixtures/", "/__tests__/", "conftest",
+            "^test_", "_test$", ".test.", ".spec."}
+    faltando = piso - marcas
+    assert not faltando, (
+        f"marca(s) removida(s) de credenciais.yaml [caminhos_de_teste]: "
+        f"{sorted(faltando)} — sem elas o gate volta a ser dirigido por fixture")
+
+
+def test_a_posicao_da_marca_esta_declarada(regua):
+    """`test_` sem ancora casaria `generate_test_password.py`, que e o unico
+    caso REAL dos 19 medidos. A ancora nao e estilo: e o que impede o conserto
+    de cegar o achado que ele existe para preservar."""
+    marcas = {str(m).lower() for m in regua["credenciais"]["caminhos_de_teste"]}
+    assert "test_" not in marcas, (
+        "`test_` sem `^` casa em qualquer posicao do nome e cega "
+        "`generate_test_password.py` — use `^test_`")
+    assert "_test" not in marcas, "use `_test$`, nao `_test`"
+
+
+def test_valor_sintetico_nao_pode_casar_segredo_real(regua):
+    """O piso INVERTIDO. Acrescentar termo a esta lista encolhe a cobertura, e
+    e o jeito mais silencioso de desligar os dois checks: os achados continuam
+    saindo, em MEDIO, e o laudo parece o mesmo de antes."""
+    valores = {str(v).lower() for v in regua["credenciais"]["valores_sinteticos"]}
+    intrusos = valores & VALORES_QUE_NAO_PODEM_ENTRAR
+    assert not intrusos, (
+        f"marca(s) que rebaixariam segredo real em credenciais.yaml: "
+        f"{sorted(intrusos)}. Marca que rebaixa por acidente e pior que marca "
+        f"que falta — a primeira tira do gate um segredo vivo.")
+    curtas = {v for v in valores if len(v) < 4}
+    assert not curtas, (
+        f"marca(s) curta(s) demais: {sorted(curtas)} — casariam por acidente")
+
+
+def test_a_regua_de_credencial_nao_suprime(regua):
+    """A garantia de contrato: nao existe grupo `ignorar` nesta regua. Se um
+    dia existir, alguem esta transformando rebaixamento em supressao."""
+    assert set(regua["credenciais"]) == {"caminhos_de_teste", "valores_sinteticos"}, (
+        "grupo novo em credenciais.yaml — se for lista de supressao, a trava "
+        "virou algo que o vigiado desliga movendo o segredo de arquivo")
