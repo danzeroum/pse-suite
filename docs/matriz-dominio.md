@@ -1,4 +1,4 @@
-# Matriz pilar x dominio — os 36 checks
+# Matriz pilar x dominio — os 40 checks
 
 > **Gerado**, nunca escrito a mao: `python -m pse.matriz > docs/matriz-dominio.md`.
 > Ha teste que reprova se este arquivo divergir do catalogo — um mapa
@@ -13,12 +13,12 @@ um check pode examinar mais de um estrato.
 
 | | frontend | api | backend | data | ai | total no pilar |
 |---|---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | **—** | 13 |
-| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 S-08 | S-05 S-08 | **—** | 9 |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | P-15 P-16 | 15 |
+| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 S-08 | S-05 S-08 | S-10 S-11 | 11 |
 | **ethics** | **—** | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04 E-05 E-06 E-07 E-09 E-10 E-11 E-12 | 14 |
-| **total no dominio** | 3 | 12 | 11 | 11 | 11 | 36 |
+| **total no dominio** | 3 | 12 | 11 | 11 | 15 | 40 |
 
-A soma da ultima linha (48) e maior que 36 porque um check aparece em
+A soma da ultima linha (52) e maior que 40 porque um check aparece em
 mais de uma coluna quando examina mais de um estrato. Nao e erro de contagem:
 e a multiplicidade do dominio, que e exatamente a razao de ele nao caber
 no prefixo do ID.
@@ -31,9 +31,17 @@ sem resposta: cada uma abaixo precisa de um *nao se aplica* ou de um
 
 | Pilar x dominio | Leitura |
 |---|---|
-| `privacy` x `ai` | **Falta check.** Privacidade em IA hoje so existe de rabo de olho, via ethics (E-11 PII em prompt, E-12 derivado anonimo). Dado pessoal usado como feature de treino e questao de privacidade — base legal, finalidade, retencao do dataset — e ninguem pergunta isso. |
-| `security` x `ai` | **Falta check.** Nada olha injecao de prompt, envenenamento de contexto, ou exfiltracao pela resposta do modelo. E a superficie mais nova do sistema e a menos coberta da matriz. |
 | `ethics` x `frontend` | **Falta check.** O material de fundacao tem farto insumo aqui — dark pattern, recusar mais dificil que aceitar, desinformacao de interface. Ficou fora do pacote fundador de proposito: exige julgamento, e AST sozinha nao decide se um botao e coercitivo. |
+
+### Buracos ja fechados
+
+Ficam registrados: e a historia que mostra o mapa cumprindo a funcao — a
+celula vazia virou pergunta, e a pergunta virou check.
+
+| Pilar x dominio | Como foi fechado |
+|---|---|
+| `privacy` x `ai` | Existia so de rabo de olho, via ethics. Fechado por **P-15** (dado pessoal como feature de treino sem finalidade declarada) e **P-16** (dataset de treino sem governanca). |
+| `security` x `ai` | Estava vazio. Fechado por **S-10** (injecao de prompt: instrucao concatenada, caractere invisivel, token flooding) e **S-11** (saida do modelo em sink perigoso). Nasceram olhando o estrato. |
 
 ## Densidade por dominio
 
@@ -46,9 +54,9 @@ foi etiquetado depois. So o frontend passou pela primeira porta.
 | `api` | 12 | Todos classificados a posteriori. Nenhum nasceu da pergunta 'o que e proprio de uma API?' — vieram do Trabalho A e foram etiquetados depois. |
 | `backend` | 11 | A posteriori. Sao os estaticos do inventario, reclassificados. |
 | `data` | 11 | A posteriori, mas o mais coerente dos quatro herdados: catalogo, retencao, k-anonimato e lineage sao genuinamente do estrato de dados. |
-| `ai` | 11 | A posteriori e concentrado num pilar so. Privacy e security em IA estao vazios (ver buracos). |
+| `ai` | 15 | Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os demais foram etiquetados a posteriori. Primeiro dominio herdado a receber checks proprios. |
 
-## Os 36, um por linha
+## Os 40, um por linha
 
 | Check | Pilar | Dominio(s) | Titulo |
 |---|---|---|---|
@@ -79,6 +87,8 @@ foi etiquetado depois. So o frontend passou pela primeira porta.
 | `P-11` | privacy | api | Oraculo de existencia — 403 vs 404 distinguivel |
 | `P-13` | privacy | frontend | Controle de consentimento pre-marcado |
 | `P-14` | privacy | frontend | PII no armazenamento do cliente ou na URL |
+| `P-15` | privacy | ai | Dado pessoal como feature de treino sem finalidade declarada |
+| `P-16` | privacy | ai | Dataset de treino sem governanca declarada |
 | `S-01` | security | api | BOLA/IDOR — recurso de titular sem assertOwnership |
 | `S-02` | security | api | Rate limit + paginacao por cursor (anti-extracao em massa) |
 | `S-03` | security | api | Erros e webhooks sem PII no payload |
@@ -88,6 +98,8 @@ foi etiquetado depois. So o frontend passou pela primeira porta.
 | `S-07` | security | api, backend | Propagacao de finalidade (X-Purpose) + log de auditoria estruturado |
 | `S-08` | security | data, backend | Transferencia internacional exige base declarada no manifesto |
 | `S-09` | security | frontend | Token sensivel persistido no cliente |
+| `S-10` | security | ai | Injecao de prompt (instrucao, invisivel, flooding) |
+| `S-11` | security | ai | Saida do modelo em sink perigoso sem validacao |
 
 Todo check tem ao menos um dominio, e todo prefixo corresponde ao pilar —
 as duas coisas sao verificadas em `tests/test_dominio.py`.

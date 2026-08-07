@@ -143,3 +143,57 @@ def test_pii_do_frontend_vem_da_regua_geral(regua):
     assert 'ctx.data["pii-patterns"]' in codigo
     for termo in ("cpf", "titulo_eleitor", "passaporte"):
         assert f'"{termo}"' not in codigo and f"'{termo}'" not in codigo
+
+
+def test_regua_adversarial_e_vigiada(regua):
+    """S-10 e S-11 derivam de `adversarial-patterns`. Esvaziar um grupo aqui
+    cega um vetor de injeção inteiro em silêncio — o D-13 no estrato de IA."""
+    adv = regua["adversarial-patterns"]
+    piso = {
+        "fontes_de_entrada_do_usuario": {"request", "body", "params", "argv"},
+        "protecoes": None,          # conferido abaixo, por subgrupo
+        "chamadas_de_treino": {"fit", "train"},
+        "carregadores_de_dataset": {"read_csv", "read_parquet"},
+        "finalidades_de_treino": {"treino", "training"},
+        "validacoes_de_saida": {"valid", "schema", "escape"},
+    }
+    for grupo, esperado in piso.items():
+        if esperado is None:
+            continue
+        presentes = {t.lower() for t in adv[grupo]}
+        faltando = esperado - presentes
+        assert not faltando, (
+            f"termo(s) removido(s) de adversarial-patterns.yaml [{grupo}]: "
+            f"{sorted(faltando)}")
+
+    for grupo in ("sanitizacao", "normalizacao", "limite", "delimitacao"):
+        assert adv["protecoes"].get(grupo), (
+            f"grupo de proteção '{grupo}' vazio: S-10 passaria a exigir uma "
+            f"proteção que nenhum nome consegue satisfazer, e todo pipeline "
+            f"viraria CRÍTICO")
+
+    for grupo in ("execucao", "banco", "rede", "arquivo"):
+        assert adv["sinks_perigosos"].get(grupo), (
+            f"categoria de sink '{grupo}' vazia: S-11 pararia de ver aquela "
+            f"classe de execução")
+
+
+def test_invisiveis_da_regua_cobrem_zero_width_e_bidi(regua):
+    """O vetor que sobrevive à revisão humana. Remover a categoria cega S-10
+    sem que nenhum diff mostre a perda."""
+    invisiveis = set(regua["adversarial-patterns"]["caracteres_invisiveis"])
+    assert invisiveis, "categoria de invisíveis vazia — S-10 fica cego ao vetor 2"
+    for c in ("​", "‌", "⁠", "﻿", "‮", "‭", "⁦"):
+        assert c in invisiveis, f"faltando U+{ord(c):04X} na régua de invisíveis"
+    teto = regua["adversarial-patterns"]["token_flooding"]["caracteres_maximos_aceitos"]
+    assert isinstance(teto, int) and 0 < teto <= 200_000, (
+        f"teto de token flooding implausível: {teto}")
+
+
+def test_s10_e_s11_nao_tem_lista_propria():
+    raiz = Path(__file__).resolve().parent.parent / "pse" / "checks" / "security"
+    for nome in ("s10_injecao_de_prompt.py", "s11_saida_do_modelo_em_sink.py"):
+        codigo = (raiz / nome).read_text(encoding="utf-8")
+        assert "adversarial-patterns" in codigo
+        for proibido in ("\\u200b", "\\u202e", '"exec"', "'exec'", '"request"'):
+            assert proibido not in codigo, f"{proibido!r} hardcoded em {nome}"

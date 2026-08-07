@@ -164,6 +164,19 @@ def nome_chamado(no: ast.AST) -> str:
     return ".".join(reversed(partes))
 
 
+def nome_casa(nome: str, marcas) -> bool:
+    """A marca casa com um TOKEN do nome, nao com substring perdida no meio.
+
+    `delimitar` contem `limitar`: com casamento por substring, delimitar uma
+    entrada passava a valer como limitar o tamanho dela, e um vetor de
+    injecao inteiro sumia em silencio. Tokenizar por `.` e `_` e exigir
+    prefixo resolve — `delimitar`.startswith(`limitar`) e falso, e
+    `delimitar`.startswith(`delimit`) e verdadeiro.
+    """
+    tokens = re.split(r"[._]+", str(nome).lower())
+    return any(t.startswith(m.lower()) for t in tokens if t for m in marcas)
+
+
 def chamadas(no: ast.AST):
     """Todas as chamadas dentro de um no, com nome resolvido."""
     for sub in ast.walk(no):

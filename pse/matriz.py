@@ -21,20 +21,25 @@ PILARES = ("privacy", "security", "ethics")
 # Julgamento sobre cada celula vazia. Vazio nao e defeito por definicao — e
 # pergunta; o que nao pode e ficar sem resposta.
 LEITURA_DOS_BURACOS = {
-    ("privacy", "ai"):
-        "**Falta check.** Privacidade em IA hoje so existe de rabo de olho, "
-        "via ethics (E-11 PII em prompt, E-12 derivado anonimo). Dado pessoal "
-        "usado como feature de treino e questao de privacidade — base legal, "
-        "finalidade, retencao do dataset — e ninguem pergunta isso.",
-    ("security", "ai"):
-        "**Falta check.** Nada olha injecao de prompt, envenenamento de "
-        "contexto, ou exfiltracao pela resposta do modelo. E a superficie mais "
-        "nova do sistema e a menos coberta da matriz.",
     ("ethics", "frontend"):
         "**Falta check.** O material de fundacao tem farto insumo aqui — dark "
         "pattern, recusar mais dificil que aceitar, desinformacao de interface. "
         "Ficou fora do pacote fundador de proposito: exige julgamento, e AST "
         "sozinha nao decide se um botao e coercitivo.",
+}
+
+# Buracos que a matriz expos e que ja foram fechados. Ficam registrados: e a
+# historia que mostra o mapa cumprindo a funcao — apagar seria perder a prova
+# de que a celula vazia virou pergunta, e a pergunta virou check.
+BURACOS_FECHADOS = {
+    ("security", "ai"):
+        "Estava vazio. Fechado por **S-10** (injecao de prompt: instrucao "
+        "concatenada, caractere invisivel, token flooding) e **S-11** (saida do "
+        "modelo em sink perigoso). Nasceram olhando o estrato.",
+    ("privacy", "ai"):
+        "Existia so de rabo de olho, via ethics. Fechado por **P-15** (dado "
+        "pessoal como feature de treino sem finalidade declarada) e **P-16** "
+        "(dataset de treino sem governanca).",
 }
 
 LEITURA_DA_DENSIDADE = {
@@ -50,8 +55,9 @@ LEITURA_DA_DENSIDADE = {
         "A posteriori, mas o mais coerente dos quatro herdados: catalogo, "
         "retencao, k-anonimato e lineage sao genuinamente do estrato de dados.",
     "ai":
-        "A posteriori e concentrado num pilar so. Privacy e security em IA "
-        "estao vazios (ver buracos).",
+        "Os quatro mais novos (S-10, S-11, P-15, P-16) nasceram do estrato; os "
+        "demais foram etiquetados a posteriori. Primeiro dominio herdado a "
+        "receber checks proprios.",
 }
 
 
@@ -109,6 +115,15 @@ def gerar() -> str:
         L.append(f"| `{p}` x `{d}` | "
                  f"{LEITURA_DOS_BURACOS.get((p, d), '**Sem leitura declarada.**')} |")
     L.append("")
+    if BURACOS_FECHADOS:
+        L += ["### Buracos ja fechados", "",
+              "Ficam registrados: e a historia que mostra o mapa cumprindo a "
+              "funcao — a", "celula vazia virou pergunta, e a pergunta virou "
+              "check.", "",
+              "| Pilar x dominio | Como foi fechado |", "|---|---|"]
+        for (p, d), texto in sorted(BURACOS_FECHADOS.items()):
+            L.append(f"| `{p}` x `{d}` | {texto} |")
+        L.append("")
 
     L += ["## Densidade por dominio", "",
           "O numero sozinho engana: o que interessa e se o check NASCEU do "

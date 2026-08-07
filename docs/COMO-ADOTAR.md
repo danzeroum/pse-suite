@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.7.0
+pse-suite==0.8.0
 ```
 
 ## 2. Config declarativa
@@ -394,3 +394,50 @@ bloqueia, em vez de fingir cobertura.
 P-13 e P-14 são CRÍTICOs, então **falso-positivo aqui custa o pack inteiro**:
 o time de frontend aprende a ignorá-lo no primeiro dia. Por isso os testes que
 provam que o caso correto **não** dispara vêm antes dos que provam a violação.
+
+## 16. Estrato de IA (S-10 · S-11 · P-15 · P-16)
+
+Estáticos, no `pse_inventory`. Fecham os dois buracos que a matriz expôs.
+
+**S-10 · injeção de prompt.** Três vetores, um check, um CRÍTICO — é o mesmo
+ponto de entrada:
+
+```python
+llm.complete("resuma: " + request.body)              # CRÍTICO (os três vetores)
+llm.complete(sanitize(request.body))                 # conforme (genérico cobre tudo)
+t = delimitar(truncar(normalizar_nfkc(req.body), 4000))
+llm.complete(t)                                      # conforme (uma proteção por vetor)
+# sanitize later  →  llm.complete(request.body)      # CRÍTICO: menção não protege
+```
+
+Fontes de entrada, codepoints invisíveis, teto de tamanho e nomes de proteção
+vivem em `pse/data/adversarial-patterns.yaml`, com teste-guarda de piso.
+
+**S-11 · saída do modelo em sink perigoso.** Rastreio curto e honesto: o
+aninhamento direto (`exec(llm.complete(p))`) e uma variável
+(`r = llm.complete(p)` … `db.query(r)`). Não promete fluxo interprocedural —
+prometer o que não se entrega seria pior que a lacuna.
+
+**P-15 · PII como feature de treino.** Declare a finalidade no catálogo:
+
+```yaml
+cpf:
+  purpose: analise_de_credito, treino_de_modelo   # inclui treino → não dispara
+  legal_basis: consentimento                       # sensível exige Art. 11
+```
+
+**P-16 · dataset de treino sem governança.** Nova seção no catálogo, com o
+mesmo rigor que se cobra de uma tabela:
+
+```yaml
+datasets:
+  base_credito:
+    finalidade: treino_de_modelo_de_risco
+    retention_years: 2
+    origem: postgres.clientes
+    base_legal: consentimento
+```
+
+Sem treino no código, P-15 e P-16 são **pulados com motivo**. Com treino e sem
+catálogo, P-15 é **indeterminado** (exit 20) — sem inventário a pergunta não é
+respondível.

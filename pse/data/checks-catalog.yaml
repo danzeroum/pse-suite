@@ -790,3 +790,103 @@ checks:
           }
       espera_severidade: ALTO
 
+  # --- Dominio AI: os dois buracos que a matriz expos -----------------------
+  # security x ai estava VAZIO e privacy x ai existia so de rabo de olho, via
+  # ethics. Estes quatro nasceram olhando o estrato — nao sao etiquetagem a
+  # posteriori, que foi a leitura critica da matriz sobre api/backend/data.
+  S-10:
+    pack: security
+    domain: [ai]
+    titulo: Injecao de prompt (instrucao, invisivel, flooding)
+    base_legal: LGPD Art. 46 (seguranca) + OWASP LLM01
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [E-11, S-11]
+    canonical_mutation:
+      descricao: entrada do usuario concatenada no prompt sem tratamento
+      arquivos:
+        a.py: |
+          import llm
+          from flask import request
+
+
+          def f():
+              return llm.complete("resuma: " + request.body)
+      espera_severidade: CRITICO
+  S-11:
+    pack: security
+    domain: [ai]
+    titulo: Saida do modelo em sink perigoso sem validacao
+    base_legal: LGPD Art. 46 (seguranca) + OWASP LLM02
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [S-10]
+    canonical_mutation:
+      descricao: resposta do modelo executada sem validacao
+      arquivos:
+        a.py: |
+          import llm
+
+
+          def f(p):
+              exec(llm.complete(p))
+      espera_severidade: CRITICO
+  P-15:
+    pack: privacy
+    domain: [ai]
+    titulo: Dado pessoal como feature de treino sem finalidade declarada
+    base_legal: LGPD Art. 6o I e III (finalidade e necessidade)
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [P-04, P-08, E-06]
+    canonical_mutation:
+      descricao: CPF vira feature de treino com finalidade de cobranca no catalogo
+      arquivos:
+        a.py: |
+          def treinar(df, modelo):
+              modelo.fit(df[["cpf"]], df["y"])
+        catalog.yaml: |
+          tables:
+            clientes:
+              fields:
+                cpf:
+                  class: personal
+                  owner: financeiro
+                  purpose: cobranca
+                  legal_basis: contrato
+                  retention_years: 5
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+  P-16:
+    pack: privacy
+    domain: [ai]
+    titulo: Dataset de treino sem governanca declarada
+    base_legal: LGPD Art. 6o I e V + Art. 16 (finalidade, qualidade e eliminacao)
+    tipo: estatico
+    modo: inventory
+    fase: 6
+    status: implementado
+    supports: [E-08, P-02]
+    canonical_mutation:
+      descricao: dataset carregado para treino sem entrada em `datasets`
+      arquivos:
+        a.py: |
+          import pandas as pd
+
+
+          def treinar(modelo):
+              df = pd.read_csv("dados/base_clientes.csv")
+              modelo.fit(df, df["y"])
+        catalog.yaml: |
+          tables: {}
+      config:
+        catalog_path: catalog.yaml
+      espera_severidade: ALTO
+

@@ -1,0 +1,23 @@
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: risco
+        purpose: analise_de_credito, treino_de_modelo
+        legal_basis: consentimento
+        retention_years: 5
+      renda:
+        class: personal
+        owner: risco
+        purpose: treino_de_modelo
+        legal_basis: contrato
+        retention_years: 5
+
+# P-16: governanca do dataset de treino, ao lado do inventario de campos.
+datasets:
+  base_credito:
+    finalidade: treino_de_modelo_de_risco
+    retention_years: 2
+    origem: postgres.clientes
+    base_legal: consentimento

@@ -54,8 +54,8 @@ está em jogo*; o domínio, *onde ele se manifesta no sistema*.
 
 | | frontend | api | backend | data | ai |
 |---|---|---|---|---|---|
-| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | — |
-| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | — |
+| **privacy** | P-13 P-14 | P-05 P-07 P-09 P-10 P-11 | P-01 P-06 | P-02 P-03 P-04 P-07 P-08 P-09 | **P-15 P-16** |
+| **security** | S-09 | S-01 S-02 S-03 S-07 | S-04 S-05 S-06 S-07 E-13* | S-05 S-08 | **S-10 S-11** |
 | **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
 
 O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
@@ -73,6 +73,25 @@ pse --pilar privacy --domain data   # o cruzamento
 Recorte que não alcança check nenhum é **exit 30**, não "conforme" — seria
 verde por não ter olhado. `cobertura.por_dominio` mostra estrato com zero
 checks como zero, em vez de omiti-lo.
+
+### O estrato de IA (S-10 · S-11 · P-15 · P-16)
+
+Os quatro que fecharam os buracos que a própria matriz expôs — e os primeiros
+de um domínio herdado a **nascerem olhando o estrato**, em vez de serem
+etiquetados a posteriori.
+
+- **S-10** — o que *entra* no modelo, em três vetores num só check: instrução
+  concatenada, caractere invisível (zero-width/bidi, a injeção que sobrevive à
+  revisão de código) e token flooding. Sanitizador genérico cobre os três;
+  proteção específica cobre a sua.
+- **S-11** — o que *sai*. Resposta de modelo não é código confiável: passá-la
+  a `exec`, ao banco ou ao shell transforma injeção de prompt em execução.
+- **P-15** — treinar é finalidade **nova**, não detalhe da antiga. CPF coletado
+  para cobrança virando feature de risco precisa da sua própria finalidade
+  declarada — e, se sensível, da hipótese do Art. 11.
+- **P-16** — o E-08 dos dados de treino. Dataset costuma ser o único artefato
+  que ninguém inventaria: vive num bucket e sobrevive a toda retenção porque
+  não está em tabela nenhuma.
 
 ## Os dois trabalhos
 
@@ -171,7 +190,7 @@ de um achado é `arquivo:linha`, nunca o literal.
 
 Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
-(exit 30), não `0.7.0-dev`.
+(exit 30), não `0.8.0-dev`.
 
 ## Autoprova — a régua obedece ao que receita
 

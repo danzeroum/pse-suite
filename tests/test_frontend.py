@@ -197,9 +197,9 @@ def test_gate_morde_no_frontend(tmp_path):
         assert f["domain"] == ["frontend"]
 
 
-def test_catalogo_36_completo():
+def test_catalogo_frontend_no_lugar():
     from pse import catalogo
-    assert len(catalogo.CATALOGO) == 36
+    assert len(catalogo.CATALOGO) == 40
     assert catalogo.previstos() == []
     assert catalogo.por_dominio()["frontend"] == 3
     for cid, pilar in (("P-13", "privacy"), ("P-14", "privacy"),

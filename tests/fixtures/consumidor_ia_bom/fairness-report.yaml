@@ -1,0 +1,12 @@
+# E-06: numero COM condicoes de medicao, ancorado ao dataset atual.
+modelo_versao: "1.4.0"
+dataset_fingerprint: fe8f847c68dbdc945197818e1be4a14dc3a8d35a7282cbee2af0bc8852b745d9
+medido_em: "2026-08-07T09:00:00Z"
+condicoes:
+  metrica: demographic_parity_difference
+  limiar_decisao: 0.5
+  n_amostras: 4
+  observacoes: coorte estratificada por grupo declarado
+grupos:
+  - {nome: A, n: 2, dpd: 0.0}
+  - {nome: B, n: 2, dpd: 0.01}
