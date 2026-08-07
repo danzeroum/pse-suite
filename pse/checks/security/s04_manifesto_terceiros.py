@@ -39,7 +39,18 @@ def manifesto_terceiros(ctx):
 
     detectados = {}
     for p in scan.arquivos(ctx.repo, EXTS):
-        for i, linha in enumerate(scan.ler(p).splitlines(), 1):
+        # D-01, e a lacuna foi encontrada pelo PRIMEIRO ALVO REAL. Ate aqui
+        # S-04 lia o texto cru, entao `// https://vite.dev/config/` — um
+        # link de documentacao num comentario — virava "host de terceiro nao
+        # registrado". Nenhuma fixture tinha URL em comentario, e o defeito
+        # atravessou o projeto inteiro dentro do check MAIS ANTIGO da suite.
+        #
+        # `codigo_efetivo` apaga comentario e PRESERVA literal de string, que
+        # e o certo aqui: `fetch("https://api.terceiro.com")` e egresso de
+        # verdade, e o literal E o fato. So a mencao sai.
+        texto = scan.ler(p)
+        efetivo = scan.codigo_efetivo(texto, p.suffix or ".py")
+        for i, linha in enumerate(efetivo.splitlines(), 1):
             for m in RX_HOST.finditer(linha):
                 host = m.group(1).lower()
                 if host in ignorar or any(host.endswith("." + ig) for ig in ignorar):

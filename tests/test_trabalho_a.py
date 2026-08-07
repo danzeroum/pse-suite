@@ -337,3 +337,87 @@ def test_http_so_e_aceito_em_loopback(url, aceita):
         with pytest.raises(EntradaInvalida) as e:
             autorizacao.validar_config(cfg, "pse_passive")
         assert "https" in str(e.value)
+
+
+# ============================================ alvo local: o degrau local_target
+def _att_local(**extra):
+    return {"attested_by": "arquiteto@danzeroum", "scope": ["pse_passive"],
+            "expires": "2030-01-01", **extra}
+
+
+@pytest.mark.mordida
+def test_loopback_sem_local_target_e_recusado():
+    """O buraco que o degrau existe para fechar.
+
+    Em 127.0.0.1 nao ha rede nem prova de posse a fazer — e e JUSTAMENTE por
+    isso que o degrau precisa ser explicito. Sem ele, qualquer coisa que suba
+    numa porta local viraria alvo sondavel sem registro, e o contrato
+    perderia o sentido no unico lugar onde e mais facil burla-lo.
+    """
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "http://127.0.0.1:8080",
+                      "environment": "staging",
+                      "authorization": _att_local()}}
+    autorizacao.validar_config(cfg, "pse_passive")     # config passa
+    with pytest.raises(CheckIndeterminado) as e:       # a atestacao, nao
+        autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert "local_target" in str(e.value)
+
+
+def test_loopback_com_local_target_dispensa_o_fingerprint():
+    """A porta do alvo local e efemera: um fingerprint que muda a cada
+    execucao viraria burocracia que o operador cola sem ler."""
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "http://127.0.0.1:54321",
+                      "environment": "staging",
+                      "authorization": _att_local(local_target=True)}}
+    autorizacao.validar_config(cfg, "pse_passive")
+    att = autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert att["local_target"] is True
+
+
+@pytest.mark.mordida
+def test_local_target_em_alvo_publicado_e_entrada_invalida():
+    """A fraude barata que o degrau NAO pode permitir: uma linha dispensando
+    a prova de posse de um host que nao e seu."""
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "https://alvo-de-terceiro.example.org",
+                      "environment": "staging",
+                      "authorization": _att_local(local_target=True)}}
+    with pytest.raises(EntradaInvalida) as e:
+        autorizacao.validar_config(cfg, "pse_passive")
+    assert "nao e loopback" in str(e.value).lower() or "NAO e loopback" in str(e.value)
+
+
+@pytest.mark.mordida
+def test_alvo_publicado_segue_exigindo_fingerprint():
+    """O degrau local nao pode ter afrouxado o caminho normal."""
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "https://staging.exemplo.com",
+                      "environment": "staging",
+                      "authorization": _att_local(target_fingerprint="errado")}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert "target_fingerprint" in str(e.value)
+
+
+@pytest.mark.mordida
+def test_local_target_nao_dispensa_escopo_nem_prazo():
+    """Alvo local continua sendo alvo: escopo e prazo valem igual. O degrau
+    substitui a prova de POSSE, nao a autorizacao."""
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    base = {"base_url": "http://localhost:9000", "environment": "staging"}
+
+    sem_ativo = {"target": {**base, "authorization": _att_local(local_target=True)}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(sem_ativo, "pse_active")
+    assert "scope" in str(e.value)
+
+    vencida = {"target": {**base, "authorization": _att_local(
+        local_target=True, expires="2020-01-01")}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(vencida, "pse_passive")
+    assert "vencida" in str(e.value)

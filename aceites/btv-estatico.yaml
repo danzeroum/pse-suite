@@ -1,0 +1,94 @@
+# Aceite estatico contra danzeroum/btv — o PRIMEIRO ALVO REAL da suite.
+#
+# Por que este alvo: btv exercita os cinco dominios ao mesmo tempo (web em
+# TS/TSX, backend em Rust, ferramentas em Python, dados em SQL/YAML, IA
+# multi-agente) e declara no proprio README os principios que a PSE
+# verifica — humano como gate (E-04), ledger encadeado (E-08), chave que
+# nao sai do processo (P-06/S-06). Alvo que afirma o que a suite cobra e o
+# melhor tipo de aceite: a divergencia, se houver, e informativa dos dois
+# lados.
+#
+# A COMPARACAO E POR FAIXA, NUNCA POR NUMERO EXATO. Exigir "exatamente 2
+# achados de S-04" transformaria cada commit do btv numa quebra do aceite, e
+# aceite que quebra toda semana e desligado no primeiro mes. O baseline fixa
+# o que NAO pode regredir: check que para de executar, check que para de
+# morder, falso positivo novo, e estrato que sai do alcance.
+
+alvo:
+  nome: danzeroum/btv
+  # Caminho local do clone. Ausente -> o aceite fica PENDENTE com motivo,
+  # nunca verde: nao ter olhado e diferente de ter olhado e nao achado nada.
+  caminho: /workspace/danzeroum/btv
+  como_obter: >-
+    git clone https://github.com/danzeroum/btv /workspace/danzeroum/btv
+    (repositorio publico; o aceite estatico nao depende de autorizacao
+    nenhuma — le codigo, nao toca o sistema no ar).
+
+pendente_desde: "2026-08-07"
+
+recorte:
+  modo: pse_inventory          # ESTATICO. O dinamico exige alvo no ar + atestacao.
+  pilares: [privacy, security, ethics]
+
+config: {}                     # btv ainda nao declara pse-config.yaml
+
+baseline:
+  # --------------------------------------------------------------- executar
+  # Estes rodaram contra o alvo real e decidiram. Um deles voltar a ficar
+  # `pulado` ou `indeterminado` e regressao de cobertura, e e exatamente o
+  # que nenhuma fixture pega: fixture e pequena, alvo real tem 400 arquivos e
+  # mil formas de quebrar um parser.
+  devem_executar:
+    [E-00, E-04, E-05, E-07, E-10, E-11,
+     P-01, P-03, P-04, P-06, P-07, P-09, P-17, P-20,
+     S-04, S-06, S-10, S-11, S-13, S-14, S-15]
+
+  # ----------------------------------------------------------------- achar
+  # Piso, nao alvo. O btv nao declara catalogo de dados nem modelo de
+  # consentimento, e carrega dois hosts de terceiro fora de manifesto — sao
+  # achados legitimos, e o dia em que ele os corrigir o baseline baixa junto,
+  # com a nota do porque.
+  devem_achar:
+    P-04: 1                    # sem tests/qa/catalog.yaml
+    P-07: 1                    # sem modelo de consentimento
+    S-04: 1                    # host de terceiro fora do manifesto
+
+  # -------------------------------------------------------- nao podem achar
+  # O lado que mais importa do aceite. Falso positivo num alvo real e o
+  # defeito mais caro desta suite: ele nao aparece em fixture (fixture e
+  # desenhada) e destroi a confianca do time no primeiro laudo.
+  #
+  # S-14 (dump de producao em ambiente inferior) e o caso a vigiar: o btv tem
+  # scripts de infra e `just` recipes cheios de nomes de ambiente, e um
+  # casamento frouxo acusaria migracao rotineira.
+  nao_podem_achar: [S-14, S-15, P-01, P-06, S-06, E-04, E-05, P-20]
+
+  veredito: indeterminado
+  # 20 porque squad.ts nao passa em nenhuma gramatica de TypeScript
+  # disponivel e E-06 nao tem dataset declarado. Indeterminado e a resposta
+  # CORRETA: a suite nao leu, e nao vai fingir que leu.
+  exit_code_em: [20]
+
+  # ---------------------------------------------------------------- alcance
+  linguagens_no_alcance: [Python, TypeScript, "TypeScript/TSX", JavaScript,
+                          YAML, JSON, SQL]
+  # A lacuna declarada. Se um dia a suite ganhar parser de Rust, este campo
+  # reprova e obriga a atualizar o baseline — a lacuna nao pode sumir do
+  # laudo em silencio, nem quando some por um bom motivo.
+  linguagens_fora_do_alcance: [Rust, TOML, Protobuf]
+
+# ------------------------------------------------------------- observacoes
+# O que este aceite JA revelou, e que nenhuma fixture tinha revelado:
+#
+#  1. S-04 lia COMENTARIO. `// https://vite.dev/config/` num vite.config.ts
+#     virava "host de terceiro nao registrado" — D-01 violado pelo check
+#     mais antigo da suite. Corrigido; ha teste-mordida.
+#  2. O laudo era SILENCIOSO sobre 137 arquivos Rust. Um leitor razoavel
+#     concluiria que o backend foi auditado e estava limpo. Nasceu o bloco
+#     `alcance`.
+#  3. A mensagem de erro de parse ACUSAVA O ALVO ("erro de sintaxe") num
+#     arquivo `.ts` que o `tsc` compila. Agora ela diz que pode ser o
+#     arquivo OU a gramatica, e nomeia a versao.
+#
+# Nenhum dos tres seria encontrado por mais fixtures. E a diferenca entre
+# verificar e validar.

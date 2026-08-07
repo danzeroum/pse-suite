@@ -13,7 +13,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from pse import catalogo, fingerprint
+from pse import alcance, catalogo, fingerprint
 from pse.correlacao import correlacionar
 from pse.model import (EXIT_CONFORME, EXIT_INDETERMINADO, EXIT_VIOLACAO_ALTA,
                        EXIT_VIOLACAO_CRITICA, Severidade, Veredito,
@@ -116,6 +116,11 @@ def montar_laudo(repo_path, resultados: dict, packs: set,
         # declarada, com motivo, que nao bloqueia.
         "checks_nao_habilitados": resultados.get("checks_nao_habilitados", []),
         "packs_fora_de_escopo": resultados.get("packs_fora_de_escopo", []),
+        # O que a suite NAO consegue ler, dito em voz alta. Nao e finding —
+        # nao ha defeito no alvo por ser escrito em Rust — mas sem este bloco
+        # "nenhum achado em .rs" seria indistinguivel de "Rust auditado e
+        # limpo". Ver pse/alcance.py.
+        "alcance": alcance.medir(repo),
         # A mesma falha vista em duas camadas. Indice sobre o que ja esta no
         # laudo — nenhum finding e removido ou alterado: deduplicar perderia
         # justamente a informacao que so o PAR carrega (ver pse/correlacao.py).

@@ -29,11 +29,11 @@ DISPARA_EM = {"passive": ("pse_passive", "pse_active"), "active": ("pse_active",
 RX_DATA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-# Hosts de loopback. Unica excecao a exigencia de https:// — ver `_e_loopback`.
+# Hosts de loopback. Unica excecao a exigencia de https:// — ver `e_loopback`.
 LOOPBACK = ("127.0.0.1", "localhost", "[::1]", "::1")
 
 
-def _e_loopback(base_url: str) -> bool:
+def e_loopback(base_url: str) -> bool:
     """`http://` so e aceito quando o alvo nao sai da maquina.
 
     MUDANCA DE REGRA, declarada. A exigencia de https existe por UM motivo
@@ -91,7 +91,7 @@ def validar_config(config: dict, modo: str):
 
     alvo = alvo_de(config)
     base_url = str(alvo.get("base_url"))
-    if not base_url.startswith("https://") and not _e_loopback(base_url):
+    if not base_url.startswith("https://") and not e_loopback(base_url):
         raise EntradaInvalida(
             f"target.base_url deve ser https:// (recebido {base_url!r}) — uma "
             f"sonda de autorizacao em texto claro vaza o proprio token de teste")
@@ -101,6 +101,20 @@ def validar_config(config: dict, modo: str):
         raise EntradaInvalida(
             f"target.environment deve ser staging ou production "
             f"(recebido {ambiente!r})")
+
+    # `local_target` so vale para alvo local. Declara-lo num alvo publicado
+    # seria a atestacao mentindo sobre O QUE ela autoriza — e a fraude e
+    # barata: bastaria a linha para dispensar a prova de posse do host.
+    # Entrada invalida (exit 30), nao indeterminacao: nao e falta de
+    # autorizacao, e declaracao incoerente com o proprio alvo.
+    att_previa = alvo.get("authorization") or {}
+    if att_previa.get("local_target") is True and not e_loopback(base_url):
+        raise EntradaInvalida(
+            f"`local_target: true` declarado para {base_url!r}, que NAO e "
+            f"loopback. O degrau de alvo local existe porque em 127.0.0.1 nao "
+            f"ha rede nem prova de posse a fazer; usa-lo num alvo publicado "
+            f"dispensaria justamente a verificacao que amarra a atestacao ao "
+            f"host. Remova a linha, ou aponte para um alvo local")
 
     # A recusa da v1: sonda ativa so em staging. Levantada aqui, antes de
     # qualquer requisicao — inclusive antes do healthcheck.
@@ -147,13 +161,31 @@ def validar_atestacao(config: dict, modo: str):
         raise CheckIndeterminado(
             f"atestacao vencida em {prazo} — renove antes de auditar de novo")
 
-    esperado = fingerprint_alvo(alvo.get("base_url"))
-    declarado = str(att.get("target_fingerprint") or "")
-    if declarado != esperado:
-        raise CheckIndeterminado(
-            "target_fingerprint nao corresponde a base_url declarada — a "
-            "atestacao foi emitida para outro alvo, e apontar a suite para um "
-            "host diferente nao herda autorizacao")
+    # ---------------------------------------------- prova de posse do alvo
+    # Alvo PUBLICADO: o fingerprint amarra a atestacao a ESTA base_url.
+    # Alvo LOCAL: a porta e efemera (o processo sobe onde da), entao o
+    # fingerprint mudaria a cada execucao e viraria burocracia que o
+    # operador aprenderia a colar sem ler. O degrau `local_target` o
+    # SUBSTITUI — e nao o dispensa: continua sendo uma linha que alguem
+    # escreveu, num arquivo versionado, dizendo "sei que estou sondando a
+    # minha propria maquina". Sem ela, loopback e recusado.
+    if e_loopback(alvo.get("base_url")):
+        if att.get("local_target") is not True:
+            raise CheckIndeterminado(
+                "alvo em loopback exige `local_target: true` na atestacao. Em "
+                "127.0.0.1 nao ha rede nem prova de posse a fazer — mas "
+                "justamente por isso o degrau tem de ser explicito: sem ele, "
+                "qualquer coisa que suba numa porta local viraria alvo "
+                "sondavel sem registro, e o contrato perderia o sentido no "
+                "unico lugar onde e mais facil burla-lo")
+    else:
+        esperado = fingerprint_alvo(alvo.get("base_url"))
+        declarado = str(att.get("target_fingerprint") or "")
+        if declarado != esperado:
+            raise CheckIndeterminado(
+                "target_fingerprint nao corresponde a base_url declarada — a "
+                "atestacao foi emitida para outro alvo, e apontar a suite para "
+                "um host diferente nao herda autorizacao")
 
     if modo == "pse_active" and att.get("synthetic_identities") is not True:
         raise CheckIndeterminado(

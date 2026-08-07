@@ -7,7 +7,7 @@ nenhuma régua, nenhum threshold fora das faixas que a suite valida.
 
 ```
 # requirements-qa.txt  — único lugar com o número; todo o resto referencia
-pse-suite==0.12.0
+pse-suite==0.13.0
 ```
 
 ## 2. Config declarativa
@@ -798,3 +798,77 @@ Clicar no banner de consentimento, submeter formulário, exercer direito de
 titular, buscar o `.map`, pedir arquivo não linkado. Tudo isso **escreve ou
 sonda** o sistema do alvo, e fica atrás de `pse_active` com atestação de
 escopo própria. Na dúvida entre passivo e ativo, ativo.
+
+## 22. Alvo local (`local_target`) e o teste de aceite
+
+### `127.0.0.1` é caso especial, e por isso tem degrau próprio
+
+Aplicação local-first (o `danzeroum/btv` é o caso) roda em loopback. Ali não
+há rede: o pacote não passa por interface física, não há intermediário e não
+há prova de posse a fazer — a razão da exigência de `https://` não alcança o
+caso.
+
+**E é justamente por isso que o degrau precisa ser explícito.** Sem ele,
+qualquer coisa que suba numa porta local viraria alvo sondável sem registro,
+e o contrato perderia o sentido no único lugar onde é mais fácil burlá-lo.
+
+```yaml
+pse_suite:
+  target:
+    base_url: http://127.0.0.1:8080     # http só em loopback
+    environment: staging
+    healthcheck: /health
+    authorization:
+      attested_by: nome@dominio
+      scope: [pse_passive]
+      expires: "2026-12-31"
+      local_target: true                # SUBSTITUI o target_fingerprint
+```
+
+| Situação | Resultado |
+|---|---|
+| loopback **sem** `local_target` | **indeterminado** (exit 20) |
+| `local_target: true` em alvo **publicado** | **exit 30** — a atestação estaria mentindo sobre o alvo |
+| alvo publicado | `target_fingerprint` segue **obrigatório** |
+| loopback + `local_target`, escopo/prazo faltando | indeterminado — o degrau substitui a prova de **posse**, não a autorização |
+| alvo local **não iniciado** | indeterminado, **zero requisições** |
+
+`local_target` substitui o fingerprint porque a porta de um alvo local é
+efêmera: um fingerprint que muda a cada execução vira burocracia que o
+operador aprende a colar sem ler.
+
+### O bloco `alcance` — o que a suite **não** leu
+
+Todo laudo agora carrega:
+
+```json
+"alcance": {
+  "lidos": [{"linguagem": "Python", "arquivos": 88, "ferramenta": "ast (stdlib)"}],
+  "fora_de_alcance": [{"linguagem": "Rust", "arquivos": 137}],
+  "arquivos_fora_de_alcance": 173,
+  "nota": "AUSENCIA DE ACHADO NAS LINGUAGENS ACIMA NAO E ATESTADO DE CONFORMIDADE..."
+}
+```
+
+Não é finding — não há defeito no alvo por ser escrito em Rust. É **estado**:
+sem ele, "nenhum achado em `.rs`" seria indistinguível de "Rust auditado e
+limpo". Um consumidor que exija cobertura de Rust lê este bloco e decide.
+
+### Teste de aceite (`aceites/*.yaml`)
+
+A fixture prova que o **check** está certo. O aceite prova que a **régua**
+reproduz um sistema real. São coisas diferentes, e a segunda só existe com
+alvo de verdade.
+
+```bash
+python -m pse.aceite          # roda todos os aceites declarados
+pytest -m pse_aceite          # o mesmo, como teste
+```
+
+O baseline compara por **faixa**, nunca por número exato — aceite que quebra
+a cada commit do alvo é desligado no primeiro mês. O que ele fixa:
+check que **parou de executar**, check que **parou de morder**, **falso
+positivo novo**, e **estrato que saiu do alcance**.
+
+**Alvo ausente → PENDENTE com motivo datado, nunca verde.** Mesma regra dos
+checks dinâmicos, aplicada ao próprio aceite.

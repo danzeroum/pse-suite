@@ -14,43 +14,89 @@ from pse.model import CheckIndeterminado
 EXTS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 _TSX = {".ts", ".tsx"}
 _CACHE = {}
+_VERSAO = {}
 
 
 class ParserIndisponivel(CheckIndeterminado):
     """Ambiente sem gramatica instalada. Indeterminado, nunca verde."""
 
 
-def _linguagem(ext: str):
+def _versao_do_pacote(nome: str) -> str:
+    """Versao da gramatica instalada. Entra no laudo: a mesma construcao pode
+    ser legivel numa versao e nao na seguinte, e sem o numero o laudo nao
+    consegue explicar por que dois ambientes discordaram."""
+    try:
+        from importlib.metadata import version
+        return version(nome)
+    except Exception:                       # pragma: no cover - ambiente
+        return "desconhecida"
+
+
+def _gramaticas(ext: str) -> list:
+    """(nome, Parser) a tentar, em ordem. Mais de uma para `.ts`.
+
+    `.ts` e `.tsx` sao gramaticas DIFERENTES no tree-sitter, e nenhuma das
+    duas e superconjunto da outra: a de tsx trata `<T>` como JSX, a de
+    typescript nao conhece JSX. Tentar as duas e mais barato que escolher
+    errado — e escolher errado produz "erro de sintaxe" num arquivo que o
+    `tsc` compila sem reclamar.
+    """
     if ext in _CACHE:
         return _CACHE[ext]
     try:
         from tree_sitter import Language, Parser
         if ext in _TSX:
             import tree_sitter_typescript as ts
-            lang = Language(ts.language_tsx())
+            _VERSAO["typescript"] = _versao_do_pacote("tree-sitter-typescript")
+            opcoes = [("typescript", Parser(Language(ts.language_typescript()))),
+                      ("tsx", Parser(Language(ts.language_tsx())))]
         else:
             import tree_sitter_javascript as tsj
-            lang = Language(tsj.language())
+            _VERSAO["javascript"] = _versao_do_pacote("tree-sitter-javascript")
+            opcoes = [("javascript", Parser(Language(tsj.language())))]
     except Exception as e:  # noqa: BLE001
         raise ParserIndisponivel(
             f"gramatica de {ext} indisponivel neste ambiente "
             f"({type(e).__name__}: {e}). Os checks de frontend exigem AST real; "
             f"sem ela a suite nao decide pelo fato e o resultado e "
             f"indeterminado, nunca conforme") from e
-    _CACHE[ext] = Parser(lang)
-    return _CACHE[ext]
+    _CACHE[ext] = opcoes
+    return opcoes
+
+
+def versoes() -> dict:
+    """Gramaticas carregadas e suas versoes — para o laudo dizer COM O QUE leu."""
+    return dict(_VERSAO)
 
 
 def arvore(caminho, texto: str):
-    """Raiz da AST. Arquivo com erro de sintaxe -> indeterminacao com motivo."""
-    parser = _linguagem(caminho.suffix)
-    raiz = parser.parse(texto.encode("utf-8")).root_node
-    if raiz.has_error:
-        linha = _primeiro_erro(raiz)
-        raise CheckIndeterminado(
-            f"{caminho.name} nao pode ser analisado (erro de sintaxe por volta "
-            f"da linha {linha}) — sem AST nao ha como decidir pelo fato")
-    return raiz
+    """Raiz da AST. Nenhuma gramatica dando conta -> indeterminacao com motivo.
+
+    A MENSAGEM IMPORTA, e a primeira versao dela estava errada. Ela dizia
+    "erro de sintaxe", o que ACUSA O ALVO — manda o consumidor procurar um
+    defeito no proprio codigo. O primeiro alvo real (danzeroum/btv) mostrou
+    o problema: um arquivo `.ts` que o `tsc` compila sem uma reclamacao
+    parava a suite inteira com um diagnostico que culpava quem estava certo.
+
+    A suite nao consegue distinguir com certeza "arquivo quebrado" de
+    "gramatica que nao alcanca esta construcao" — entao ela para de fingir
+    que consegue. O veredito continua o mesmo (indeterminado, bloqueia,
+    nunca verde), e so o texto passa a ser honesto sobre de quem pode ser a
+    culpa. Diagnostico errado custa mais caro que diagnostico ausente.
+    """
+    tentativas = []
+    for nome, parser in _gramaticas(caminho.suffix):
+        raiz = parser.parse(texto.encode("utf-8")).root_node
+        if not raiz.has_error:
+            return raiz
+        tentativas.append(f"{nome} v{_VERSAO.get(nome, '?')} "
+                          f"(linha {_primeiro_erro(raiz)})")
+    raise CheckIndeterminado(
+        f"{caminho.name} nao pode ser analisado por nenhuma gramatica "
+        f"disponivel: {'; '.join(tentativas)}. Pode ser erro de sintaxe no "
+        f"arquivo OU construcao valida que a gramatica instalada nao alcanca "
+        f"— a suite nao distingue os dois casos e nao vai fingir que "
+        f"distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia")
 
 
 def _primeiro_erro(no) -> int:

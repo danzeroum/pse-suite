@@ -228,6 +228,46 @@ identidade, fora do repositório; e a suite não tem parser de HCL. A decisão
 está assinada em `pse/matriz.py` e no mapa gerado. Buraco honesto é melhor
 que check que não verifica nada real.
 
+## O primeiro alvo real: `danzeroum/btv`
+
+A fixture prova que o **check** está certo. O aceite prova que a **régua**
+reproduz um sistema de verdade. São coisas diferentes — e a segunda achou,
+na primeira execução, três defeitos que onze versões de fixtures não acharam:
+
+1. **S-04 lia comentário.** `// https://vite.dev/config/` num `vite.config.ts`
+   virava "host de terceiro não registrado" — **D-01 violado pelo check mais
+   antigo da suite**. Nenhuma fixture tinha URL em comentário.
+2. **O laudo era silencioso sobre 137 arquivos Rust.** Um leitor razoável
+   concluiria que o backend foi auditado e estava limpo. Não estava nada.
+3. **A mensagem de parse acusava o alvo.** Dizia "erro de sintaxe" num `.ts`
+   que o `tsc` compila — mandava o time procurar defeito onde não havia.
+
+```bash
+python -m pse.aceite      # roda os aceites declarados em aceites/*.yaml
+pytest -m pse_aceite
+```
+
+O baseline compara por **faixa**, não por número exato: aceite que quebra a
+cada commit do alvo é desligado no primeiro mês. Ele fixa o que não pode
+regredir — check que parou de executar, check que parou de morder, falso
+positivo novo, estrato que saiu do alcance. **Alvo ausente → pendente com
+motivo datado, nunca verde.**
+
+### O bloco `alcance`: o que a suite *não* leu
+
+Todo laudo diz agora, nominalmente, quais linguagens ficaram fora e quantos
+arquivos são. Não é finding — não há defeito no alvo por ser escrito em Rust
+— é **estado**. Sem ele, `nenhum achado em .rs` é indistinguível de `Rust
+auditado e limpo`.
+
+### Alvo local (`local_target`)
+
+Aplicação local-first roda em `127.0.0.1`, onde não há rede nem prova de
+posse a fazer. **É justamente por isso que o degrau é explícito:** sem ele,
+qualquer coisa numa porta local viraria alvo sondável sem registro.
+`local_target: true` substitui o `target_fingerprint` (a porta é efêmera) e
+**não** substitui escopo nem prazo. Declará-lo num alvo publicado é exit 30.
+
 ## Os dois trabalhos
 
 | Trabalho | Marcador | Checks |

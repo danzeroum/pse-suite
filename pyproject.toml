@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pse-suite"
-version = "0.12.0"
+version = "0.13.0"
 description = "Suite de evidencias de Privacidade, Seguranca e Etica por Design — padrao externo versionado, consumido por harness (nunca copiado)."
 requires-python = ">=3.10"
 dependencies = [
@@ -48,4 +48,5 @@ markers = [
   "mordida: testes negativos que provam que o gate aborta",
   "pse_dinamico: camada dinamica (Trabalho A por navegador)",
   "pse_navegador: exige Playwright e binario de navegador instalados",
+  "pse_aceite: teste de aceite contra alvo REAL (pula se o alvo nao existe)",
 ]

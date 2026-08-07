@@ -526,8 +526,12 @@ def test_ponta_a_ponta_contra_alvo_real(tmp_path, alvo_de_fixture):
     (tmp_path / "tp.yml").write_text(MANIFESTO, encoding="utf-8")
     cfg = config()
     cfg["target"]["base_url"] = alvo_de_fixture.url("/sujo")
-    cfg["target"]["authorization"]["target_fingerprint"] = fingerprint_alvo(
-        cfg["target"]["base_url"])
+    # Alvo em loopback: o degrau `local_target` SUBSTITUI o fingerprint —
+    # a porta do alvo de fixture é efêmera, e um fingerprint que muda a cada
+    # execução viraria burocracia que ninguém lê. Sem a linha, o contrato
+    # recusa (há teste-mordida provando).
+    cfg["target"]["authorization"].pop("target_fingerprint", None)
+    cfg["target"]["authorization"]["local_target"] = True
 
     # O alvo de fixture serve o "terceiro" por `localhost`, que a régua de
     # produção lista em `ignorar` — e com razão: é host de exemplo. Para o
@@ -553,8 +557,12 @@ def test_alvo_real_limpo_nao_dispara(tmp_path, alvo_de_fixture):
     (tmp_path / "tp.yml").write_text(MANIFESTO, encoding="utf-8")
     cfg = config()
     cfg["target"]["base_url"] = alvo_de_fixture.url("/limpo")
-    cfg["target"]["authorization"]["target_fingerprint"] = fingerprint_alvo(
-        cfg["target"]["base_url"])
+    # Alvo em loopback: o degrau `local_target` SUBSTITUI o fingerprint —
+    # a porta do alvo de fixture é efêmera, e um fingerprint que muda a cada
+    # execução viraria burocracia que ninguém lê. Sem a linha, o contrato
+    # recusa (há teste-mordida provando).
+    cfg["target"]["authorization"].pop("target_fingerprint", None)
+    cfg["target"]["authorization"]["local_target"] = True
     res = executar(tmp_path, {"privacy", "security"}, cfg, modo="pse_passive",
                    transporte=TransporteDeHealth(), doms=["frontend"])
     for cid in FASE2:
