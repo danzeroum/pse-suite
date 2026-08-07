@@ -33,6 +33,28 @@ RX_DATA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 LOOPBACK = ("127.0.0.1", "localhost", "[::1]", "::1")
 
 
+def host_e_loopback(base_url: str) -> bool:
+    """O host desta URL nao sai da maquina — INDEPENDENTE do esquema.
+
+    Separado de `e_loopback` porque as duas perguntas sao diferentes e
+    confundi-las ja custou um defeito. `e_loopback` decide se `http://` sem
+    cifra e aceitavel, e por isso exige o esquema. Esta decide se a
+    requisicao atravessa rede, o que vale igual para `https://127.0.0.1`.
+
+    O transporte usava `startswith("https://127.0.0.1")` para cobrir o caso
+    do https local, e isso casava `https://127.0.0.1.exemplo.com` — um host
+    publico qualquer podia escolher o proprio nome para escapar do proxy do
+    ambiente. E o mesmo erro de substring que ja apareceu tres vezes nesta
+    suite; aqui o host e comparado por igualdade, depois de parseado.
+    """
+    from urllib.parse import urlsplit
+    try:
+        host = (urlsplit(str(base_url)).hostname or "").strip().lower()
+    except ValueError:
+        return False
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
 def e_loopback(base_url: str) -> bool:
     """`http://` so e aceito quando o alvo nao sai da maquina.
 
@@ -51,14 +73,8 @@ def e_loopback(base_url: str) -> bool:
     substring. `http://127.0.0.1.atacante.com` NAO passa, e ha teste-mordida
     provando. Qualquer outro host em http:// segue recusado com exit 30.
     """
-    from urllib.parse import urlsplit
-    if not str(base_url).startswith("http://"):
-        return False
-    try:
-        host = (urlsplit(str(base_url)).hostname or "").strip().lower()
-    except ValueError:
-        return False
-    return host in ("127.0.0.1", "localhost", "::1")
+    return (str(base_url).startswith("http://")
+            and host_e_loopback(base_url))
 
 
 def fingerprint_alvo(base_url: str) -> str:

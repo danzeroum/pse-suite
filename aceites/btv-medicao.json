@@ -1,0 +1,470 @@
+{
+  "_leia_me": "Instantaneo DATADO de uma medicao de cobertura. Nao e laudo: nao tem veredito proprio nem exit code proprio, e nenhum consumidor o le. Existe para que `docs/cobertura-btv.md` seja reproduzivel por quem NAO tem o clone do alvo — um mapa que so uma pessoa consegue regenerar nao e verificavel. Regenerar a medicao exige o alvo; regenerar o DOCUMENTO exige apenas este arquivo mais o codigo.",
+  "alvo": {
+    "nome": "danzeroum/btv",
+    "slug": "btv",
+    "commit": "a3e14f4568da95cf021206aec4816815efbd303a",
+    "medido_em": "2026-08-07",
+    "suite": "pse-suite 0.13.0 @ 38563c876d88",
+    "modo": "pse_passive (Trabalho B estatico + camada dinamica passiva)",
+    "dinamico": "sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true`",
+    "medicao_path": "aceites/btv-medicao.json",
+    "clone": "clone limpo do alvo, sem `node_modules` e sem `package-lock.json` gerado: medir a arvore poluida por um `npm install` inflava o lado LIDO da proporcao com JSON de dependencia, e o numero teria saido melhor do que e"
+  },
+  "medicao": {
+    "laudo": {
+      "veredito": "indeterminado",
+      "relatorios": {
+        "cobertura_parcial": {
+          "P-07": "metade runtime nao executada: check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo",
+          "P-09": "metade runtime nao executada: check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        "observacao_de_rede": {
+          "url": "http://127.0.0.1:5178",
+          "engine": "chromium",
+          "observou": true,
+          "motivo_de_ausencia": null,
+          "hosts_contactados": [
+            "127.0.0.1",
+            "fonts.googleapis.com"
+          ],
+          "total_requisicoes": 119,
+          "cookies": []
+        },
+        "recursos_nao_varridos": {
+          "recursos": [
+            "http://127.0.0.1:5178/node_modules/.vite/deps/react-dom_client.js?v=383d2562 (corpo acima do teto (2819504 bytes))"
+          ],
+          "nota": "Ausencia de achado NESTES recursos nao e ausencia de segredo: eles nao foram lidos."
+        },
+        "cabecalhos_informativos_ausentes": {
+          "cabecalhos": [
+            "strict-transport-security",
+            "x-frame-options"
+          ],
+          "nota": "Sinal, nao violacao: dependem de decisao de arquitetura (um alvo que precisa ser embutido nao pode negar frame)."
+        }
+      },
+      "exit_code": 20,
+      "alcance": {
+        "lidos": [
+          {
+            "linguagem": "TypeScript",
+            "arquivos": 88,
+            "ferramenta": "tree-sitter"
+          },
+          {
+            "linguagem": "Python",
+            "arquivos": 88,
+            "ferramenta": "ast (stdlib)"
+          },
+          {
+            "linguagem": "TypeScript/TSX",
+            "arquivos": 77,
+            "ferramenta": "tree-sitter"
+          },
+          {
+            "linguagem": "JSON",
+            "arquivos": 56,
+            "ferramenta": "PyYAML"
+          },
+          {
+            "linguagem": "YAML",
+            "arquivos": 9,
+            "ferramenta": "PyYAML"
+          },
+          {
+            "linguagem": "JavaScript",
+            "arquivos": 9,
+            "ferramenta": "tree-sitter"
+          },
+          {
+            "linguagem": "SQL",
+            "arquivos": 4,
+            "ferramenta": "regex sobre codigo efetivo"
+          },
+          {
+            "linguagem": "shell",
+            "arquivos": 3,
+            "ferramenta": "linha a linha sobre codigo efetivo"
+          }
+        ],
+        "fora_de_alcance": [
+          {
+            "linguagem": "Rust",
+            "arquivos": 137
+          },
+          {
+            "linguagem": "TOML",
+            "arquivos": 24
+          },
+          {
+            "linguagem": ".pyi (linguagem nao reconhecida)",
+            "arquivos": 5
+          },
+          {
+            "linguagem": "Protobuf",
+            "arquivos": 5
+          },
+          {
+            "linguagem": "Terraform",
+            "arquivos": 1
+          },
+          {
+            "linguagem": ".jsonl (linguagem nao reconhecida)",
+            "arquivos": 1
+          }
+        ],
+        "arquivos_fora_de_alcance": 173,
+        "nota": "AUSENCIA DE ACHADO NAS LINGUAGENS ACIMA NAO E ATESTADO DE CONFORMIDADE: a suite nao tem parser para elas e nao leu nenhum desses arquivos. Este bloco existe porque um laudo silencioso sobre o que nao foi olhado e indistinguivel de um laudo que olhou e nao achou nada."
+      },
+      "checks_executados": [
+        {
+          "id": "E-00",
+          "motivo": ""
+        },
+        {
+          "id": "E-04",
+          "motivo": ""
+        },
+        {
+          "id": "E-05",
+          "motivo": ""
+        },
+        {
+          "id": "E-07",
+          "motivo": ""
+        },
+        {
+          "id": "E-10",
+          "motivo": ""
+        },
+        {
+          "id": "E-11",
+          "motivo": ""
+        },
+        {
+          "id": "P-01",
+          "motivo": ""
+        },
+        {
+          "id": "P-03",
+          "motivo": ""
+        },
+        {
+          "id": "P-04",
+          "motivo": ""
+        },
+        {
+          "id": "P-06",
+          "motivo": ""
+        },
+        {
+          "id": "P-07",
+          "motivo": ""
+        },
+        {
+          "id": "P-09",
+          "motivo": ""
+        },
+        {
+          "id": "P-17",
+          "motivo": ""
+        },
+        {
+          "id": "P-20",
+          "motivo": ""
+        },
+        {
+          "id": "P-22",
+          "motivo": ""
+        },
+        {
+          "id": "P-23",
+          "motivo": ""
+        },
+        {
+          "id": "P-24",
+          "motivo": ""
+        },
+        {
+          "id": "S-04",
+          "motivo": ""
+        },
+        {
+          "id": "S-06",
+          "motivo": ""
+        },
+        {
+          "id": "S-10",
+          "motivo": ""
+        },
+        {
+          "id": "S-11",
+          "motivo": ""
+        },
+        {
+          "id": "S-13",
+          "motivo": ""
+        },
+        {
+          "id": "S-14",
+          "motivo": ""
+        },
+        {
+          "id": "S-15",
+          "motivo": ""
+        },
+        {
+          "id": "S-17",
+          "motivo": ""
+        },
+        {
+          "id": "S-19",
+          "motivo": ""
+        },
+        {
+          "id": "S-20",
+          "motivo": ""
+        },
+        {
+          "id": "S-21",
+          "motivo": ""
+        }
+      ],
+      "checks_pulados": [
+        {
+          "id": "E-08",
+          "motivo": "nenhum tratamento de dado pessoal a rastrear: o catalogo nao declara campo personal/sensitive (catalogo em si e cobrado por P-04)"
+        },
+        {
+          "id": "E-12",
+          "motivo": "nenhuma exportacao de embedding/hash derivado no codigo"
+        },
+        {
+          "id": "E-13",
+          "motivo": "manifesto de terceiros ausente — sem ele todo host de dependencia seria achado, e ruido nao e evidencia (a ausencia do manifesto e cobrada por S-04)"
+        },
+        {
+          "id": "P-02",
+          "motivo": "catalogo de dados ausente — cobrado por P-04"
+        },
+        {
+          "id": "P-08",
+          "motivo": "catalogo de dados ausente — cobrado por P-04"
+        },
+        {
+          "id": "P-15",
+          "motivo": "nenhuma chamada de treino no codigo — nao ha feature a confrontar com o catalogo"
+        },
+        {
+          "id": "P-16",
+          "motivo": "nenhuma chamada de treino no codigo — nao ha dataset de treino a inventariar"
+        },
+        {
+          "id": "P-18",
+          "motivo": "catalogo de dados ausente — cobrado por P-04; sem inventario nao ha campo sensivel a confrontar"
+        },
+        {
+          "id": "P-19",
+          "motivo": "nenhuma producao de evento em barramento append-only no codigo — nao ha registro imutavel a confrontar com o direito de eliminacao"
+        },
+        {
+          "id": "S-05",
+          "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+        },
+        {
+          "id": "S-08",
+          "motivo": "manifesto de terceiros ausente — cobrado por S-04"
+        },
+        {
+          "id": "S-12",
+          "motivo": "nenhum arquivo se declara contrato de API (sem chave `openapi` nem `swagger` de topo) — nao ha contrato a confrontar"
+        },
+        {
+          "id": "S-16",
+          "motivo": "nenhuma politica de residencia de dados declarada (`data_residency` na config ou no manifesto) — sem promessa nao ha o que confrontar, e supor uma jurisdicao seria a suite decidindo pelo consumidor"
+        },
+        {
+          "id": "S-18",
+          "motivo": "manifesto de terceiros ausente — cobrado por S-04; sem declaracao nao ha o que confrontar com o que foi observado"
+        }
+      ],
+      "checks_indeterminados": [
+        {
+          "id": "E-01",
+          "motivo": "identities.titular_a.token_env nao declarado — sem identidade nao ha o que provar"
+        },
+        {
+          "id": "E-02",
+          "motivo": "identities.titular_a.token_env nao declarado — sem identidade nao ha o que provar"
+        },
+        {
+          "id": "E-06",
+          "motivo": "dataset de avaliacao ausente: nenhum `fairness_dataset` declarado em pse-config.yaml. Fairness sem dados representativos e teatro, e a suite nao sai procurando qual arquivo seria o dataset"
+        },
+        {
+          "id": "P-13",
+          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        },
+        {
+          "id": "P-14",
+          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        },
+        {
+          "id": "S-03",
+          "motivo": "identities.titular_a.token_env nao declarado — sem identidade nao ha o que provar"
+        },
+        {
+          "id": "S-09",
+          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        }
+      ],
+      "checks_nao_habilitados": [
+        {
+          "id": "E-03",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "E-09",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "P-05",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "P-10",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "P-11",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "S-01",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "S-02",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        },
+        {
+          "id": "S-07",
+          "motivo": "check de modo `active` nao e disparado por `pse_passive` — rode com --modo apropriado e atestacao no escopo"
+        }
+      ],
+      "findings": [
+        {
+          "check_id": "P-04",
+          "severidade": "ALTO",
+          "titulo": "Catalogo de dados ausente"
+        },
+        {
+          "check_id": "P-07",
+          "severidade": "ALTO",
+          "titulo": "Modelo de consentimento ausente"
+        },
+        {
+          "check_id": "S-04",
+          "severidade": "ALTO",
+          "titulo": "Host externo nao registrado no manifesto: exemplo.com"
+        },
+        {
+          "check_id": "S-04",
+          "severidade": "ALTO",
+          "titulo": "Host externo nao registrado no manifesto: unpkg.com"
+        },
+        {
+          "check_id": "S-19",
+          "severidade": "ALTO",
+          "titulo": "Documento sem content-security-policy, x-content-type-options, referrer-policy"
+        },
+        {
+          "check_id": "S-21",
+          "severidade": "MEDIO",
+          "titulo": "107 bundle(s) referenciando sourcemap"
+        }
+      ]
+    },
+    "volume": {
+      "YAML": {
+        "arquivos": 9,
+        "linhas": 3978,
+        "lida": true
+      },
+      "TOML": {
+        "arquivos": 24,
+        "linhas": 604,
+        "lida": false
+      },
+      "JSON": {
+        "arquivos": 56,
+        "linhas": 3216,
+        "lida": true
+      },
+      "TypeScript": {
+        "arquivos": 88,
+        "linhas": 4856,
+        "lida": true
+      },
+      "JavaScript": {
+        "arquivos": 9,
+        "linhas": 6000,
+        "lida": true
+      },
+      "TypeScript/TSX": {
+        "arquivos": 77,
+        "linhas": 8184,
+        "lida": true
+      },
+      "Rust": {
+        "arquivos": 137,
+        "linhas": 38096,
+        "lida": false
+      },
+      "SQL": {
+        "arquivos": 4,
+        "linhas": 204,
+        "lida": true
+      },
+      "Terraform": {
+        "arquivos": 1,
+        "linhas": 31,
+        "lida": false
+      },
+      ".jsonl (nao reconhecida)": {
+        "arquivos": 1,
+        "linhas": 144,
+        "lida": false
+      },
+      "Python": {
+        "arquivos": 88,
+        "linhas": 8506,
+        "lida": true
+      },
+      ".pyi (nao reconhecida)": {
+        "arquivos": 5,
+        "linhas": 484,
+        "lida": false
+      },
+      "Protobuf": {
+        "arquivos": 5,
+        "linhas": 412,
+        "lida": false
+      },
+      "shell": {
+        "arquivos": 3,
+        "linhas": 346,
+        "lida": true
+      }
+    },
+    "proporcao": {
+      "linhas_lidas": 35290,
+      "linhas_cegas": 39771,
+      "linhas_total": 75061,
+      "percentual_lido": 47.0,
+      "percentual_cego": 53.0
+    }
+  }
+}

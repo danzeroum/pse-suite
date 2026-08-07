@@ -260,6 +260,37 @@ arquivos são. Não é finding — não há defeito no alvo por ser escrito em R
 — é **estado**. Sem ele, `nenhum achado em .rs` é indistinguível de `Rust
 auditado e limpo`.
 
+### O mapa de cobertura: *quais checks* ficaram cegos
+
+`alcance` responde *que linguagens a suite não lê*.
+[`docs/cobertura-btv.md`](docs/cobertura-btv.md) responde a pergunta seguinte,
+que é a que decide escopo: **quais checks ficaram cegos, e quais deles teriam
+vetor de verdade na linguagem que faltou?** Gerado de um instantâneo datado
+(`aceites/btv-medicao.json`) cruzado com o substrato declarado de cada check,
+para que quem não tem o clone do alvo consiga regenerá-lo.
+
+Quatro estados que **nunca colapsam** um no outro:
+
+| | significa |
+|---|---|
+| `AUDITADO` | leu o substrato — *sem achado* é **olhei e está limpo** |
+| `AUDITADO PARCIAL` | leu parte — *sem achado* é **olhei metade**, e a outra está nomeada |
+| `FORA DE ALCANCE` | o vetor existe, em linguagem sem parser — *sem achado* é **não olhei** |
+| `NÃO APLICÁVEL` | o vetor não existe neste alvo |
+
+No btv: **47,0% do repositório lido, 53,0% cego** (em linhas). Nenhum check
+totalmente fora de alcance, **19 parcialmente cegos** — todos cegos em Rust e
+só em Rust. `AUDITADO PARCIAL` nasceu deste alvo: chamar P-01 de *auditado*
+porque a metade Python foi lida esconderia 38 mil linhas não olhadas.
+
+O mapa cruza **dois eixos independentes**: alcance do substrato (*a suite leu
+o código onde o vetor vive*) × estado no laudo (*o check chegou a decidir*).
+Juntá-los seria o mesmo erro numa escala menor — S-18 tem substrato íntegro e
+foi **pulado** por não haver manifesto para comparar. Cruzando os dois:
+**13 dos 57 checks foram auditados de verdade** no btv. Os outros 44 leram
+metade, foram pulados com motivo, ficaram indeterminados ou nem habilitados —
+respostas legítimas, nenhuma delas conformidade.
+
 ### Alvo local (`local_target`)
 
 Aplicação local-first roda em `127.0.0.1`, onde não há rede nem prova de

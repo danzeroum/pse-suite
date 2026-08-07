@@ -36,12 +36,45 @@ class Resposta:
 
 
 class TransporteUrllib:
+    """Cliente stdlib. LOOPBACK NUNCA PASSA POR PROXY.
+
+    O problema apareceu no primeiro alvo local de verdade: `urllib` honra
+    `HTTPS_PROXY`/`HTTP_PROXY` do ambiente, entao uma requisicao para
+    `http://127.0.0.1:5178` saia da maquina, ia ao proxy e voltava 404. O
+    healthcheck reprovava um alvo que estava de pe.
+
+    E o defeito era pior que um 404. O degrau `local_target` dispensa a
+    prova de posse com UM argumento escrito: em loopback nao ha rede, nao ha
+    intermediario e nao ha o que capturar. Se a requisicao atravessa um
+    proxy, esse argumento deixa de valer — havia rede, havia intermediario,
+    e a atestacao estaria autorizando com base numa premissa falsa.
+
+    Por isso o bypass nao e conveniencia de ambiente: e o que faz o contrato
+    de alvo local dizer a verdade.
+
+    O bypass e decidido pelo HOST parseado, nunca por prefixo de string. A
+    primeira versao usava `startswith("https://127.0.0.1")` e casava
+    `https://127.0.0.1.exemplo.com` — qualquer host publico podia escolher o
+    proprio nome para escapar do proxy do ambiente.
+    """
+
+    def _abridor(self, url):
+        from pse.trabalho_a.autorizacao import host_e_loopback
+        if host_e_loopback(url):
+            # `build_opener` com um ProxyHandler vazio nao apenas ignora os
+            # proxies do ambiente: ele tira o ProxyHandler PADRAO da cadeia,
+            # que e quem leria `HTTPS_PROXY`.
+            return urllib.request.build_opener(
+                urllib.request.ProxyHandler({})).open
+        return urllib.request.urlopen
+
     def enviar(self, metodo, url, headers, corpo, timeout) -> Resposta:
         dados = corpo.encode("utf-8") if isinstance(corpo, str) else corpo
         req = urllib.request.Request(url, data=dados, method=metodo,
                                      headers=headers or {})
+        abrir = self._abridor(url)
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
+            with abrir(req, timeout=timeout) as r:
                 return Resposta(r.status, r.read(CORPO_MAX).decode("utf-8", "ignore"),
                                 dict(r.headers))
         except urllib.error.HTTPError as e:

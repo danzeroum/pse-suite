@@ -69,7 +69,18 @@ class Contexto:
             return
         if self._saude is None:
             try:
-                resposta, _ = cliente.requisitar("GET", rota, identidade="anonima")
+                # `Accept: */*` de proposito. O padrao do cliente e
+                # `application/json`, que serve para API e REPROVA um alvo
+                # web: o dev server do Vite devolve 404 para `/` quando o
+                # Accept nao inclui html, e o primeiro alvo local de verdade
+                # (o front do btv em 127.0.0.1) foi julgado fora do ar
+                # estando de pe. Healthcheck e prova de VIDA, nao negociacao
+                # de conteudo — pedir um tipo especifico transforma uma
+                # preferencia da suite em criterio de disponibilidade do
+                # alvo, e o falso "alvo caido" bloqueia tudo que vem depois.
+                resposta, _ = cliente.requisitar(
+                    "GET", rota, identidade="anonima",
+                    extra_headers={"Accept": "*/*"})
                 self._saude = resposta.status
             except CheckIndeterminado as e:
                 self._saude = f"inacessivel: {e}"
