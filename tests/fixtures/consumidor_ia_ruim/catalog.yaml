@@ -1,0 +1,22 @@
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: risco
+        purpose: analise_de_credito       # P-15: finalidade nao inclui treino
+        legal_basis: contrato
+        retention_years: 5
+      genero:
+        class: sensitive
+        owner: risco
+        purpose: analise_de_credito
+        legal_basis: consentimento
+        retention_years: 5
+      renda:
+        class: personal
+        owner: risco
+        purpose: analise_de_credito, treino_de_modelo
+        legal_basis: contrato
+        retention_years: 5
+# P-16: nenhuma entrada `datasets` — base_clientes.csv nao tem governanca.

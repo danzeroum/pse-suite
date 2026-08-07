@@ -130,6 +130,22 @@ def severidade(ctx, rel: str, snippet: str) -> Severidade:
     return Severidade.CRITICO
 
 
+def rebaixar(ctx, rel: str, snippet: str, severidade: Severidade) -> Severidade:
+    """Aplica o contexto SOBRE uma severidade que o check ja calculou.
+
+    `severidade()` decide do zero; esta decide por cima. Existe porque S-06
+    em Rust ja tem assimetria propria (CRITICO so com formato conhecido,
+    ALTO caso contrario) e o contexto de teste tem de rebaixar o resultado
+    dela sem apagar o raciocinio que a produziu.
+
+    So DESCE. Nunca sobe uma severidade, e nunca devolve nada abaixo de
+    MEDIO — a garantia de que rebaixar nao vira suprimir vale igual aqui.
+    """
+    if caminho_de_teste(ctx, rel) or valor_sintetico(ctx, snippet):
+        return Severidade.MEDIO
+    return severidade
+
+
 def motivo(ctx, rel: str, snippet: str) -> str:
     """A frase que explica o rebaixamento — ou o silencio quando nao houve.
 

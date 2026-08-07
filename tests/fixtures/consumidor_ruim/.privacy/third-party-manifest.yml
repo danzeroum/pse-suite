@@ -1,0 +1,9 @@
+# Manifesto que declara UM terceiro. O host que a dependencia carrega
+# (telemetria.rastreador.example.net) nao esta aqui — e esse e o achado do E-13.
+integrations:
+  - name: pagamentos
+    hosts: [api.pagamentos.example.net]
+    dpa_signed: true
+    dpa_path: contratos/pagamentos.pdf
+    data_residency: BR
+    egress_fields: [id_pseudonimo, valor]

@@ -1,6 +1,7 @@
 pse_suite:
   catalog_path: catalog.yaml
   consent_model_path: consent-model.yaml
+  lineage_path: lineage.jsonl
   decision_making: automated
   thresholds:
     k_anonymity_min: 5

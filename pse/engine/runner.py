@@ -47,8 +47,12 @@ def _executar_um(cid, meta, ctx, res):
         res["checks_nao_habilitados"].append({"id": cid, "motivo": str(e)})
         return False
     except CheckIndeterminado as e:
-        # Tentei e nao consegui decidir. Bloqueia igual a violacao.
+        # Tentei e nao consegui decidir. Bloqueia igual a violacao — e leva
+        # junto o que JA decidiu. Ver `CheckIndeterminado.achados`: um `.ts`
+        # que nenhuma gramatica alcanca nao pode apagar o veredito dos outros
+        # 171 arquivos que parsearam.
         res["checks_indeterminados"].append({"id": cid, "motivo": str(e)})
+        res["findings"].extend(getattr(e, "achados", []))
         return False
     except Exception as e:  # noqa: BLE001 — falha inesperada nunca vira verde
         res["checks_indeterminados"].append({
@@ -62,15 +66,24 @@ def _executar_um(cid, meta, ctx, res):
 
 
 def executar(repo_path, packs: set, config: dict | None = None,
-             modo: str = "pse_inventory", transporte=None) -> dict:
+             modo: str = "pse_inventory", transporte=None, doms=None,
+             observador=None) -> dict:
     _carregar_checks()
-    ctx = Contexto(repo_path, config, modo=modo, transporte=transporte)
+    ctx = Contexto(repo_path, config, modo=modo, transporte=transporte,
+                   observador=observador)
     inicio = time.time()
     res = {"findings": [], "checks_executados": [], "checks_pulados": [],
            "checks_indeterminados": [], "checks_nao_habilitados": []}
 
     fora_de_escopo = {}
     for pack in sorted(packs):
+        # A guarda decide o ESCOPO do pack; rodar uma guarda de um pack que
+        # nao tem nenhum check no dominio pedido e ruido puro — o consumidor
+        # que pede `--domain frontend` nao quer saber se o alvo tem IA.
+        alvos = [c for c in catalogo.implementados({pack}, doms)
+                 if not catalogo.meta(c).get("guarda_de_pack")]
+        if not alvos:
+            continue
         for gid in catalogo.guardas_de(pack):
             meta = CHECKS.get(gid)
             if not meta:
@@ -84,6 +97,8 @@ def executar(repo_path, packs: set, config: dict | None = None,
     for cid, meta in sorted(CHECKS.items()):
         if meta["pack"] not in packs or meta["guarda_de_pack"]:
             continue
+        if not catalogo._casa_dominio(cid, doms):
+            continue
         if meta["pack"] in fora_de_escopo:
             res["checks_pulados"].append({
                 "id": cid,
@@ -96,7 +111,8 @@ def executar(repo_path, packs: set, config: dict | None = None,
     res["packs_fora_de_escopo"] = [
         {"pack": p, "motivo": m} for p, m in sorted(fora_de_escopo.items())]
     # Previsto e ausente: o catalogo torna dizivel o que o registro nao sabe.
-    res["checks_previstos"] = catalogo.previstos(packs)
+    res["checks_previstos"] = catalogo.previstos(packs, doms)
+    res["dominios"] = sorted(doms) if doms else list(catalogo.DOMINIOS)
     res["relatorios"] = ctx.relatorios
     res["modo"] = modo
     res["traces"] = getattr(ctx._cliente, "traces", []) if ctx._cliente else []

@@ -1,0 +1,16 @@
+# Catalogo do consumidor Rust RUIM.
+#
+# Repare no que ele declara: `cpf` sensivel COM `encryption` e
+# `key_management`. O braco declarativo de P-18 fica satisfeito — e e
+# justamente esse o ponto. O motor em `src/persistencia.rs` grava o campo em
+# claro mesmo assim, e so o alcance a `.rs` revela o vao.
+tables:
+  titulares:
+    fields:
+      id:
+        class: internal
+      cpf:
+        class: sensitive
+        encryption:
+          algorithm: aes-256-gcm
+          key_management: aws-kms

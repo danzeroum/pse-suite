@@ -1,0 +1,15 @@
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: atendimento
+        purpose: identificacao
+        legal_basis: contrato
+        retention_years: 5
+      genero:
+        class: sensitive
+        owner: atendimento
+        purpose: pesquisa
+        legal_basis: consentimento
+        retention_years: 2

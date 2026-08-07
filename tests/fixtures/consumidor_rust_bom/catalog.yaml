@@ -1,0 +1,12 @@
+# Catalogo do consumidor Rust BOM. Mesma declaracao do ruim — e o motor
+# cumpre o que ela promete.
+tables:
+  titulares:
+    fields:
+      id:
+        class: internal
+      cpf:
+        class: sensitive
+        encryption:
+          algorithm: aes-256-gcm
+          key_management: aws-kms

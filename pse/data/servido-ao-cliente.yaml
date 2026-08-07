@@ -1,0 +1,133 @@
+# Regua da Fase 2 dinamica — S-18, S-19, S-20, P-24, S-21.
+#
+# Adaptado de danzeroum/qa-suite (`webqa/sanitize.py::_SEGREDOS`,
+# `checks/seguranca/`), com as listas movidas de constante Python para YAML:
+# na PSE toda regua curada entra no `catalog_hash` (D-13), porque a cobertura
+# de um check tem de ser audivel a partir do laudo, nao so lendo o codigo.
+#
+# Tudo aqui e observado PASSIVAMENTE, sobre o que o navegador ja baixou.
+# Nenhuma entrada desta regua leva a suite a pedir ao servidor um recurso que
+# ele nao ofereceu — isso seria sondagem, e sondagem e Fase 3.
+
+# ---------------------------------------------------------------- S-19
+# Cabecalhos que um documento HTML precisa carregar, com o que cada um
+# impede. O texto entra no achado: severidade sem explicacao vira ruido, e o
+# time nao aprende nada com um alarme que so diz o nome da regra.
+cabecalhos_exigidos:
+  content-security-policy: "sem CSP, qualquer injecao de script executa com
+    todo o poder da origem — e a CSP e a unica defesa que continua valendo
+    depois de o XSS acontecer"
+  x-content-type-options: "sem nosniff, o navegador adivinha o tipo do
+    conteudo, e adivinhar e onde mora o content-sniffing malicioso"
+  referrer-policy: "sem politica de referrer, a URL da pagina — com tudo que
+    houver na query — viaja para todo terceiro que a pagina contactar"
+
+# Cabecalhos cuja ausencia e sinal, nao violacao: dependem de decisao de
+# arquitetura (um site que precisa ser embutido nao pode negar frame). Entram
+# no laudo como observacao, nunca como achado.
+cabecalhos_informativos:
+  strict-transport-security: "HSTS impede o downgrade para http na proxima
+    visita; depende de o dominio poder assumir https permanente"
+  x-frame-options: "nega embutir em iframe; um alvo que precise ser embutido
+    legitimamente usa frame-ancestors na CSP"
+
+# Tipos que o navegador EXECUTA ou interpreta com poder. E neles que a
+# ausencia de cabecalho tem consequencia — nao numa imagem.
+tipos_executaveis: [application/javascript, text/javascript,
+                    application/x-javascript, module, application/json,
+                    text/html]
+
+# ---------------------------------------------------------------- S-20
+# Formatos de credencial. `nome` e o que aparece no laudo; o VALOR casado
+# nunca sai daqui — ver `analise.segredos_em`.
+#
+# A lista e curta e de formatos RECONHECIVEIS de proposito. Falso positivo
+# em bateria regulatoria custa a credibilidade da bateria inteira, e um
+# padrao generico demais acusa prosa inocente.
+padroes_de_segredo:
+  - nome: CHAVE_PRIVADA_PEM
+    padrao: '-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----'
+    severidade: CRITICO
+  - nome: AWS_ACCESS_KEY_ID
+    padrao: '\b(?:AKIA|ASIA)[0-9A-Z]{16}\b'
+    severidade: CRITICO
+  - nome: GITHUB_TOKEN
+    padrao: '\bgh[pousr]_[A-Za-z0-9]{36,}\b'
+    severidade: CRITICO
+  - nome: STRIPE_SECRET_KEY
+    padrao: '\bsk_live_[0-9A-Za-z]{16,}\b'
+    severidade: CRITICO
+  - nome: GOOGLE_API_KEY
+    padrao: '\bAIza[0-9A-Za-z_\-]{35}\b'
+    severidade: CRITICO
+  # JWT: tres segmentos base64url. Exigir os dois pontos evita casar
+  # qualquer palavra que comece com "eyJ".
+  - nome: JWT
+    padrao: '\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b'
+    severidade: ALTO
+  # Generico por NOME. Severidade menor porque o nome pode mentir — um
+  # `token` de CSRF publico casa aqui. Acusar em ALTO seria punir o correto.
+  - nome: CREDENCIAL_NOMEADA
+    padrao: '(?i)\b(?:api[_-]?key|secret|token|password|passwd|senha)\b["''\s]*[:=]\s*["'']([^"''\s]{8,})["'']'
+    severidade: ALTO
+
+# Onde credencial costuma vazar: codigo e configuracao servidos ao cliente.
+tipos_varridos_por_segredo: [application/javascript, text/javascript,
+                             application/x-javascript, application/json,
+                             text/json]
+sufixos_varridos_por_segredo: [.js, .mjs, .json, .map]
+
+# ---------------------------------------------------------------- P-24
+# Metadados que um arquivo publicado nao deveria carregar. Cada um com o que
+# revela — de novo, so a PRESENCA e reportada, nunca o valor.
+metadados_publicados:
+  gps: "coordenada de onde a foto foi tirada. Em foto de pessoa, revela onde
+    a pessoa estava — dado pessoal por consequencia direta (Art. 5o I)"
+  autoria: "quem produziu e com que ferramenta. Nao localiza ninguem, mas
+    identifica: e higiene de publicacao"
+sufixos_com_metadado: [.jpg, .jpeg]
+tipos_com_metadado: [image/jpeg]
+
+# ---------------------------------------------------------------- S-21
+sufixos_de_bundle: [.js, .mjs]
+tipos_de_bundle: [application/javascript, text/javascript,
+                  application/x-javascript]
+
+# ---------------------------------------------------------------- S-18
+# Hosts de terceiro que nao entram no inventario por nao serem tratamento de
+# dado do titular. Lista estreita: `ignorar` da regua de terceiros ja cobre
+# exemplo e loopback, e esta acrescenta so o que e infraestrutura do proprio
+# navegador.
+ignorar_em_observacao: [about:blank, data, blob, chrome-extension]
+
+# ---------------------------------------------------- servidor de desenvolvimento
+# O QUE A CAMADA DINAMICA OBSERVOU: o artefato ENTREGUE, ou o encanamento do
+# dev server?
+#
+# Achado medindo o btv. S-21 acusou "107 bundles referenciando sourcemap" na
+# raiz e 84 no console — e a origem eram `/@vite/client` com
+# `sourceMappingURL=data:...base64`, `/@react-refresh` e
+# `node_modules/.vite/deps/*`. Nada disso e o bundle que o `vite build`
+# produz: e modo de desenvolvimento, que serve tudo sem minificar e com
+# sourcemap embutido POR DESIGN.
+#
+# O check nao passa a mentir menos por causa disso — a referencia existe
+# mesmo, e ele so afirma que existe. O que faltava era o laudo dizer CONTRA
+# O QUE ele mediu, para que ninguem leia "o produto vaza sourcemap" onde a
+# frase certa e "o dev server que eu observei serve sourcemap, como todo dev
+# server serve".
+#
+# Marcas de CAMINHO, nao de cabecalho: `X-Powered-By` some atras de proxy, e
+# o caminho do modulo nao.
+marcas_de_dev_server:
+  - "/@vite/client"
+  - "/@react-refresh"
+  - "/@fs/"
+  - "/@id/"
+  - "node_modules/.vite/"
+  - "/__vite_ping"
+  - "hot-update.js"
+  - "__webpack_hmr"
+  - "sockjs-node"
+  - "/_next/static/development/"
+  - "/.well-known/vite"

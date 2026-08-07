@@ -29,6 +29,54 @@ DISPARA_EM = {"passive": ("pse_passive", "pse_active"), "active": ("pse_active",
 RX_DATA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+# Hosts de loopback. Unica excecao a exigencia de https:// — ver `e_loopback`.
+LOOPBACK = ("127.0.0.1", "localhost", "[::1]", "::1")
+
+
+def host_e_loopback(base_url: str) -> bool:
+    """O host desta URL nao sai da maquina — INDEPENDENTE do esquema.
+
+    Separado de `e_loopback` porque as duas perguntas sao diferentes e
+    confundi-las ja custou um defeito. `e_loopback` decide se `http://` sem
+    cifra e aceitavel, e por isso exige o esquema. Esta decide se a
+    requisicao atravessa rede, o que vale igual para `https://127.0.0.1`.
+
+    O transporte usava `startswith("https://127.0.0.1")` para cobrir o caso
+    do https local, e isso casava `https://127.0.0.1.exemplo.com` — um host
+    publico qualquer podia escolher o proprio nome para escapar do proxy do
+    ambiente. E o mesmo erro de substring que ja apareceu tres vezes nesta
+    suite; aqui o host e comparado por igualdade, depois de parseado.
+    """
+    from urllib.parse import urlsplit
+    try:
+        host = (urlsplit(str(base_url)).hostname or "").strip().lower()
+    except ValueError:
+        return False
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
+def e_loopback(base_url: str) -> bool:
+    """`http://` so e aceito quando o alvo nao sai da maquina.
+
+    MUDANCA DE REGRA, declarada. A exigencia de https existe por UM motivo
+    escrito: sonda em texto claro vaza o proprio token de teste na rede. Em
+    loopback nao ha rede — o pacote nao passa por interface fisica, nao ha
+    intermediario e nao ha o que capturar. A razao da regra nao alcanca este
+    caso.
+
+    Sem esta excecao, a camada dinamica nao teria como ser provada contra um
+    alvo REAL: o alvo de fixture serve em `http://127.0.0.1`, e gerar
+    certificado no teste exigiria dependencia nova e `ignore_https_errors`,
+    que e um afrouxamento maior que este.
+
+    Deliberadamente estreita: casa o host de loopback EXATO, nunca por
+    substring. `http://127.0.0.1.atacante.com` NAO passa, e ha teste-mordida
+    provando. Qualquer outro host em http:// segue recusado com exit 30.
+    """
+    return (str(base_url).startswith("http://")
+            and host_e_loopback(base_url))
+
+
 def fingerprint_alvo(base_url: str) -> str:
     return hashlib.sha256(str(base_url).strip().encode("utf-8")).hexdigest()
 
@@ -42,12 +90,26 @@ def habilitado(config: dict) -> bool:
     return bool(alvo_de(config).get("base_url"))
 
 
+# Valores aceitos em `target.artefato`. Lista fechada de proposito: um typo
+# (`producao ` com espaco, `prod`) que passasse silenciosamente faria o laudo
+# dizer `artefato_declarado: prod` e ninguem cruzaria nada — a declaracao
+# viraria decoracao. Valor desconhecido e exit 30, antes de qualquer byte.
+ARTEFATOS = ("producao", "desenvolvimento")
+
+
 def validar_config(config: dict, modo: str):
     """Recusas que acontecem ANTES de o runner rodar — nenhuma requisicao.
 
     Sao as unicas que produzem exit 30: o consumidor pediu algo que a suite
     nao faz, e descobrir isso no meio da execucao ja seria tarde.
     """
+    artefato = alvo_de(config).get("artefato")
+    if artefato is not None and str(artefato).strip().lower() not in ARTEFATOS:
+        raise EntradaInvalida(
+            f"`artefato: {artefato!r}` nao e um valor aceito. Use "
+            f"{' ou '.join(ARTEFATOS)} — a declaracao existe para o laudo "
+            f"poder cruzar o que foi DECLARADO com o que foi OBSERVADO, e um "
+            f"valor que ninguem reconhece nao cruza com nada.")
     if modo not in MODOS:
         raise EntradaInvalida(f"modo invalido: {modo!r}; use {list(MODOS)}")
     if modo == "pse_inventory":
@@ -59,7 +121,7 @@ def validar_config(config: dict, modo: str):
 
     alvo = alvo_de(config)
     base_url = str(alvo.get("base_url"))
-    if not base_url.startswith("https://"):
+    if not base_url.startswith("https://") and not e_loopback(base_url):
         raise EntradaInvalida(
             f"target.base_url deve ser https:// (recebido {base_url!r}) — uma "
             f"sonda de autorizacao em texto claro vaza o proprio token de teste")
@@ -69,6 +131,20 @@ def validar_config(config: dict, modo: str):
         raise EntradaInvalida(
             f"target.environment deve ser staging ou production "
             f"(recebido {ambiente!r})")
+
+    # `local_target` so vale para alvo local. Declara-lo num alvo publicado
+    # seria a atestacao mentindo sobre O QUE ela autoriza — e a fraude e
+    # barata: bastaria a linha para dispensar a prova de posse do host.
+    # Entrada invalida (exit 30), nao indeterminacao: nao e falta de
+    # autorizacao, e declaracao incoerente com o proprio alvo.
+    att_previa = alvo.get("authorization") or {}
+    if att_previa.get("local_target") is True and not e_loopback(base_url):
+        raise EntradaInvalida(
+            f"`local_target: true` declarado para {base_url!r}, que NAO e "
+            f"loopback. O degrau de alvo local existe porque em 127.0.0.1 nao "
+            f"ha rede nem prova de posse a fazer; usa-lo num alvo publicado "
+            f"dispensaria justamente a verificacao que amarra a atestacao ao "
+            f"host. Remova a linha, ou aponte para um alvo local")
 
     # A recusa da v1: sonda ativa so em staging. Levantada aqui, antes de
     # qualquer requisicao — inclusive antes do healthcheck.
@@ -115,13 +191,31 @@ def validar_atestacao(config: dict, modo: str):
         raise CheckIndeterminado(
             f"atestacao vencida em {prazo} — renove antes de auditar de novo")
 
-    esperado = fingerprint_alvo(alvo.get("base_url"))
-    declarado = str(att.get("target_fingerprint") or "")
-    if declarado != esperado:
-        raise CheckIndeterminado(
-            "target_fingerprint nao corresponde a base_url declarada — a "
-            "atestacao foi emitida para outro alvo, e apontar a suite para um "
-            "host diferente nao herda autorizacao")
+    # ---------------------------------------------- prova de posse do alvo
+    # Alvo PUBLICADO: o fingerprint amarra a atestacao a ESTA base_url.
+    # Alvo LOCAL: a porta e efemera (o processo sobe onde da), entao o
+    # fingerprint mudaria a cada execucao e viraria burocracia que o
+    # operador aprenderia a colar sem ler. O degrau `local_target` o
+    # SUBSTITUI — e nao o dispensa: continua sendo uma linha que alguem
+    # escreveu, num arquivo versionado, dizendo "sei que estou sondando a
+    # minha propria maquina". Sem ela, loopback e recusado.
+    if e_loopback(alvo.get("base_url")):
+        if att.get("local_target") is not True:
+            raise CheckIndeterminado(
+                "alvo em loopback exige `local_target: true` na atestacao. Em "
+                "127.0.0.1 nao ha rede nem prova de posse a fazer — mas "
+                "justamente por isso o degrau tem de ser explicito: sem ele, "
+                "qualquer coisa que suba numa porta local viraria alvo "
+                "sondavel sem registro, e o contrato perderia o sentido no "
+                "unico lugar onde e mais facil burla-lo")
+    else:
+        esperado = fingerprint_alvo(alvo.get("base_url"))
+        declarado = str(att.get("target_fingerprint") or "")
+        if declarado != esperado:
+            raise CheckIndeterminado(
+                "target_fingerprint nao corresponde a base_url declarada — a "
+                "atestacao foi emitida para outro alvo, e apontar a suite para "
+                "um host diferente nao herda autorizacao")
 
     if modo == "pse_active" and att.get("synthetic_identities") is not True:
         raise CheckIndeterminado(

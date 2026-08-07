@@ -32,6 +32,44 @@ from pse.trabalho_a import autorizacao
 from pse.selftest import autoprova
 
 PACKS_VALIDOS = {"privacy", "security", "ethics"}
+DOMINIOS_VALIDOS = set(catalogo.DOMINIOS)
+
+
+def _dividir(valor):
+    return [v.strip() for v in (valor or "").split(",") if v.strip()]
+
+
+def _selecao(args):
+    """Pilar, dominio, ou o cruzamento dos dois.
+
+    `--packs` sobrevive como compatibilidade e aceita AMBOS os vocabularios:
+    quem escrever `--packs frontend` esta pedindo um dominio, e a suite
+    entende — o consumidor nao deveria precisar saber em que dimensao a
+    palavra que ele conhece foi arquivada.
+    """
+    pilares = set(_dividir(args.pilar)) if args.pilar else set()
+    dominios = set(_dividir(args.domain)) if args.domain else set()
+
+    for termo in _dividir(args.packs):
+        if termo in PACKS_VALIDOS:
+            pilares.add(termo)
+        elif termo in DOMINIOS_VALIDOS:
+            dominios.add(termo)
+        else:
+            raise EntradaInvalida(
+                f"termo desconhecido em --packs: {termo!r}. Pilares: "
+                f"{sorted(PACKS_VALIDOS)}; dominios: {sorted(DOMINIOS_VALIDOS)}")
+
+    invalidos = pilares - PACKS_VALIDOS
+    if invalidos:
+        raise EntradaInvalida(f"pilares invalidos: {sorted(invalidos)}")
+    invalidos = dominios - DOMINIOS_VALIDOS
+    if invalidos:
+        raise EntradaInvalida(f"dominios invalidos: {sorted(invalidos)}")
+
+    if not pilares:
+        pilares = set(PACKS_VALIDOS)
+    return pilares, (sorted(dominios) or None)
 
 
 def _erro(msg: str) -> int:
@@ -114,7 +152,12 @@ def _cmd_manifesto() -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="pse")
     ap.add_argument("--path", help="repositorio consumidor")
-    ap.add_argument("--packs", default="privacy,security,ethics")
+    ap.add_argument("--packs", default=None,
+                    help="compatibilidade: aceita pilar OU dominio")
+    ap.add_argument("--pilar", default=None,
+                    help="privacy,security,ethics (default: todos)")
+    ap.add_argument("--domain", default=None,
+                    help=f"{','.join(catalogo.DOMINIOS)} (default: todos)")
     ap.add_argument("--config", default=None,
                     help="tests/qa/pse-config.yaml do consumidor (declarativo)")
     ap.add_argument("--output", default=None, help="arquivo do laudo JSON")
@@ -133,12 +176,10 @@ def main(argv=None) -> int:
     if not args.path:
         return _erro("--path e obrigatorio (ou use --self-test / --manifesto)")
 
-    packs = {p.strip() for p in args.packs.split(",") if p.strip()}
-    invalidos = packs - PACKS_VALIDOS
-    if invalidos:
-        return _erro(f"packs invalidos: {sorted(invalidos)}")
-    if not packs:
-        return _erro("nenhum pack selecionado")
+    try:
+        packs, dominios = _selecao(args)
+    except EntradaInvalida as e:
+        return _erro(str(e))
 
     # Auditar o que nao existe jamais e 'conforme' (Gap 2). Em 1eb616b um
     # diretorio inexistente saia exit 0 com 9 checks 'executados'.
@@ -157,7 +198,16 @@ def main(argv=None) -> int:
         # execucao. Achado o operador aprende a ignorar; recusa, nao.
         limites.validar(config)
         efetivos, desabilitados = _packs_efetivos(packs, config)
-        resultados = executar(alvo, efetivos, config, modo=args.modo)
+        # Selecao que nao alcanca check nenhum nao pode sair "conforme": seria
+        # verde por nao ter olhado, com a agravante de o consumidor achar que
+        # pediu uma auditoria. Mesmo principio de desabilitar todos os packs.
+        if not catalogo.implementados(efetivos, dominios):
+            raise EntradaInvalida(
+                f"a selecao pilar={sorted(efetivos)} x dominio="
+                f"{dominios or 'todos'} nao alcanca nenhum check implementado "
+                f"— um laudo vazio nao e um laudo conforme")
+        resultados = executar(alvo, efetivos, config, modo=args.modo,
+                              doms=dominios)
         resultados["packs_desabilitados"] = desabilitados
         if args.modo in autorizacao.MODOS_A and autorizacao.habilitado(config):
             att = (autorizacao.alvo_de(config).get("authorization") or {})

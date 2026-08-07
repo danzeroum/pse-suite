@@ -22,7 +22,8 @@ def _ler_yaml(p: Path, rotulo: str):
 
 class Contexto:
     def __init__(self, repo_path, config: dict | None = None,
-                 modo: str = "pse_inventory", transporte=None):
+                 modo: str = "pse_inventory", transporte=None,
+                 observador=None):
         self.repo = Path(repo_path)
         self.config = config or {}
         # Modo de execucao (pse_inventory | pse_passive | pse_active). Decide
@@ -31,8 +32,13 @@ class Contexto:
         # Transporte injetavel: e o que permite provar, em teste, que nenhuma
         # requisicao foi emitida antes da atestacao passar.
         self.transporte = transporte
+        # Observador de navegador injetavel, pelo mesmo motivo que o
+        # transporte: e o que permite CONTAR navegacoes e provar que zero
+        # aconteceram antes da atestacao passar.
+        self.observador = observador
         self._cliente = None
         self._saude = None
+        self._observacao = None
         # Relatorios que um check quer anexar ao laudo (ex.: cobertura do
         # catalogo). Nao sao findings: descrevem o estado, nao um defeito.
         self.relatorios: dict = {}
@@ -63,7 +69,18 @@ class Contexto:
             return
         if self._saude is None:
             try:
-                resposta, _ = cliente.requisitar("GET", rota, identidade="anonima")
+                # `Accept: */*` de proposito. O padrao do cliente e
+                # `application/json`, que serve para API e REPROVA um alvo
+                # web: o dev server do Vite devolve 404 para `/` quando o
+                # Accept nao inclui html, e o primeiro alvo local de verdade
+                # (o front do btv em 127.0.0.1) foi julgado fora do ar
+                # estando de pe. Healthcheck e prova de VIDA, nao negociacao
+                # de conteudo — pedir um tipo especifico transforma uma
+                # preferencia da suite em criterio de disponibilidade do
+                # alvo, e o falso "alvo caido" bloqueia tudo que vem depois.
+                resposta, _ = cliente.requisitar(
+                    "GET", rota, identidade="anonima",
+                    extra_headers={"Accept": "*/*"})
                 self._saude = resposta.status
             except CheckIndeterminado as e:
                 self._saude = f"inacessivel: {e}"
@@ -71,6 +88,28 @@ class Contexto:
             raise CheckIndeterminado(
                 f"alvo indisponivel: healthcheck {rota} respondeu {self._saude} "
                 f"— nenhuma sonda e enviada contra alvo que nao esta de pe")
+
+    def observacao_de_rede(self, alvo):
+        """UMA carga de pagina por execucao, partilhada pelos checks dinamicos.
+
+        Memorizada pelo mesmo motivo que o healthcheck: tres cargas contra um
+        alvo dinamico poderiam discordar entre si, e o laudo teria tres
+        verdades sobre o mesmo instante. Tambem e o que faz o custo da camada
+        dinamica ser UMA navegacao, e nao uma por check.
+
+        O `observador` e injetavel para que o teste prove o contrato sem
+        abrir navegador — e para que a prova de "zero navegacao antes da
+        atestacao" seja uma contagem, nao uma promessa.
+        """
+        if self._observacao is None:
+            from pse.navegador import sessao
+            observar = self.observador or sessao.observar
+            self._observacao = observar(
+                alvo.get("base_url"),
+                engine=self.config.get("browser_engine"),
+                user_agent=alvo.get("user_agent"),
+                data=self.data)
+        return self._observacao
 
     def relatorio(self, nome: str, dados: dict):
         self.relatorios[nome] = dados

@@ -16,16 +16,355 @@ externo e versionado consumido pela harness de `danzeroum/project`.
 |---|---|---|
 | Privacidade | `pse_privacy` | P-01 PII em logs · P-02 retenção · P-03 soft-delete · P-04 catálogo · P-05 minimização · P-06 chave no código · P-07 consentimento · P-08 sensível+legítimo interesse · P-09 k-anonimato · P-10 portabilidade · P-11 oráculo |
 | Segurança | `pse_security` | S-01 BOLA/IDOR · S-02 rate limit · S-03 PII em erro · S-04 terceiro sem DPA · S-05 payload de egresso · S-06 credencial hardcoded · S-07 finalidade e log · S-08 transferência internacional |
-| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-06 disparidade · E-07 Model Card · E-09 kill switch · E-10 incerteza |
+| Ética | `pse_ethics` | E-00 escopo · E-01 explicação · E-02 decision log · E-03 contestação · E-04 rota humana · E-05 proxy de discriminação · E-06 disparidade · E-07 Model Card · **E-08 lineage** · E-09 kill switch · E-10 incerteza · **E-11 PII em prompt de LLM** · **E-12 derivado tratado como anônimo** · **E-13 dependência que exfiltra** |
 
-29 dos 30 checks do catálogo. E-08 (lineage) sai no laudo em
-`checks_previstos`, com motivo — previsto e ausente nunca é silêncio.
+**33 de 33.** O catálogo do plano está inteiro implementado — `checks_previstos`
+sai vazio no laudo, e o campo continua lá: sumir com ele faria o consumidor
+perder a diferença entre "nenhum pendente" e "esta versão nem sabe responder isso".
+
+### Os quatro últimos: IA, cadeia de terceiros e rastreabilidade
+
+Quatro buracos que os checks anteriores não viam. E-11, E-12 e E-13 carregam
+**Art. 42** (responsabilidade solidária) junto da base específica — perante o
+titular, quem escolheu o operador responde pelo que ele faz; E-08 o carrega
+quando a trilha atravessa terceiro.
+
+- **E-11** — E-05 e E-06 olham o *viés* do modelo; nenhum dos dois olha o que
+  **entra** nele. Um prompt é transferência a terceiro, com o agravante de que
+  o destino pode retê-lo para treino. Só suprime o achado uma chamada de
+  redação que **executa**: `# TODO: redact` não redige nada.
+- **E-12** — ataca a frase "não é dado pessoal, é só o hash". A pergunta não é
+  se você exporta derivados, é se **o catálogo reconhece a origem como pessoal**.
+  O silêncio do catálogo é a alegação de anonimato que ninguém assinou.
+- **E-13** — S-04 ignora `node_modules`/`site-packages` por construção, senão o
+  laudo vira ruído. O efeito colateral era um buraco inteiro: a dependência que
+  um dia adicionou telemetria nunca aparece no manifesto, porque ninguém
+  escreveu aquela URL. E-13 é o único check que entra nesses diretórios, e
+  nomeia o pacote que trouxe o host.
+- **E-08** — a pergunta que ninguém consegue responder depois de um incidente:
+  *este dado veio de onde, passou por quê e foi parar aonde?* Exige o artefato
+  de trilha (`lineage.jsonl` ou equivalente declarado) e confere que ele
+  **alcança** as tabelas com dado pessoal — existir trilha não basta se ela não
+  cobre o que existe. Um README afirmando rastreabilidade não conta.
+
+## A matriz: pilar × domínio
+
+Cada check declara também um **domínio** técnico. O pilar responde *que valor
+está em jogo*; o domínio, *onde ele se manifesta no sistema*.
+
+| | frontend | api | backend | data | ai |
+|---|---|---|---|---|---|
+| **privacy** | P-13 P-14 **P-22 P-23 P-24** | P-05 P-07 P-09 P-10 P-11 P-17 | P-01 P-06 P-18 P-19 | P-02 P-03 P-04 P-07 P-08 P-09 P-18 P-19 **P-20** | P-15 P-16 |
+| **security** | S-09 **S-17 S-18 S-19 S-20 S-21** | S-01 S-02 S-03 S-07 S-12 S-13 **S-22** | S-04 S-05 S-06 S-07 E-13* S-14 S-15 S-16 | S-05 S-08 S-15 | S-10 S-11 |
+| **ethics** | — | E-01 E-03 E-09 | E-02 E-04 E-11 E-13 | E-06 E-08 E-12 | E-00 E-01 E-02 E-04…E-12 |
+
+O **prefixo do ID codifica o pilar, sempre** — é a única das duas dimensões
+que é univalorada. Um check pertence a *um* pilar e pode pertencer a *vários*
+domínios (S-07 é api+backend), então o domínio vive em `domain`, que é lista,
+e nunca no prefixo. Mapa completo e os buracos em
+[`docs/matriz-dominio.md`](docs/matriz-dominio.md), gerado do catálogo.
+
+Os vetores investigados e **deliberadamente não implementados** — porque o
+check possível verificaria a fachada, não o direito — ficam assinados em
+[`docs/BURACOS-ASSUMIDOS.md`](docs/BURACOS-ASSUMIDOS.md). Buraco honesto é
+melhor que check que não verifica nada real.
+
+O inventário completo — o que cada check faz, quais testes o cobrem e o que
+**não** está testado — vive em [`docs/TESTES.md`](docs/TESTES.md) e
+[`docs/INDICE-DE-TESTES.md`](docs/INDICE-DE-TESTES.md). Os dois são gerados
+por `python -m pse.testes`, e o CI reprova o merge se o commitado divergir do
+que o código produz, ou se algum check ficar sem teste: doc que pode
+desatualizar não é documentação, é retrato de um momento que já passou.
+
+```bash
+pse --pilar privacy                 # o DPO, atravessando todos os estratos
+pse --domain frontend               # o time de front, nos três pilares
+pse --pilar privacy --domain data   # o cruzamento
+```
+
+Recorte que não alcança check nenhum é **exit 30**, não "conforme" — seria
+verde por não ter olhado. `cobertura.por_dominio` mostra estrato com zero
+checks como zero, em vez de omiti-lo.
+
+### O estrato de IA (S-10 · S-11 · P-15 · P-16)
+
+Os quatro que fecharam os buracos que a própria matriz expôs — e os primeiros
+de um domínio herdado a **nascerem olhando o estrato**, em vez de serem
+etiquetados a posteriori.
+
+- **S-10** — o que *entra* no modelo, em três vetores num só check: instrução
+  concatenada, caractere invisível (zero-width/bidi, a injeção que sobrevive à
+  revisão de código) e token flooding. Sanitizador genérico cobre os três;
+  proteção específica cobre a sua.
+- **S-11** — o que *sai*. Resposta de modelo não é código confiável: passá-la
+  a `exec`, ao banco ou ao shell transforma injeção de prompt em execução.
+- **P-15** — treinar é finalidade **nova**, não detalhe da antiga. CPF coletado
+  para cobrança virando feature de risco precisa da sua própria finalidade
+  declarada — e, se sensível, da hipótese do Art. 11. Severidade condicional:
+  **CRÍTICO** para campo sensível, **ALTO** para pessoal comum.
+- **P-16** — o E-08 dos dados de treino. Dataset costuma ser o único artefato
+  que ninguém inventaria: vive num bucket e sobrevive a toda retenção porque
+  não está em tabela nenhuma.
+
+### O estrato de API (S-12 · P-17 · S-13)
+
+A matriz dizia a verdade incômoda sobre `api`: 12 checks e **nenhum nascido
+olhando para ele**. Vieram do Trabalho A e do inventário e foram etiquetados
+depois. Densidade por herança não é cobertura — é um número que engana quem
+lê o mapa. Estes três nascem da pergunta *o que é próprio de uma borda?*
+
+- **S-12** — o **contrato** é o artefato do estrato. Uma API existe para ser
+  consumida por quem não lê o seu código: o outro time decide o que logar,
+  cachear e repassar olhando a spec. Dois vetores — o schema que carrega PII
+  sem declarar `x-ethics`, e o `x-ethics` que promete campo que o DTO não
+  implementa. O segundo é pior: silêncio não engana ninguém, e uma ontologia
+  que ninguém implementou é confiada por quem lê.
+- **P-17** — discriminação sem modelo nenhum. Um endpoint com `?raca=` entrega
+  segmentação pronta a quem souber montar a URL, e a combinação de dois
+  filtros inocentes reconstrói o recorte que a lei proíbe sem que nenhuma
+  linha do código mencione discriminação. Lê os dois lados: a view e a spec.
+- **S-13** — a borda é onde a exceção vira resposta. S-03 já pega PII no
+  payload de erro; este pega a **estrutura**: pilha, caminho no disco, versão
+  de framework, e `debug=True` no servidor. `log.exception` não é achado —
+  punir observabilidade empurraria o time a apagar o log em vez de sanear a
+  resposta.
+
+### O estrato de backend (S-14 · S-15 · P-18 · P-19 · S-16)
+
+Mesmo diagnóstico que a matriz fazia sobre `api`: 11 checks, todos herdados
+do inventário. E o que é próprio do backend não é "código de servidor" — é a
+**infraestrutura que só existe deste lado**.
+
+- **S-14** — dump de produção restaurado em ambiente inferior sem
+  descaracterizar. É o vazamento que não passa por API nenhuma: sem rota, sem
+  token de titular e sem log de acesso. O pack de borda inteiro não o alcança.
+- **S-15** — `GRANT SELECT ON ALL TABLES` é uma decisão de minimização tomada
+  uma vez e herdada para sempre — inclusive pelas tabelas que ainda não
+  existem. Concessão por coluna não dispara.
+- **P-18** — P-06 pergunta se a chave está segregada, e só aparece quando já
+  há cifra. Este pergunta o passo anterior: **tem cifra?** Criptografia de
+  disco não conta — ela protege contra o roubo do disco físico, não contra
+  quem já tem conexão ao banco.
+- **P-19** — o Art. 18 VI num registro append-only. Apagar não é uma operação
+  que exista: retenção expira partição, não titular. Ou há crypto-shredding,
+  ou a eliminação foi respondida ao titular sem ter acontecido.
+- **S-16** — residência no ponto de **escrita**. S-08 audita o egresso
+  declarado no manifesto; um bucket em `us-east-1` não é integração com
+  ninguém e não aparece em manifesto nenhum — mas o dado pousa lá igual.
+
+### A camada dinâmica (P-22 · S-17 · P-23) — o navegador
+
+Até aqui a suite lia repositório. Estes três **carregam a página num
+navegador virgem e observam** — e respondem uma pergunta que nenhuma leitura
+de código responde: *o que já aconteceu quando o titular ainda não clicou em
+nada?*
+
+Playwright é **opcional**: `pip install pse-suite` segue leve.
+
+```bash
+pip install 'pse-suite[browser]' && python -m playwright install chromium
+```
+
+Sem ele, os dinâmicos ficam **indeterminados com instrução de instalar** —
+exit 20, nunca verde: não ter olhado é diferente de olhar e não achar nada.
+
+- **P-22** — rastreador ou cookie não essencial disparado **antes** de
+  qualquer aceite. Art. 7º I pede consentimento *prévio*. **ALTO**, não
+  CRÍTICO, e o achado diz por quê: o nome do host não prova a finalidade do
+  tratamento — é sinal forte, não prova cabal.
+- **S-17** — cookie de sessão sem `HttpOnly`, `Secure` ou `SameSite`, como o
+  navegador o recebeu. Par dinâmico de S-09: o cookie quase nunca é escrito
+  pelo front, vem do middleware ou do gateway.
+- **P-23** — PII na query, no `<form method=get>` e no `Referer`, vista no
+  HTML entregue. Par dinâmico de P-14. **Só o nome do parâmetro entra no
+  laudo** — publicar o valor faria da evidência o segundo vazamento.
+
+O contrato de Trabalho A rege o navegador igual rege o HTTP: sem atestação
+válida **nenhuma página é aberta**, e isso é medido por contagem, não
+prometido. Uma observação por execução, compartilhada pelos três.
+
+**Correlação, não deduplicação.** P-14×P-23 e S-09×S-17 são a mesma falha em
+duas camadas; o laudo ganha um bloco `correlacoes` que diz qual dos três
+cenários é cada par — confirmado nas duas, só no código, ou **só no ar** (o
+mais interessante: veio de template do servidor ou tag gerenciada, e nenhuma
+leitura de repositório o encontraria). Nenhum finding é removido.
+
+#### Fase 2 — o corpo servido (S-18 · S-19 · S-20 · P-24 · S-21)
+
+A Fase 1 olha requisição, cookie e URL. A Fase 2 lê **o que o servidor
+entregou**, e é onde a camada dinâmica passa a ver o que nenhum `grep` vê:
+
+- **S-18** — par dinâmico de S-04. S-04 conhece o terceiro que alguém
+  *escreveu*; este vê o que a página *contactou* — a tag gerenciada pelo
+  painel, o script injetado por dependência, o terceiro que o próprio
+  terceiro chama. Todo host contactado recebe IP e User-Agent do visitante.
+- **S-19** — CSP, nosniff e Referrer-Policy no documento, e **mixed
+  content** sem atenuante. Cabeçalho ausente em asset de *terceiro* não é
+  achado: é maturidade do fornecedor, e o controlador não manda no servidor
+  dele.
+- **S-20** — par dinâmico de P-06. P-06 acha a chave no repositório; esta
+  chegou ao **navegador**, logo está publicada — a correção é *rotacionar
+  antes de remover*. Corpo grande demais para ler vira **indeterminado**:
+  teto de memória não é atestado de conformidade.
+- **P-24** — EXIF-GPS em imagem publicada. Só a **presença** é reportada; a
+  coordenada nunca é lida. Autoria é observação, não achado.
+- **S-21** — `sourceMappingURL` no bundle. **MEDIO**, e a severidade carrega
+  a honestidade do método: o `.map` **não é baixado**, porque buscá-lo é
+  sondagem — Fase 3.
+
+Motor e checks adaptados de
+[`danzeroum/qa-suite`](https://github.com/danzeroum/qa-suite) (mesmo dono):
+`navegador.py`, `trackers.py`, `checks/seguranca/` e as fixtures de
+`conftest`.
+
+### O estrato de dados (P-20) — e o P-21 que não existe
+
+`data` é o estrato onde a suite **nasceu**: catálogo, retenção, k-anonimato
+e linhagem vieram olhando para ele. Sobrou um buraco, e ele engana por
+parecer resolvido.
+
+- **P-20** — `hashlib.sha256(cpf)` gravado numa coluna `class: anonymized`.
+  O CPF tem ~10¹¹ valores válidos: o dicionário completo se constrói em
+  segundos, e o Art. 12 só dispensa o dado que **não pode** ser revertido
+  por meios razoáveis. P-06 audita onde a chave mora — aqui não *há* chave;
+  P-18 audita a ausência de cifra — aqui alguém "cifrou", no sentido errado
+  da palavra. Severidade condicional: **CRÍTICO** para campo sensível,
+  **ALTO** para pessoal comum. HMAC com chave de cofre e sal aleatório por
+  registro **não** disparam — punir HMAC seria a suite contradizendo P-06.
+
+**P-21 (zona bruta de data lake sem restrição) foi investigado e não
+implementado.** A identificação da zona viria do *nome* do bucket, que é
+menção e não fato (D-01); uma policy sem `Condition` no Terraform não é
+violação por si, porque a restrição pode viver numa SCP ou no provedor de
+identidade, fora do repositório; e a suite não tem parser de HCL. A decisão
+está assinada em `pse/matriz.py` e no mapa gerado. Buraco honesto é melhor
+que check que não verifica nada real.
+
+## O primeiro alvo real: `danzeroum/btv`
+
+A fixture prova que o **check** está certo. O aceite prova que a **régua**
+reproduz um sistema de verdade. São coisas diferentes — e a segunda achou,
+na primeira execução, três defeitos que onze versões de fixtures não acharam:
+
+1. **S-04 lia comentário.** `// https://vite.dev/config/` num `vite.config.ts`
+   virava "host de terceiro não registrado" — **D-01 violado pelo check mais
+   antigo da suite**. Nenhuma fixture tinha URL em comentário.
+2. **O laudo era silencioso sobre 137 arquivos Rust.** Um leitor razoável
+   concluiria que o backend foi auditado e estava limpo. Não estava nada.
+3. **A mensagem de parse acusava o alvo.** Dizia "erro de sintaxe" num `.ts`
+   que o `tsc` compila — mandava o time procurar defeito onde não havia.
+
+```bash
+python -m pse.aceite      # roda os aceites declarados em aceites/*.yaml
+pytest -m pse_aceite
+```
+
+O baseline compara por **faixa**, não por número exato: aceite que quebra a
+cada commit do alvo é desligado no primeiro mês. Ele fixa o que não pode
+regredir — check que parou de executar, check que parou de morder, falso
+positivo novo, estrato que saiu do alcance. **Alvo ausente → pendente com
+motivo datado, nunca verde.**
+
+### O bloco `alcance`: o que a suite *não* leu
+
+Todo laudo diz agora, nominalmente, quais linguagens ficaram fora e quantos
+arquivos são. Não é finding — não há defeito no alvo por ser escrito em Rust
+— é **estado**. Sem ele, `nenhum achado em .rs` é indistinguível de `Rust
+auditado e limpo`.
+
+### Alcance a Rust: quatro vetores, sem parser
+
+A medição do btv recomendou o degrau `literal` — quatro vetores alcançáveis
+**sem gramática nenhuma**. É o que existe hoje: **S-06** (chave hardcoded),
+**P-18** (campo sensível sem cifra), **P-19** (evento sem crypto-shredding) e
+**S-16** (persistência fora da jurisdição) reconhecem `.rs`. Nenhum parser
+foi escrito, nenhum check novo nasceu.
+
+A âncora é a **estrutura**, nunca a menção: `// let api_key = "AKIA..."` num
+comentário não dispara; a ligação `let api_key = "..."` dispara. Comentário
+de bloco **aninhado** (`/* a /* b */ c */`) é apagado inteiro, e `&'a str`
+não é confundido com literal — as três construções que um apagador genérico
+erra, cada uma para um lado perigoso.
+
+**Precisão sobre recall**, porque sem árvore o casamento é mais frágil:
+`CRÍTICO` só com formato conhecido (AKIA, `sk-`, `ghp_`, PEM); nome de
+credencial com literal longo de formato desconhecido é `ALTO`. E
+`env!("API_KEY")` — que grava o valor no binário em tempo de compilação — é
+**indeterminado com motivo**, nunca achado forçado nem verde por conveniência.
+
+`.rs` **não** entra em `COM_PARSER`. Ele tem categoria própria no bloco
+`alcance`, com os quatro checks nomeados: *ausência de achado desses quatro
+significa "olhei e está limpo"; ausência de achado de qualquer outro check
+nesses arquivos não significa nada.*
+
+### O mapa de cobertura: *quais checks* ficaram cegos
+
+`alcance` responde *que linguagens a suite não lê*.
+[`docs/cobertura-btv.md`](docs/cobertura-btv.md) responde a pergunta seguinte,
+que é a que decide escopo: **quais checks ficaram cegos, e quais deles teriam
+vetor de verdade na linguagem que faltou?** Gerado de um instantâneo datado
+(`aceites/btv-medicao.json`) cruzado com o substrato declarado de cada check,
+para que quem não tem o clone do alvo consiga regenerá-lo.
+
+Quatro estados que **nunca colapsam** um no outro:
+
+| | significa |
+|---|---|
+| `AUDITADO` | leu o substrato — *sem achado* é **olhei e está limpo** |
+| `AUDITADO PARCIAL` | leu parte — *sem achado* é **olhei metade**, e a outra está nomeada |
+| `FORA DE ALCANCE` | o vetor existe, em linguagem sem parser — *sem achado* é **não olhei** |
+| `NÃO APLICÁVEL` | o vetor não existe neste alvo |
+
+**Duas réguas de tamanho, e elas discordam.** Por *arquivos* o maior estrato
+do btv é o **web (174)**, à frente do Rust (137); por *linhas* é o **Rust
+(38.096)**, à frente do web (19.040). As duas são verdadeiras — `.rs` de motor
+é denso, componente de tela é curto — e o mapa traz as duas, porque trazer só
+linhas dava a impressão de que o alvo era pouco auditável.
+
+**Ter parser não é ter lido.** Dos 174 arquivos JS/TS do btv, **171 foram
+analisados** (1.159 elementos JSX e 5.797 chamadas percorridos) e 3 estão
+nomeados como ilegíveis. Antes, um único arquivo que nenhuma gramática
+alcançasse derrubava o check **inteiro** e os outros 171 ficavam sem veredito
+— falso-negativo produzido por fail-closed. Hoje o ilegível é contabilizado, os
+demais são auditados, e `CheckIndeterminado` carrega os achados do que leu.
+
+No btv: **47,0% lido por parser, 50,8% em alcance parcial (4 vetores),
+2,2% cego** (em linhas). As três fatias ficam separadas de propósito — somar
+o alcance parcial ao lido faria a proporção saltar para 97,8% e a suite
+mentiria por arredondamento.
+
+`AUDITADO PARCIAL` nasceu deste alvo: chamar P-01 de *auditado* porque a
+metade Python foi lida esconderia 38 mil linhas não olhadas. Restam **13**
+meio-cegos (eram 19).
+
+**Não-aplicável é medido, não alegado.** Para cada check com vetor em
+backend, a suite sonda o código efetivo dos `.rs` — sem comentário e sem
+literal — atrás das marcas daquele vetor; ausência de todas prova que o vetor
+não está lá. No btv isso valeu para **2** checks, não para a maioria: logger,
+hash, serde, tratamento de erro e cliente HTTP estão todos presentes no
+motor. A sonda só empurra para *não aplicável*, nunca para *auditado*.
+
+O mapa cruza **dois eixos independentes**: alcance do substrato (*a suite leu
+o código onde o vetor vive*) × estado no laudo (*o check chegou a decidir*).
+Juntá-los seria o mesmo erro numa escala menor — S-18 tem substrato íntegro e
+foi **pulado** por não haver manifesto para comparar. Cruzando os dois:
+**16 dos 58 checks foram auditados de verdade** no btv. Os outros 42 leram
+metade, foram pulados com motivo, ficaram indeterminados ou nem habilitados —
+respostas legítimas, nenhuma delas conformidade.
+
+### Alvo local (`local_target`)
+
+Aplicação local-first roda em `127.0.0.1`, onde não há rede nem prova de
+posse a fazer. **É justamente por isso que o degrau é explícito:** sem ele,
+qualquer coisa numa porta local viraria alvo sondável sem registro.
+`local_target: true` substitui o `target_fingerprint` (a porta é efêmera) e
+**não** substitui escopo nem prazo. Declará-lo num alvo publicado é exit 30.
 
 ## Os dois trabalhos
 
 | Trabalho | Marcador | Checks |
 |---|---|---|
-| **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/06/08 · E-00/04/05/07 |
+| **B** — inventário estático (sem rede, agente pode disparar) | `--modo pse_inventory` | P-01/02/03/04/06/08 · S-04/05/06/08 · E-00/04/05/06/07/08/10/11/12/13 |
 | **A passivo** — leitura com a própria identidade | `--modo pse_passive` | S-03 · E-01 · E-02 |
 | **A ativo** — sonda de autorização, só `workflow_dispatch` | `--modo pse_active` | S-01 · S-02 · S-07 · P-05 · P-07 · P-09 · P-10 · P-11 · E-03 · E-09 |
 
@@ -118,7 +457,7 @@ de um achado é `arquivo:linha`, nunca o literal.
 
 Fonte única: `pyproject.toml`. O laudo lê dos metadados do pacote instalado. A
 suite **nunca fabrica** um número: versão irresolvível é ambiente quebrado
-(exit 30), não `0.2.0-dev`.
+(exit 30), não `0.8.0-dev`.
 
 ## Autoprova — a régua obedece ao que receita
 

@@ -14,7 +14,7 @@ import pytest
 
 from pse.cli import main
 from pse.engine.runner import executar
-from pse.model import EXIT_ENTRADA_INVALIDA, EXIT_INDETERMINADO
+from pse.model import EXIT_ENTRADA_INVALIDA, EXIT_INDETERMINADO, EntradaInvalida
 from pse.trabalho_a.cliente import Resposta
 
 from helpers_alvo import (BASE, CHECKS_A, ROTA_B, TOKEN_A, UUID_B,
@@ -298,3 +298,126 @@ def test_laudo_carimba_a_atestacao_sem_segredo(tmp_path):
     assert att["attested_by"] == "dpo@exemplo.com"
     assert att["scope"] and att["expires"] and att["target_fingerprint"]
     assert "token-de-teste-a" not in bruto and "PSE_TOKEN_A" not in bruto
+
+
+# ==================================================== loopback: mudanca de regra
+@pytest.mark.mordida
+@pytest.mark.parametrize("url,aceita", [
+    ("http://127.0.0.1:8000", True),
+    ("http://localhost:8000", True),
+    ("https://staging.exemplo.com", True),
+    # A trava: casa o host de loopback EXATO, nunca por substring.
+    ("http://127.0.0.1.atacante.com", False),
+    ("http://localhost.atacante.com", False),
+    ("http://meu-localhost.com", False),
+    ("http://staging.exemplo.com", False),
+    ("http://10.0.0.5", False),
+])
+def test_http_so_e_aceito_em_loopback(url, aceita):
+    """MUDANCA DE REGRA declarada, para a camada dinamica poder ser provada
+    contra um alvo REAL.
+
+    A exigencia de https existe por UM motivo escrito: sonda em texto claro
+    vaza o proprio token de teste na rede. Em loopback nao ha rede — o
+    pacote nao passa por interface fisica, nao ha intermediario e nao ha o
+    que capturar. A razao da regra nao alcanca o caso.
+
+    Sem isto, o alvo de fixture (http://127.0.0.1) nao passaria pelo
+    contrato, e a camada dinamica so teria prova contra objeto fabricado —
+    exatamente o erro de tratar ambiente local como alvo respondendo.
+
+    A excecao e ESTREITA de proposito, e e isso que este teste fixa:
+    `127.0.0.1.atacante.com` NAO passa.
+    """
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": url, "environment": "staging"}}
+    if aceita:
+        autorizacao.validar_config(cfg, "pse_passive")
+    else:
+        with pytest.raises(EntradaInvalida) as e:
+            autorizacao.validar_config(cfg, "pse_passive")
+        assert "https" in str(e.value)
+
+
+# ============================================ alvo local: o degrau local_target
+def _att_local(**extra):
+    return {"attested_by": "arquiteto@danzeroum", "scope": ["pse_passive"],
+            "expires": "2030-01-01", **extra}
+
+
+@pytest.mark.mordida
+def test_loopback_sem_local_target_e_recusado():
+    """O buraco que o degrau existe para fechar.
+
+    Em 127.0.0.1 nao ha rede nem prova de posse a fazer — e e JUSTAMENTE por
+    isso que o degrau precisa ser explicito. Sem ele, qualquer coisa que suba
+    numa porta local viraria alvo sondavel sem registro, e o contrato
+    perderia o sentido no unico lugar onde e mais facil burla-lo.
+    """
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "http://127.0.0.1:8080",
+                      "environment": "staging",
+                      "authorization": _att_local()}}
+    autorizacao.validar_config(cfg, "pse_passive")     # config passa
+    with pytest.raises(CheckIndeterminado) as e:       # a atestacao, nao
+        autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert "local_target" in str(e.value)
+
+
+def test_loopback_com_local_target_dispensa_o_fingerprint():
+    """A porta do alvo local e efemera: um fingerprint que muda a cada
+    execucao viraria burocracia que o operador cola sem ler."""
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "http://127.0.0.1:54321",
+                      "environment": "staging",
+                      "authorization": _att_local(local_target=True)}}
+    autorizacao.validar_config(cfg, "pse_passive")
+    att = autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert att["local_target"] is True
+
+
+@pytest.mark.mordida
+def test_local_target_em_alvo_publicado_e_entrada_invalida():
+    """A fraude barata que o degrau NAO pode permitir: uma linha dispensando
+    a prova de posse de um host que nao e seu."""
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "https://alvo-de-terceiro.example.org",
+                      "environment": "staging",
+                      "authorization": _att_local(local_target=True)}}
+    with pytest.raises(EntradaInvalida) as e:
+        autorizacao.validar_config(cfg, "pse_passive")
+    assert "nao e loopback" in str(e.value).lower() or "NAO e loopback" in str(e.value)
+
+
+@pytest.mark.mordida
+def test_alvo_publicado_segue_exigindo_fingerprint():
+    """O degrau local nao pode ter afrouxado o caminho normal."""
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    cfg = {"target": {"base_url": "https://staging.exemplo.com",
+                      "environment": "staging",
+                      "authorization": _att_local(target_fingerprint="errado")}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(cfg, "pse_passive")
+    assert "target_fingerprint" in str(e.value)
+
+
+@pytest.mark.mordida
+def test_local_target_nao_dispensa_escopo_nem_prazo():
+    """Alvo local continua sendo alvo: escopo e prazo valem igual. O degrau
+    substitui a prova de POSSE, nao a autorizacao."""
+    from pse.model import CheckIndeterminado
+    from pse.trabalho_a import autorizacao
+    base = {"base_url": "http://localhost:9000", "environment": "staging"}
+
+    sem_ativo = {"target": {**base, "authorization": _att_local(local_target=True)}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(sem_ativo, "pse_active")
+    assert "scope" in str(e.value)
+
+    vencida = {"target": {**base, "authorization": _att_local(
+        local_target=True, expires="2020-01-01")}}
+    with pytest.raises(CheckIndeterminado) as e:
+        autorizacao.validar_atestacao(vencida, "pse_passive")
+    assert "vencida" in str(e.value)

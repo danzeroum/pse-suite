@@ -11,7 +11,9 @@ from pse.engine.runner import _carregar_checks, executar
 
 FIX = Path(__file__).parent / "fixtures"
 
-# Os 29 do plano §3 + E-00, a guarda que o plano v1 chama de EBD-000.
+# Os 29 do plano §3 + E-00 (guarda de escopo) + E-11/E-12/E-13 (IA e cadeia
+# de terceiros) + P-13/P-14/S-09 (dominio frontend). Os tres ultimos sao o
+# primeiro estrato cujo ID codifica o DOMINIO, nao o pilar.
 PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
          [f"S-{i:02d}" for i in range(1, 9)] +
          [f"E-{i:02d}" for i in range(1, 11)])
@@ -20,8 +22,15 @@ PLANO = ([f"P-{i:02d}" for i in range(1, 12)] +
 def test_catalogo_cobre_os_29_do_plano():
     assert set(PLANO) <= set(catalogo.CATALOGO), (
         f"faltam no catalogo: {sorted(set(PLANO) - set(catalogo.CATALOGO))}")
-    assert "E-00" in catalogo.CATALOGO
-    assert len(catalogo.CATALOGO) == len(PLANO) + 1
+    assert {"E-00", "E-11", "E-12", "E-13"} <= set(catalogo.CATALOGO)
+    assert {"P-13", "P-14", "S-09"} <= set(catalogo.CATALOGO)
+    assert {"S-10", "S-11", "P-15", "P-16"} <= set(catalogo.CATALOGO)
+    assert {"S-12", "P-17", "S-13"} <= set(catalogo.CATALOGO)
+    assert {"S-14", "S-15", "P-18", "P-19", "S-16", "P-20"} <= set(catalogo.CATALOGO)
+    assert {"P-22", "S-17", "P-23"} <= set(catalogo.CATALOGO)
+    assert {"S-18", "S-19", "S-20", "P-24", "S-21"} <= set(catalogo.CATALOGO)
+    assert {"S-22"} <= set(catalogo.CATALOGO)
+    assert len(catalogo.CATALOGO) == len(PLANO) + 29
 
 
 def test_registro_e_catalogo_nao_derivam():
@@ -45,26 +54,41 @@ def test_base_legal_tem_fonte_unica():
         assert meta["base_legal"], f"{cid} sem base legal declarada"
 
 
-def test_previsto_e_ausente_e_dizivel():
-    """O laudo tinha de saber dizer 'previsto e ausente' — nao so
-    'executado' ou 'pulado'. E pre-requisito da Fase 2."""
-    previstos = {c["id"] for c in catalogo.previstos()}
-    # E-08 (provenance/lineage) nao estava na lista pedida para a Fase 3.
-    # Previsto e ausente, com motivo — nao silencio.
-    assert previstos == {"E-08"}
-    for c in catalogo.previstos():
+def test_catalogo_nao_tem_mais_previstos():
+    """33/33. O catalogo do plano esta inteiro implementado."""
+    assert catalogo.previstos() == [], (
+        f"previstos: {[c['id'] for c in catalogo.previstos()]}")
+
+
+def test_previsto_e_ausente_continua_dizivel(monkeypatch):
+    """O MECANISMO tem de sobreviver ao catalogo ficar completo.
+
+    Hoje nao ha check previsto — mas o dia em que o plano crescer, o laudo
+    precisa continuar sabendo dizer 'declarado e ainda nao implementado'.
+    Sem este teste, a capacidade morreria em silencio no primeiro refactor,
+    e so alguem descobriria ao adicionar o check 34.
+    """
+    futuro = {**catalogo.meta("E-08"), "status": "previsto-fase-3"}
+    monkeypatch.setitem(catalogo.CATALOGO, "E-08", futuro)
+    previstos = catalogo.previstos()
+    assert {c["id"] for c in previstos} == {"E-08"}
+    for c in previstos:
         assert c["motivo"] and c["status"] and c["modo"]
+    assert "E-08" not in catalogo.implementados()
 
 
-def test_laudo_carrega_cobertura_e_previstos(tmp_path):
+def test_laudo_carrega_cobertura(tmp_path):
     out = tmp_path / "l.json"
     main(["--path", str(FIX / "consumidor_bom"),
           "--config", str(FIX / "consumidor_bom" / "pse-config.yaml"),
           "--output", str(out)])
     laudo = json.loads(out.read_text(encoding="utf-8"))
-    assert laudo["cobertura"]["catalogo_total"] == 30
-    assert laudo["cobertura"]["implementados_nos_packs"] == 29
-    assert {c["id"] for c in laudo["checks_previstos"]}
+    assert laudo["cobertura"]["catalogo_total"] == 58
+    assert laudo["cobertura"]["implementados_nos_packs"] == 58
+    # O campo continua no laudo mesmo vazio: some-lo quando nao ha previstos
+    # faria o consumidor perder a diferenca entre "nenhum pendente" e
+    # "esta versao nem sabe responder isso".
+    assert laudo["checks_previstos"] == []
 
 
 # ------------------------------------------------------------------ E-00

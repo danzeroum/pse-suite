@@ -1,0 +1,124 @@
+# Regua de S-22 — enforcement de base legal por finalidade.
+#
+# Vive AQUI, nunca dentro do .py do check (D-13). E a lista mais delicada da
+# suite ate agora, porque ela nao descreve um padrao de codigo: descreve o
+# VOCABULARIO DA LEI. Encolhe-la e encolher o que a suite reconhece como
+# "base legal declarada" — e um alvo que use um sinonimo fora desta lista
+# vira indeterminacao, nunca verde silencioso.
+#
+# Nada aqui e "palavra que aparece no codigo". Sao valores que a suite espera
+# encontrar como LITERAL numa estrutura de dados (dicionario do codigo ou
+# entrada de declaracao). A mencao num comentario nunca alcanca nenhuma
+# destas listas (D-01).
+
+# --------------------------------------------------------------------------
+# As bases legais do Art. 7o (dado pessoal comum) e do Art. 11 (sensivel).
+#
+# Sinonimo em ingles existe porque time brasileiro escreve nos dois idiomas,
+# e reprovar por idioma seria burocracia, nao trava. O radical curto e
+# proposital: `consent` alcanca `consent`, `consentimento` e
+# `consentimento_expresso` sem que a lista precise prever cada variante.
+#
+# ATENCAO ao que NAO esta aqui: `interesse_do_negocio`, `melhoria_do_produto`,
+# `analytics`. Nao sao bases legais — sao finalidades disfarcadas de base, e
+# e exatamente o erro que S-22 existe para achar. Acrescentar qualquer uma
+# delas transformaria o check no seu contrario.
+bases:
+  # Art. 7o I / Art. 11 I
+  - consentimento
+  - consent
+  # Art. 7o II
+  - obrigacao_legal
+  - cumprimento_de_obrigacao_legal
+  - legal_obligation
+  # Art. 7o III
+  - politica_publica
+  - execucao_de_politica_publica
+  - public_policy
+  # Art. 7o IV
+  - pesquisa
+  - orgao_de_pesquisa
+  - research
+  # Art. 7o V
+  - contrato
+  - execucao_de_contrato
+  - contract
+  - performance_of_contract
+  # Art. 7o VI
+  - exercicio_de_direitos
+  - exercicio_regular_de_direitos
+  - processo_judicial
+  - legal_claims
+  # Art. 7o VII / Art. 11 II e
+  - protecao_da_vida
+  - vital_interests
+  # Art. 7o VIII / Art. 11 II f
+  - tutela_da_saude
+  - health
+  # Art. 7o IX
+  - legitimo_interesse
+  - legitimate_interest
+  # Art. 7o X
+  - protecao_do_credito
+  - credit_protection
+  # Art. 11 II — hipoteses proprias de dado sensivel
+  - garantia_da_prevencao_a_fraude
+  - fraud_prevention
+
+# --------------------------------------------------------------------------
+# Como uma finalidade CHEGA ao servidor. E o que torna S-22 aplicavel: sem
+# finalidade entrando, nao ha o que amarrar a base nenhuma, e o check pula
+# nomeando S-07 — cobrar o mesmo defeito duas vezes ensina a ignorar os dois.
+#
+# `cabecalhos` sao literais casados sem diferenciar maiuscula, hifen ou
+# sublinhado: `X-Purpose`, `x_purpose` e `HTTP_X_PURPOSE` sao o mesmo fato.
+superficie:
+  cabecalhos: [x-purpose, x-finalidade, x-processing-purpose]
+  # Chaves lidas de um extrator de requisicao (`request.headers.get(...)`,
+  # `request.args["..."]`). O extrator vem de `api-contract.extratores_de_query`
+  # mais os de cabecalho abaixo.
+  chaves: [purpose, finalidade, proposito, processing_purpose]
+  extratores_de_cabecalho: [headers, META, environ, header]
+
+# --------------------------------------------------------------------------
+# O mapa na forma DECLARADA: uma lista de finalidades em que cada entrada
+# carrega a sua base. E a forma que `consent-model.yaml` ja usa.
+declaracao:
+  containers: [purposes, finalidades, processing_purposes, bases_legais]
+  chave_de_base: [base_legal, legal_basis, base, basis, fundamento]
+  chave_de_finalidade: [id, nome, name, purpose, finalidade]
+
+# --------------------------------------------------------------------------
+# Identificadores que SUGEREM o mapa. Usados so para decidir INDETERMINACAO:
+# um nome destes ligado a algo que nao e literal decidivel vira pergunta
+# bloqueante, em vez de sumir. NUNCA criam achado sozinhos, e nunca desligam
+# nenhum — o nome da variavel nao e o fato (D-01).
+#
+# Casados por `scan.nome_casa_tokens`: todos os tokens da marca precisam
+# aparecer no nome, cada um como prefixo.
+nomes_de_mapa:
+  - base_legal
+  - bases_legais
+  - legal_basis
+  - legal_bases
+  - basis_by_purpose
+  - base_por_finalidade
+  - bases_por_finalidade
+  - purpose_basis
+  - finalidade_base
+
+# --------------------------------------------------------------------------
+# Como uma combinacao invalida e RECUSADA. Sem isto o mapa e decorativo: uma
+# tabela que ninguem consulta e papel, e papel nao e enforcement.
+rejeicao:
+  # Chamadas que interrompem a requisicao.
+  chamadas: [abort, deny, forbid, reject, recusar, negar, raise_for_status,
+             permission_denied, forbidden, not_authorized, http_exception,
+             httpexception, unauthorized]
+  # Excecoes cujo levantamento e, por si, a recusa.
+  excecoes: [PermissionDenied, Forbidden, HTTPException, NotAuthorized,
+             Unauthorized, BaseLegalInvalida, FinalidadeInvalida,
+             InvalidLegalBasis, PurposeNotAllowed, ValueError, ValidationError]
+  # Status devolvidos que constituem recusa. 428 entra porque e o que a
+  # propria recomendacao de S-07 pede para finalidade ausente.
+  status: [400, 401, 403, 422, 428, 451]

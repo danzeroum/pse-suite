@@ -31,7 +31,8 @@ RX_LOG = re.compile(r"^(logger|logging|log|console)$|^(logger|logging|console)\.
                     r"^print$|\.(info|warn|warning|error|debug|critical|exception|log)$",
                     re.I)
 RX_MASCARA = re.compile(
-    r"mascar|mask|redact|anonimiz|pseudonim|obfusc|scrub|sanitiz|hash|sha\d", re.I)
+    r"mascar|mask|redact|redig|redac|anonimiz|pseudonim|obfusc|scrub|sanitiz"
+    r"|hash|sha\d", re.I)
 RX_VALOR_PII = (RX_CPF, RX_EMAIL, RX_TELEFONE)
 
 

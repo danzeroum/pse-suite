@@ -40,6 +40,11 @@ _CMT_LINHA = {
 }
 # Extensoes com comentario de bloco /* ... */
 _CMT_BLOCO = {".go", ".java", ".sql", ".css"} | ECMASCRIPT
+# HTML comenta com <!-- -->, e so com isso. Sem tratamento proprio, o
+# apagador generico usaria `#` — que em HTML nao comenta nada — e um host
+# dentro de `<!-- <link href="https://tracker.exemplo"> -->` valeria como
+# fato. D-01 exige o contrario.
+_CMT_HTML = {".html", ".htm"}
 # Extensoes com string de tres aspas.
 _TRIPLA = {".py"}
 
@@ -90,6 +95,8 @@ def codigo_efetivo(texto: str, ext: str, sem_literais: bool = False) -> str:
     ali o literal e justamente o fato — `api_key = "sk-live-..."` e uma
     credencial hardcoded, nao uma mencao a uma.
     """
+    if ext in _CMT_HTML:
+        return _apagar_comentario_html(texto)
     marcas = _CMT_LINHA.get(ext, ("#",))
     bloco = ext in _CMT_BLOCO
     tripla = ext in _TRIPLA
@@ -152,6 +159,28 @@ def codigo_efetivo(texto: str, ext: str, sem_literais: bool = False) -> str:
     return "".join(saida)
 
 
+def _apagar_comentario_html(texto: str) -> str:
+    """`<!-- ... -->` apagado, preservando posicao e numero de linha.
+
+    Literais NAO sao apagados, e isso e deliberado: em HTML o valor do
+    atributo E o fato. `<link href="https://fonts.googleapis.com/...">` nao e
+    a mencao de um terceiro — e o egresso acontecendo.
+    """
+    saida = list(texto)
+    i, n = 0, len(texto)
+    while i < n:
+        if texto.startswith("<!--", i):
+            fim = texto.find("-->", i + 4)
+            fim = n if fim == -1 else fim + 3
+            for k in range(i, min(fim, n)):
+                if saida[k] != "\n":
+                    saida[k] = " "
+            i = fim
+            continue
+        i += 1
+    return "".join(saida)
+
+
 def arvore(path: Path) -> ast.Module:
     """AST de um arquivo Python — o fato, nao a mencao.
 
@@ -176,6 +205,47 @@ def nome_chamado(no: ast.AST) -> str:
     if isinstance(alvo, ast.Name):
         partes.append(alvo.id)
     return ".".join(reversed(partes))
+
+
+def nome_casa(nome: str, marcas) -> bool:
+    """A marca casa com um TOKEN do nome, nao com substring perdida no meio.
+
+    `delimitar` contem `limitar`: com casamento por substring, delimitar uma
+    entrada passava a valer como limitar o tamanho dela, e um vetor de
+    injecao inteiro sumia em silencio. Tokenizar por `.` e `_` e exigir
+    prefixo resolve — `delimitar`.startswith(`limitar`) e falso, e
+    `delimitar`.startswith(`delimit`) e verdadeiro.
+    """
+    tokens = re.split(r"[._]+", str(nome).lower())
+    return any(t.startswith(m.lower()) for t in tokens if t for m in marcas)
+
+
+def _tokens(nome: str) -> list:
+    return [t for t in re.split(r"[._]+", str(nome).lower()) if t]
+
+
+def nome_casa_tokens(nome: str, marcas) -> bool:
+    """A marca e um CONJUNTO de tokens, e todos tem de aparecer no nome.
+
+    `nome_casa` resolve marca de um token so (`limitar`). Nao resolve marca
+    composta: `validar_filtro` vira os tokens ['validar', 'filtro'], e
+    nenhum token de `validar_filtros` comeca com a string inteira.
+
+    Aqui cada token da marca precisa ser prefixo de algum token do nome —
+    o que faz `validar_filtro` casar com `validar_filtros` (plural) e com
+    `validar_filtros_permitidos`, e NAO casar com `validar_email`. Sem a
+    exigencia de todos os tokens, `filtro` sozinho casaria com qualquer
+    funcao de filtragem e a guarda viraria um passe livre.
+    """
+    tokens = _tokens(nome)
+    if not tokens:
+        return False
+    for marca in marcas:
+        exigidos = _tokens(marca)
+        if exigidos and all(any(t.startswith(e) for t in tokens)
+                            for e in exigidos):
+            return True
+    return False
 
 
 def chamadas(no: ast.AST):

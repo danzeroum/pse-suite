@@ -1,0 +1,32 @@
+tables:
+  clientes:
+    fields:
+      cpf:
+        class: personal
+        owner: cadastro
+        purpose: identificacao
+        legal_basis: contrato
+        retention_years: 5
+      email:
+        class: personal
+        owner: relacionamento
+        purpose: contato
+        legal_basis: consentimento
+        retention_years: 3
+      biometria:
+        class: sensitive
+        owner: seguranca
+        purpose: autenticacao
+        legal_basis: consentimento
+        retention_years: 1
+        encryption:
+          algorithm: AES-256-GCM
+          key_management: aws-kms
+  dim_cliente:
+    fields:
+      pseudonimo:
+        class: personal         # pseudonimo NAO e anonimo: continua sendo dado
+        owner: bi               # pessoal, com chave que alguem guarda
+        purpose: analise
+        legal_basis: legitimo_interesse
+        retention_years: 10

@@ -197,3 +197,36 @@ def test_config_inexistente_sai_30(tmp_path):
 @pytest.mark.mordida
 def test_packs_invalidos_saem_30(tmp_path):
     assert main(["--path", str(tmp_path), "--packs", "privacidade"]) == 30
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s04_nao_ve_host_em_comentario(tmp_path):
+    """D-01 no check mais antigo da suite, encontrado pelo PRIMEIRO ALVO REAL.
+
+    `// https://vite.dev/config/` num `vite.config.ts` do danzeroum/btv virava
+    "host de terceiro nao registrado". Nenhuma fixture tinha URL em
+    comentario, e por isso o defeito atravessou o projeto inteiro.
+
+    O literal continua contando: `fetch("https://api.terceiro.com")` e egresso
+    de verdade, e ali o literal E o fato. So a MENCAO sai.
+    """
+    (tmp_path / ".privacy").mkdir()
+    (tmp_path / ".privacy" / "third-party-manifest.yml").write_text(
+        "integrations: []\n", encoding="utf-8")
+    (tmp_path / "vite.config.ts").write_text(
+        "// https://vite.dev/config/\n"
+        "import x from 'y'\n"
+        "export default x\n", encoding="utf-8")
+    (tmp_path / "cliente.py").write_text(
+        '# https://so-um-comentario.example.net/doc\n'
+        'import requests\n'
+        'def f():\n'
+        '    return requests.get("https://api.egresso-real.example.net/v1")\n',
+        encoding="utf-8")
+
+    res = executar(tmp_path, {"security"}, {})
+    hosts = " ".join(f.titulo for f in res["findings"] if f.check_id == "S-04")
+    assert "egresso-real" in hosts, "o egresso de verdade sumiu junto"
+    assert "vite.dev" not in hosts, "host em comentario virou achado (D-01)"
+    assert "so-um-comentario" not in hosts, "host em comentario virou achado (D-01)"

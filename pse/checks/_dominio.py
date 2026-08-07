@@ -25,10 +25,18 @@ REGUA = "third-party-endpoints"
 
 
 def _listas(ctx) -> tuple:
+    """Tres fontes, e a primeira e o que fecha a incoerencia medida.
+
+    `ignorar` e a lista de S-04 — le-la aqui e o conserto: o que S-04 ignora,
+    P-01 ignora. `reservados_de_email` acrescenta o que so vale para e-mail
+    (`example.net`, que como HOST segue sendo egresso visivel). `tld_reservados`
+    fecha por sufixo. Ver o comentario da regua para a assimetria.
+    """
     regua = ctx.data[REGUA]
-    ignorar = {str(d).lower() for d in regua.get("ignorar", [])}
+    reservados = {str(d).lower() for d in regua.get("ignorar", [])}
+    reservados |= {str(d).lower() for d in regua.get("reservados_de_email", [])}
     tlds = tuple(str(t).lower() for t in regua.get("tld_reservados", []))
-    return ignorar, tlds
+    return reservados, tlds
 
 
 def dominio_reservado(ctx, dominio: str) -> bool:
@@ -41,8 +49,8 @@ def dominio_reservado(ctx, dominio: str) -> bool:
     d = str(dominio or "").strip().lower().rstrip(".")
     if not d:
         return False
-    ignorar, tlds = _listas(ctx)
-    if d in ignorar or any(d.endswith("." + ig) for ig in ignorar):
+    reservados, tlds = _listas(ctx)
+    if d in reservados or any(d.endswith("." + r) for r in reservados):
         return True
     return any(d == t.lstrip(".") or d.endswith(t) for t in tlds)
 

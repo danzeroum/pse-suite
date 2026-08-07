@@ -120,7 +120,6 @@
           "required": [
             "attested_by",
             "scope",
-            "target_fingerprint",
             "expires"
           ],
           "description": "Ausente, vencida, sem o modo no scope, ou com fingerprint divergente da base_url: todos os checks de Trabalho A vao para checks_indeterminados com o motivo especifico (exit 20). Nunca verde, e nenhuma requisicao e emitida.",
@@ -155,6 +154,10 @@
             "synthetic_identities": {
               "type": "boolean",
               "description": "Obrigatoria e true para pse_active: ambas as identidades sao contas de teste, sem titular real por tras. E declaracao atestada, nao verificavel pela suite."
+            },
+            "local_target": {
+              "type": "boolean",
+              "description": "Degrau da ATESTACAO LOCAL. Obrigatorio quando base_url e loopback (127.0.0.1, localhost, ::1) e SUBSTITUI o target_fingerprint, que nao faz sentido num alvo cuja porta e efemera. Declarar true para alvo NAO-loopback e entrada invalida: a atestacao estaria mentindo sobre que alvo autoriza."
             }
           }
         }
