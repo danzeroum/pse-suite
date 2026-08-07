@@ -212,6 +212,17 @@ def test_p20_arquivo_que_nao_parseia_e_indeterminado(tmp_path):
 
 
 # ==================================================== P-21: a decisão
+#
+# `pse.testes` reprova todo teste que cite um ID fora do catálogo — ou o check
+# foi renomeado e o teste ficou para trás, ou alguém está testando fantasma.
+# Aqui a citação é o ponto: o teste existe justamente para provar que P-21 NÃO
+# está no catálogo. A exceção fica declarada, com motivo, e aparece no índice.
+CHECKS_FORA_DO_CATALOGO = {
+    "P-21": "investigado e deliberadamente não implementado; este arquivo é "
+            "onde a decisão está assinada, e citar o ID é o teste",
+}
+
+
 def test_p21_nao_existe_e_a_decisao_esta_assinada():
     """P-21 — zona bruta de data lake sem restrição — foi INVESTIGADO e
     NÃO implementado. A decisão fica versionada aqui e na matriz, porque

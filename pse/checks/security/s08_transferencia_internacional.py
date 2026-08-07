@@ -1,3 +1,16 @@
+"""S-08 — destino fora do Brasil sem base de transferencia declarada.
+
+Le o manifesto de terceiros, nao o codigo: quem declara `data_residency`
+fora do BR assume o Art. 33, e a base (SCC, adequacao, consentimento
+especifico) tem de estar escrita ao lado. Residencia sem base e o achado.
+
+Sem manifesto o check PULA, com motivo: a ausencia do arquivo ja e cobrada
+por S-04, e cobrar duas vezes o mesmo defeito ensina a ignorar os dois.
+
+Par estatico de S-16, e a divisao entre eles e deliberada: aqui olha-se o
+egresso DECLARADO ao terceiro; la, onde o byte efetivamente pousa no codigo
+de escrita. Um alvo pode passar num e reprovar no outro.
+"""
 from pse.engine.registry import check
 from pse.model import Finding, Severidade, SkipCheck
 

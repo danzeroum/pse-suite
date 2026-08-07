@@ -18,6 +18,16 @@ from pse.engine.registry import CHECKS
 from pse.engine.runner import _carregar_checks, executar
 
 FIX = Path(__file__).parent / "fixtures"
+
+# `pse.testes` reprova teste que cite ID fora do catálogo — é assim que se
+# pega o teste que ficou para trás depois de um check ser renomeado. Aqui o ID
+# inexistente é o próprio corpo de prova: `P-99` tem prefixo válido e pilar
+# errado, e existe para o registro barrá-lo. A exceção fica declarada, com
+# motivo, e aparece no índice de testes.
+CHECKS_FORA_DO_CATALOGO = {
+    "P-99": "ID hipotético com prefixo de privacidade registrado no pack de "
+            "segurança — existe só para provar que o registro o rejeita",
+}
 RUIM = FIX / "consumidor_ruim"
 CFG = RUIM / "pse-config.yaml"
 

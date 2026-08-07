@@ -1,3 +1,14 @@
+"""S-04 — host externo no codigo que o manifesto de terceiros nao declara.
+
+Le tambem `.html`: `index.html` e o unico arquivo que o navegador carrega
+sempre, e e onde mora `<link href="https://fonts.googleapis.com/...">`.
+Enquanto HTML era "irrelevante", esse egresso so aparecia na camada
+dinamica — a estatica passava batido.
+
+CRITICO quando o terceiro esta declarado mas sem DPA assinado: o operador
+existe, o contrato nao. ALTO quando o host nao esta no manifesto: pode ser
+terceiro nao declarado ou host de exemplo, e o grau maximo exige certeza.
+"""
 import re
 from pse.engine import scan
 from pse.engine.registry import check

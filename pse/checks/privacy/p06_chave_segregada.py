@@ -1,3 +1,14 @@
+"""P-06 — a chave de pseudonimizacao morando junto do dado que ela protege.
+
+Pseudonimizacao so vale enquanto a chave estiver separada: com ela em maos,
+o pseudonimo volta a ser identificador direto. Chave literal no repositorio
+e a segregacao anulada — quem le o codigo reidentifica a base inteira, e a
+revogacao exige um deploy novo.
+
+CRITICO sem gradacao, e essa e a diferenca para S-06: uma credencial de
+parceiro exposta e um incidente de acesso; a chave de pseudonimizacao
+exposta e a reidentificacao consumada de todo mundo que ja passou por ela.
+"""
 from pse.engine import scan
 from pse.engine.registry import check
 from pse.model import Finding, Severidade

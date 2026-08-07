@@ -64,6 +64,13 @@ domínios (S-07 é api+backend), então o domínio vive em `domain`, que é list
 e nunca no prefixo. Mapa completo e os buracos em
 [`docs/matriz-dominio.md`](docs/matriz-dominio.md), gerado do catálogo.
 
+O inventário completo — o que cada check faz, quais testes o cobrem e o que
+**não** está testado — vive em [`docs/TESTES.md`](docs/TESTES.md) e
+[`docs/INDICE-DE-TESTES.md`](docs/INDICE-DE-TESTES.md). Os dois são gerados
+por `python -m pse.testes`, e o CI reprova o merge se o commitado divergir do
+que o código produz, ou se algum check ficar sem teste: doc que pode
+desatualizar não é documentação, é retrato de um momento que já passou.
+
 ```bash
 pse --pilar privacy                 # o DPO, atravessando todos os estratos
 pse --domain frontend               # o time de front, nos três pilares

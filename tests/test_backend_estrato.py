@@ -330,6 +330,95 @@ def test_s16_regiao_em_comentario_nao_conta(tmp_path):
     assert not acha(res, "S-16"), "região citada em comentário virou achado"
 
 
+# ==================================================== S-08, o par estático de S-16
+#
+# S-08 estava ÓRFÃO, e quem descobriu foi o gerador do índice (`pse.testes`):
+# nenhum arquivo de teste o importava nem citava o ID. Ele aparecia em
+# docstring — inclusive na deste arquivo — e docstring não é teste. É o D-01
+# aplicado à própria suíte: a menção do check não prova que alguém o exercitou.
+#
+# A prova de mutação canônica passava por ele, porque ela parametriza sobre
+# `catalogo.implementados()` e alcança todos os 57 por construção. Mas ela só
+# prova uma coisa: que o inverso canônico produz vermelho. Não prova que o
+# caso conforme fica quieto, que o skip nomeia o motivo, nem que S-08 e S-16
+# não são o mesmo check com dois IDs. É isso que os cinco abaixo cobrem.
+MANIFESTO = {"third_party_manifest": "tp.yml", "catalog_path": "catalog.yaml",
+             "data_residency": "BR"}
+
+
+def _com_manifesto(tmp_path, corpo, extra=None):
+    return escrever(tmp_path, {"tp.yml": corpo, **(extra or {})}, cfg=MANIFESTO)
+
+
+@pytest.mark.pse_security
+def test_s08_destino_fora_do_br_sem_base_dispara(tmp_path):
+    res = _com_manifesto(tmp_path,
+                         "integrations:\n"
+                         "  - name: parceiro-us\n"
+                         "    hosts: [api.parceiro.example.net]\n"
+                         "    dpa_signed: true\n"
+                         "    data_residency: US\n")
+    s08 = acha(res, "S-08")
+    assert s08, "residência US declarada sem transfer_basis"
+    assert s08[0].severidade.name == "ALTO"
+    assert "parceiro-us" in s08[0].titulo
+
+
+@pytest.mark.pse_security
+def test_s08_base_declarada_desliga(tmp_path):
+    """D-08: quem declarou a base fez exatamente o que o Art. 33 pede. Punir
+    o manifesto correto ensina o time a parar de declarar residência."""
+    res = _com_manifesto(tmp_path,
+                         "integrations:\n"
+                         "  - name: parceiro-us\n"
+                         "    hosts: [api.parceiro.example.net]\n"
+                         "    dpa_signed: true\n"
+                         "    data_residency: US\n"
+                         "    transfer_basis: clausulas-contratuais-padrao\n")
+    assert not acha(res, "S-08"), [f.titulo for f in acha(res, "S-08")]
+    assert "S-08" in res["checks_executados"], "verde por não ter olhado"
+
+
+@pytest.mark.pse_security
+def test_s08_residencia_nacional_nao_dispara(tmp_path):
+    res = _com_manifesto(tmp_path,
+                         "integrations:\n"
+                         "  - name: parceiro-br\n"
+                         "    hosts: [api.parceiro.example.com.br]\n"
+                         "    dpa_signed: true\n"
+                         "    data_residency: BR\n")
+    assert not acha(res, "S-08"), [f.titulo for f in acha(res, "S-08")]
+
+
+@pytest.mark.pse_security
+def test_s08_sem_manifesto_e_pulado(tmp_path):
+    """A ausência do manifesto já é cobrada por S-04. Cobrá-la duas vezes
+    ensina a ignorar as duas — então aqui o desfecho é pular, com motivo."""
+    res = escrever(tmp_path, {"a.py": "x = 1\n"}, cfg=MANIFESTO)
+    pulados = {c["id"]: c["motivo"] for c in res["checks_pulados"]}
+    assert "S-08" in pulados and "S-04" in pulados["S-08"]
+
+
+@pytest.mark.pse_security
+@pytest.mark.mordida
+def test_s08_e_s16_medem_coisas_diferentes(tmp_path):
+    """O manifesto promete BR e o código escreve em us-east-1. S-16 acha,
+    S-08 fica quieto — e é essa assimetria que justifica os dois IDs. Se um
+    só cobrisse o outro, o alvo passaria mentindo no arquivo que ele mesmo
+    escreveu, ou seria punido por uma promessa que cumpriu."""
+    res = _com_manifesto(
+        tmp_path,
+        "integrations:\n"
+        "  - name: parceiro-br\n"
+        "    hosts: [api.parceiro.example.com.br]\n"
+        "    dpa_signed: true\n"
+        "    data_residency: BR\n",
+        extra={"p.py": "import boto3\n"
+                       "s3 = boto3.client('s3', region_name='us-east-1')\n"})
+    assert not acha(res, "S-08"), "o manifesto está correto — S-08 não é dono disto"
+    assert acha(res, "S-16"), "a escrita real vai para fora e ninguém viu"
+
+
 # ==================================================== o estrato como um todo
 def test_os_cinco_estao_no_dominio_backend():
     from pse import catalogo
