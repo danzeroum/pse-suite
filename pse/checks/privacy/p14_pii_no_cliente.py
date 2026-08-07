@@ -120,10 +120,9 @@ def pii_no_cliente(ctx):
     termos = _termos_pii(ctx)
     stores = _armazenamento(ctx)
     findings = []
-    for p in scan.arquivos(ctx.repo, _ast.EXTS):
-        texto = scan.ler(p)
+    # Arquivo ilegivel nao derruba os demais: ver `_ast.por_arquivo`.
+    for p, texto, raiz in _ast.por_arquivo(ctx, findings):
         fonte = texto.encode("utf-8")
-        raiz = _ast.arvore(p, texto)          # sem AST -> CheckIndeterminado
         _storage(ctx, raiz, fonte, p, termos, stores, findings)
         _url(ctx, raiz, fonte, p, termos, findings)
     return findings

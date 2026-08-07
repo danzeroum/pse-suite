@@ -303,6 +303,19 @@ Quatro estados que **nunca colapsam** um no outro:
 | `FORA DE ALCANCE` | o vetor existe, em linguagem sem parser — *sem achado* é **não olhei** |
 | `NÃO APLICÁVEL` | o vetor não existe neste alvo |
 
+**Duas réguas de tamanho, e elas discordam.** Por *arquivos* o maior estrato
+do btv é o **web (174)**, à frente do Rust (137); por *linhas* é o **Rust
+(38.096)**, à frente do web (19.040). As duas são verdadeiras — `.rs` de motor
+é denso, componente de tela é curto — e o mapa traz as duas, porque trazer só
+linhas dava a impressão de que o alvo era pouco auditável.
+
+**Ter parser não é ter lido.** Dos 174 arquivos JS/TS do btv, **171 foram
+analisados** (1.159 elementos JSX e 5.797 chamadas percorridos) e 3 estão
+nomeados como ilegíveis. Antes, um único arquivo que nenhuma gramática
+alcançasse derrubava o check **inteiro** e os outros 171 ficavam sem veredito
+— falso-negativo produzido por fail-closed. Hoje o ilegível é contabilizado, os
+demais são auditados, e `CheckIndeterminado` carrega os achados do que leu.
+
 No btv: **47,0% lido por parser, 50,8% em alcance parcial (4 vetores),
 2,2% cego** (em linhas). As três fatias ficam separadas de propósito — somar
 o alcance parcial ao lido faria a proporção saltar para 97,8% e a suite

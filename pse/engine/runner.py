@@ -47,8 +47,12 @@ def _executar_um(cid, meta, ctx, res):
         res["checks_nao_habilitados"].append({"id": cid, "motivo": str(e)})
         return False
     except CheckIndeterminado as e:
-        # Tentei e nao consegui decidir. Bloqueia igual a violacao.
+        # Tentei e nao consegui decidir. Bloqueia igual a violacao — e leva
+        # junto o que JA decidiu. Ver `CheckIndeterminado.achados`: um `.ts`
+        # que nenhuma gramatica alcanca nao pode apagar o veredito dos outros
+        # 171 arquivos que parsearam.
         res["checks_indeterminados"].append({"id": cid, "motivo": str(e)})
+        res["findings"].extend(getattr(e, "achados", []))
         return False
     except Exception as e:  # noqa: BLE001 — falha inesperada nunca vira verde
         res["checks_indeterminados"].append({

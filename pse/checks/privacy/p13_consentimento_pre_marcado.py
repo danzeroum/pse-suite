@@ -69,10 +69,9 @@ def consentimento_pre_marcado(ctx):
     handlers = _termos(ctx, "handlers_de_mudanca")
     findings = []
 
-    for p in scan.arquivos(ctx.repo, _ast.EXTS):
-        texto = scan.ler(p)
+    # Arquivo ilegivel nao derruba os demais: ver `_ast.por_arquivo`.
+    for p, texto, raiz in _ast.por_arquivo(ctx, findings):
         fonte = texto.encode("utf-8")
-        raiz = _ast.arvore(p, texto)          # sem AST -> CheckIndeterminado
 
         for elem in _ast.elementos_jsx(raiz):
             attrs = _ast.atributos(elem, fonte)

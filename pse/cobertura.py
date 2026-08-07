@@ -563,6 +563,49 @@ def sondar_substrato(repo, data: dict) -> dict:
     return saida
 
 
+def censo_de_parse(repo) -> dict:
+    """Dos arquivos que a suite SABE ler, quantos ela conseguiu ler?
+
+    O bloco `alcance` responde "que linguagens tem parser". Isto responde a
+    pergunta seguinte, e o btv mostrou que ela nao e a mesma: `.ts` e `.tsx`
+    tem parser, sao a MAIOR fatia do alvo em numero de arquivos (165 de 174
+    do estrato web) — e tres arquivos que nenhuma gramatica alcanca faziam
+    P-13, P-14 e S-09 pararem antes de olhar os outros 171.
+
+    Ter parser para a linguagem e ter lido o arquivo sao coisas diferentes,
+    e o mapa nao pode confundi-las. Este censo e o unico lugar onde a
+    diferenca aparece por numero.
+    """
+    from pathlib import Path as _P
+
+    from pse.engine import jsast, scan
+    from pse.model import CheckIndeterminado
+    lidos, ilegiveis = 0, []
+    for caminho in scan.arquivos(_P(repo), jsast.EXTS):
+        try:
+            jsast.arvore(caminho, scan.ler(caminho))
+            lidos += 1
+        except CheckIndeterminado as e:
+            ilegiveis.append({"arquivo": scan.rel(_P(repo), caminho),
+                              "motivo": str(e)})
+        except Exception as e:            # noqa: BLE001
+            ilegiveis.append({"arquivo": scan.rel(_P(repo), caminho),
+                              "motivo": f"{type(e).__name__}: {e}"})
+    total = lidos + len(ilegiveis)
+    return {
+        "familia": "JavaScript/TypeScript (tree-sitter)",
+        "arquivos": total, "analisados": lidos,
+        "nao_analisados": len(ilegiveis),
+        "percentual_analisado": round(100 * lidos / total, 1) if total else 0.0,
+        "ilegiveis": ilegiveis,
+        "nota": ("Ter parser para a linguagem e ter conseguido ler o arquivo "
+                 "sao coisas diferentes. Arquivo nao analisado nao produz "
+                 "achado e nao produz conformidade — ele nao produz nada, e "
+                 "por isso o check que o encontrou segue indeterminado mesmo "
+                 "tendo lido todos os outros."),
+    }
+
+
 def volume_por_linguagem(repo) -> dict:
     """{linguagem: {"arquivos": n, "linhas": n, "lida": bool|"parcial"}}."""
     from pathlib import Path
@@ -676,7 +719,7 @@ def medir_alvo(repo, laudo: dict, data: dict | None = None) -> dict:
         laudo = {**laudo, "sondas": sondar_substrato(repo, data)}
     volume = volume_por_linguagem(repo)
     return {"laudo": resumir_laudo(laudo), "volume": volume,
-            "proporcao": proporcao(volume)}
+            "proporcao": proporcao(volume), "parse": censo_de_parse(repo)}
 
 
 # ============================================================ geracao
@@ -854,6 +897,88 @@ def gerar(medicao: dict, alvo: dict) -> str:
               "mesma distincao do resto do documento, um nivel abaixo: o",
               "alcance textual nao le a linguagem, alcanca quatro vetores "
               "dela.", ""]
+
+    vol = medicao["volume"]
+    # ESTRATO, e nao rotulo de linguagem. `TypeScript` e `TypeScript/TSX` sao
+    # rotulos separados no bloco `alcance` (ferramentas diferentes), e
+    # compara-los um a um contra `Rust` divide o front em dois e faz o motor
+    # parecer maior do que e em numero de arquivos. Somar o estrato web e o
+    # que torna a comparacao honesta — e foi so somando que ficou visivel
+    # que o front, e nao o motor, e a maior fatia por unidade examinada.
+    ESTRATOS = {
+        "web (JS/TS/JSX/TSX)": LINGUAGENS_DA_FAMILIA[WEB],
+        "Rust (motor)": {"Rust"},
+        "Python (orquestracao)": {"Python"},
+        "declaracao (YAML/JSON)": LINGUAGENS_DA_FAMILIA[DECLARACAO],
+    }
+    def _soma(langs, campo):
+        return sum(v[campo] for k, v in vol.items() if k in langs)
+    linhas_estrato = sorted(
+        ((nome, _soma(langs, "arquivos"), _soma(langs, "linhas"))
+         for nome, langs in ESTRATOS.items()),
+        key=lambda x: -x[1])
+    outros_arq = sum(v["arquivos"] for k, v in vol.items()
+                     if not any(k in langs for langs in ESTRATOS.values()))
+    outras_lin = sum(v["linhas"] for k, v in vol.items()
+                     if not any(k in langs for langs in ESTRATOS.values()))
+
+    L += ["## Duas reguas de tamanho, e elas discordam", "",
+          "**Nao ha uma resposta so para *qual e a maior fatia do alvo*, e "
+          "escolher a que", "convem e como um mapa de cobertura mente sem "
+          "dizer nada falso.**", "",
+          "| Estrato | Arquivos | Linhas |", "|---|---|---|"]
+    for nome, arq, lin in linhas_estrato:
+        L.append(f"| {nome} | {arq} | {lin} |")
+    L.append(f"| outros | {outros_arq} | {outras_lin} |")
+    maior_arq = linhas_estrato[0]
+    maior_lin = max(linhas_estrato, key=lambda x: x[2])
+    L += ["",
+          f"**Por ARQUIVOS o maior estrato e `{maior_arq[0]}`, com "
+          f"{maior_arq[1]}. Por LINHAS e**",
+          f"**`{maior_lin[0]}`, com {maior_lin[2]}.** As duas leituras sao "
+          "verdadeiras e servem a", "perguntas diferentes.", "",
+          "*Linhas* diz quanto CODIGO ficou sem parser — e a pergunta que "
+          "decidiu nao",
+          "escrever um parser de Rust. *Arquivos* diz quantas UNIDADES a "
+          "suite examinou —",
+          "e a pergunta certa para saber se o front foi auditado. Um `.rs` de "
+          "motor e denso",
+          "e um componente de tela e curto, entao o mesmo alvo troca de "
+          "\"maior fatia\"", "conforme a regua.", "",
+          "O documento passou a trazer as duas porque trazer so a primeira "
+          "deixava a",
+          "impressao de que o alvo era pouco auditavel — e isso nao e "
+          "verdade. Rotulos de",
+          "linguagem tambem eram somados errado: `TypeScript` e "
+          "`TypeScript/TSX` aparecem",
+          "separados no bloco `alcance` (ferramentas diferentes), e compara-"
+          "los um a um",
+          "contra `Rust` dividia o front em dois e fazia o motor parecer "
+          "maior em numero", "de arquivos do que e.", ""]
+
+    parse = medicao.get("parse")
+    if parse:
+        L += ["### Ter parser nao e ter lido", "",
+              f"Dos **{parse['arquivos']}** arquivos JS/TS do alvo, a suite "
+              f"analisou **{parse['analisados']}** "
+              f"(**{parse['percentual_analisado']}%**)", "e nao conseguiu ler "
+              f"**{parse['nao_analisados']}**:", ""]
+        for x in parse["ilegiveis"]:
+            L.append(f"  * `{x['arquivo']}`")
+        L += ["", parse["nota"], "",
+              "**Isto era um buraco de cobertura, e foi consertado.** Os "
+              "checks de frontend",
+              "chamavam o parser dentro do laco, e o primeiro arquivo "
+              "ilegivel derrubava o",
+              "check INTEIRO — os outros arquivos, que parseavam sem problema "
+              "nenhum, ficavam",
+              "sem veredito. O gate funcionava (exit 20) e a informacao se "
+              "perdia: uma",
+              "violacao real nos arquivos legiveis nunca seria reportada. "
+              "Agora o arquivo",
+              "ilegivel e contabilizado, os demais sao auditados, e os "
+              "achados deles vao no",
+              "laudo junto com a indeterminacao.", ""]
 
     L += ["## Proporcao do alvo que a suite consegue ler", "",
           f"**{prop['percentual_lido']}% lido, "

@@ -15,7 +15,7 @@ nao com impressao.
 
 ## Delta desta medicao
 
-O que mudou desde `pse-suite 0.13.0`, e por que. A rodada anterior mediu que
+O que mudou desde `pse-suite 0.14.2`, e por que. A rodada anterior mediu que
 53% do alvo estava cego e recomendou o degrau `literal`: quatro vetores
 alcancaveis sem gramatica nenhuma. Esta rodada implementou exatamente isso —
 nenhum parser, nenhum check novo, quatro checks existentes passando a
@@ -26,8 +26,8 @@ reconhecer `.rs` por padrao textual ancorado.
 | Linhas lidas por parser | 47.0% | **47.0%** |
 | Linhas em alcance parcial (4 vetores) | — | **50.8%** |
 | Linhas cegas para TODO check | 53.0% | **2.2%** |
-| Checks auditados de verdade | 13 | **16** |
-| Checks meio-cegos em Rust | 19 | **13** |
+| Checks auditados de verdade | 16 | **16** |
+| Checks meio-cegos em Rust | 13 | **13** |
 
 **A leitura honesta do delta.** O numero que encolheu de verdade foi o de linhas
 invisiveis para QUALQUER check — de 53.0% para 2.2%. Mas ele encolheu porque
@@ -43,7 +43,7 @@ que esta serie de rodadas existe para impedir.
 | Alvo | `danzeroum/btv` |
 | Commit do alvo | `a3e14f4568da95cf021206aec4816815efbd303a` |
 | Medido em | 2026-08-07 |
-| Suite | `pse-suite 0.14.0 @ 4f5b5656c890` |
+| Suite | `pse-suite 0.15.0 @ 79339622a582` |
 | Modo | pse_passive (Trabalho B estatico + camada dinamica passiva) |
 | Alvo no ar | sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true` |
 
@@ -83,6 +83,55 @@ chave hardcoded no `.rs` nao entenderia de onde veio o achado.
 achado de QUALQUER OUTRO check nestes arquivos nao significa nada** — eles nao
 foram olhados. E a mesma distincao do resto do documento, um nivel abaixo: o
 alcance textual nao le a linguagem, alcanca quatro vetores dela.
+
+## Duas reguas de tamanho, e elas discordam
+
+**Nao ha uma resposta so para *qual e a maior fatia do alvo*, e escolher a que
+convem e como um mapa de cobertura mente sem dizer nada falso.**
+
+| Estrato | Arquivos | Linhas |
+|---|---|---|
+| web (JS/TS/JSX/TSX) | 174 | 19040 |
+| Rust (motor) | 137 | 38096 |
+| Python (orquestracao) | 88 | 8506 |
+| declaracao (YAML/JSON) | 65 | 7194 |
+| outros | 43 | 2225 |
+
+**Por ARQUIVOS o maior estrato e `web (JS/TS/JSX/TSX)`, com 174. Por LINHAS e**
+**`Rust (motor)`, com 38096.** As duas leituras sao verdadeiras e servem a
+perguntas diferentes.
+
+*Linhas* diz quanto CODIGO ficou sem parser — e a pergunta que decidiu nao
+escrever um parser de Rust. *Arquivos* diz quantas UNIDADES a suite examinou —
+e a pergunta certa para saber se o front foi auditado. Um `.rs` de motor e denso
+e um componente de tela e curto, entao o mesmo alvo troca de "maior fatia"
+conforme a regua.
+
+O documento passou a trazer as duas porque trazer so a primeira deixava a
+impressao de que o alvo era pouco auditavel — e isso nao e verdade. Rotulos de
+linguagem tambem eram somados errado: `TypeScript` e `TypeScript/TSX` aparecem
+separados no bloco `alcance` (ferramentas diferentes), e compara-los um a um
+contra `Rust` dividia o front em dois e fazia o motor parecer maior em numero
+de arquivos do que e.
+
+### Ter parser nao e ter lido
+
+Dos **174** arquivos JS/TS do alvo, a suite analisou **171** (**98.3%**)
+e nao conseguiu ler **3**:
+
+  * `btv-web/src/api/squad.ts`
+  * `web/src/api/squad.ts`
+  * `web/src/components/screens/user/Designer/PropertiesPanel.tsx`
+
+Ter parser para a linguagem e ter conseguido ler o arquivo sao coisas diferentes. Arquivo nao analisado nao produz achado e nao produz conformidade — ele nao produz nada, e por isso o check que o encontrou segue indeterminado mesmo tendo lido todos os outros.
+
+**Isto era um buraco de cobertura, e foi consertado.** Os checks de frontend
+chamavam o parser dentro do laco, e o primeiro arquivo ilegivel derrubava o
+check INTEIRO — os outros arquivos, que parseavam sem problema nenhum, ficavam
+sem veredito. O gate funcionava (exit 20) e a informacao se perdia: uma
+violacao real nos arquivos legiveis nunca seria reportada. Agora o arquivo
+ilegivel e contabilizado, os demais sao auditados, e os achados deles vao no
+laudo junto com a indeterminacao.
 
 ## Proporcao do alvo que a suite consegue ler
 

@@ -46,7 +46,23 @@ class CheckIndeterminado(Exception):
     fato nao decidivel estaticamente, arquivo ilegivel, excecao inesperada,
     ou (Fase 2) alvo indisponivel. Vai para checks_indeterminados e leva o
     processo a exit 20. Indeterminacao nunca degrada para verde.
+
+    `achados` CARREGA O QUE JA FOI DECIDIDO ANTES DE BLOQUEAR, e existe por
+    um defeito que o btv expos: um unico `.ts` que nenhuma gramatica alcanca
+    derrubava P-13, P-14 e S-09 INTEIROS, e os 171 arquivos que parsearam
+    sem problema nenhum ficavam sem veredito. O gate funcionava — exit 20 —
+    e a informacao se perdia: uma violacao real nos outros 171 nunca seria
+    reportada.
+
+    Bloquear e emitir nao sao opostos. O veredito continua indeterminado (o
+    check NAO viu tudo), e o que ele viu vai junto. Perder achado por causa
+    de fail-closed e o pior dos dois mundos: nem verde honesto, nem
+    informacao.
     """
+
+    def __init__(self, mensagem, achados=None):
+        super().__init__(mensagem)
+        self.achados = list(achados or [])
 
 
 class NaoHabilitado(Exception):

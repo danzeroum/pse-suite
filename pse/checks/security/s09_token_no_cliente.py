@@ -44,10 +44,9 @@ def token_no_cliente(ctx):
     stores = _armazenamento(ctx)
     findings = []
 
-    for p in scan.arquivos(ctx.repo, _ast.EXTS):
-        texto = scan.ler(p)
+    # Arquivo ilegivel nao derruba os demais: ver `_ast.por_arquivo`.
+    for p, texto, raiz in _ast.por_arquivo(ctx, findings):
         fonte = texto.encode("utf-8")
-        raiz = _ast.arvore(p, texto)          # sem AST -> CheckIndeterminado
         arq = scan.rel(ctx.repo, p)
 
         for no, nome in _ast.chamadas(raiz, fonte):

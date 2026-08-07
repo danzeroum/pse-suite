@@ -214,3 +214,46 @@ def texto_visivel(no, fonte: bytes) -> str:
     partes = [texto_de(s, fonte) for s in percorrer(no)
               if s.type == "jsx_text" and not e_comentario(s)]
     return " ".join(p.strip() for p in partes if p.strip())
+
+
+def por_arquivo(ctx, findings: list):
+    """Itera os arquivos JS/TS do alvo devolvendo `(caminho, texto, raiz)`.
+
+    E ADIANTE O DEFEITO QUE O btv EXPOS. `arvore()` levanta na PRIMEIRA
+    gramatica que nao alcanca um arquivo, e os checks chamavam-na dentro do
+    laco: um unico `.ts` derrubava P-13, P-14 e S-09 INTEIROS, e os outros
+    171 arquivos — que parseavam sem problema nenhum — ficavam sem veredito.
+
+    O gate funcionava (exit 20) e a informacao se perdia. Uma violacao real
+    nos 171 nunca seria reportada, porque o check morria antes de chegar
+    nela. Fail-closed que APAGA achado e o pior dos dois mundos: nem verde
+    honesto, nem informacao.
+
+    Aqui o arquivo ilegivel para de ser fatal e passa a ser CONTABILIZADO. O
+    veredito final continua indeterminado — o check nao viu tudo, e nao vai
+    fingir que viu —, mas os achados dos arquivos que ele leu vao junto, e a
+    mensagem diz quantos leu e quais nao.
+    """
+    from pse.engine import scan
+    ilegiveis = []
+    lidos = 0
+    for caminho in scan.arquivos(ctx.repo, EXTS):
+        texto = scan.ler(caminho)
+        try:
+            raiz = arvore(caminho, texto)
+        except CheckIndeterminado as e:
+            ilegiveis.append((scan.rel(ctx.repo, caminho), str(e)))
+            continue
+        lidos += 1
+        yield caminho, texto, raiz
+
+    if ilegiveis:
+        nomes = ", ".join(f"`{a}`" for a, _ in ilegiveis[:5])
+        resto = f" (e mais {len(ilegiveis) - 5})" if len(ilegiveis) > 5 else ""
+        raise CheckIndeterminado(
+            f"{lidos} arquivo(s) analisado(s) e {len(ilegiveis)} NAO: {nomes}"
+            f"{resto}. Os achados dos {lidos} lidos VAO NO LAUDO — o que nao "
+            f"foi lido nao apaga o que foi. O veredito segue indeterminado "
+            f"porque a cobertura e parcial, e cobertura parcial nao e "
+            f"conformidade. Motivo do primeiro: {ilegiveis[0][1]}",
+            achados=findings)

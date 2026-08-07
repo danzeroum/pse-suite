@@ -5,18 +5,18 @@
     "slug": "btv",
     "commit": "a3e14f4568da95cf021206aec4816815efbd303a",
     "medido_em": "2026-08-07",
-    "suite": "pse-suite 0.14.0 @ 4f5b5656c890",
+    "suite": "pse-suite 0.15.0 @ 79339622a582",
     "modo": "pse_passive (Trabalho B estatico + camada dinamica passiva)",
     "dinamico": "sim — `btv-web` servido por Vite em `http://127.0.0.1:5178`, atestado com `local_target: true`",
     "medicao_path": "aceites/btv-medicao.json",
     "clone": "clone limpo do alvo, sem `node_modules` e sem `package-lock.json` gerado: medir a arvore poluida por um `npm install` inflava o lado LIDO da proporcao com JSON de dependencia, e o numero teria saido melhor do que e",
     "anterior": {
-      "suite": "pse-suite 0.13.0",
+      "suite": "pse-suite 0.14.2",
       "medido_em": "2026-08-07",
       "percentual_lido": 47.0,
       "percentual_cego": 53.0,
-      "auditados_de_verdade": 13,
-      "parcialmente_cegos": 19,
+      "auditados_de_verdade": 16,
+      "parcialmente_cegos": 13,
       "nota": "Medicao da rodada de MEDICAO, antes do alcance textual a Rust. Fica no instantaneo para que o delta seja GERADO e nao escrito a mao — numero de antes/depois digitado envelhece e passa a contradizer a tabela ao lado."
     }
   },
@@ -333,11 +333,11 @@
         },
         {
           "id": "P-13",
-          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+          "motivo": "171 arquivo(s) analisado(s) e 3 NAO: `btv-web/src/api/squad.ts`, `web/src/api/squad.ts`, `web/src/components/screens/user/Designer/PropertiesPanel.tsx`. Os achados dos 171 lidos VAO NO LAUDO — o que nao foi lido nao apaga o que foi. O veredito segue indeterminado porque a cobertura e parcial, e cobertura parcial nao e conformidade. Motivo do primeiro: squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
         },
         {
           "id": "P-14",
-          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+          "motivo": "171 arquivo(s) analisado(s) e 3 NAO: `btv-web/src/api/squad.ts`, `web/src/api/squad.ts`, `web/src/components/screens/user/Designer/PropertiesPanel.tsx`. Os achados dos 171 lidos VAO NO LAUDO — o que nao foi lido nao apaga o que foi. O veredito segue indeterminado porque a cobertura e parcial, e cobertura parcial nao e conformidade. Motivo do primeiro: squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
         },
         {
           "id": "S-03",
@@ -345,7 +345,7 @@
         },
         {
           "id": "S-09",
-          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+          "motivo": "171 arquivo(s) analisado(s) e 3 NAO: `btv-web/src/api/squad.ts`, `web/src/api/squad.ts`, `web/src/components/screens/user/Designer/PropertiesPanel.tsx`. Os achados dos 171 lidos VAO NO LAUDO — o que nao foi lido nao apaga o que foi. O veredito segue indeterminado porque a cobertura e parcial, e cobertura parcial nao e conformidade. Motivo do primeiro: squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
         }
       ],
       "checks_nao_habilitados": [
@@ -495,6 +495,28 @@
       "percentual_lido": 47.0,
       "percentual_alcance_parcial": 50.8,
       "percentual_cego": 2.2
+    },
+    "parse": {
+      "familia": "JavaScript/TypeScript (tree-sitter)",
+      "arquivos": 174,
+      "analisados": 171,
+      "nao_analisados": 3,
+      "percentual_analisado": 98.3,
+      "ilegiveis": [
+        {
+          "arquivo": "btv-web/src/api/squad.ts",
+          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        },
+        {
+          "arquivo": "web/src/api/squad.ts",
+          "motivo": "squad.ts nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 56); tsx v? (linha 56). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        },
+        {
+          "arquivo": "web/src/components/screens/user/Designer/PropertiesPanel.tsx",
+          "motivo": "PropertiesPanel.tsx nao pode ser analisado por nenhuma gramatica disponivel: typescript v0.23.2 (linha 1); tsx v? (linha 35). Pode ser erro de sintaxe no arquivo OU construcao valida que a gramatica instalada nao alcanca — a suite nao distingue os dois casos e nao vai fingir que distingue. Sem AST nao ha decisao pelo fato, e nao decidir bloqueia"
+        }
+      ],
+      "nota": "Ter parser para a linguagem e ter conseguido ler o arquivo sao coisas diferentes. Arquivo nao analisado nao produz achado e nao produz conformidade — ele nao produz nada, e por isso o check que o encontrou segue indeterminado mesmo tendo lido todos os outros."
     }
   }
 }
