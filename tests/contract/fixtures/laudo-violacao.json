@@ -1,0 +1,34 @@
+{
+  "schema": "laudo-pse-1.0",
+  "artifact": {
+    "suite": "pse-suite",
+    "suite_version": "0.3.0",
+    "schema_version": "laudo-pse-1.0",
+    "catalog_hash": "33d5be7e85777045d0088c3f5f7a91e394c83c4be33cfeda519b6073be0420e3",
+    "repo_commit": "6dad2fd7ce93262e7f5aa449fafbc3891dfbf038",
+    "config_fingerprint": "abc123",
+    "timestamp_utc": "2026-08-17T11:55:00Z",
+    "modo": "pse_inventory"
+  },
+  "veredito": "violacao",
+  "exit_code": 10,
+  "packs": ["privacy"],
+  "checks_executados": ["P-01", "P-06"],
+  "checks_pulados": [],
+  "checks_indeterminados": [],
+  "checks_nao_habilitados": [],
+  "findings": [
+    {
+      "check_id": "P-06",
+      "severidade": "CRITICO",
+      "titulo": "Chave hardcoded no código",
+      "descricao": "api_key = \"AKIA...\" encontrado em config.py:42",
+      "domain": "backend",
+      "snippet": "api_key = \"AKIAIOSFODNN7EXAMPLE\"",
+      "arquivo": "config.py",
+      "linha": 42
+    }
+  ],
+  "resumo": {"total_findings": 1, "por_severidade": {"CRITICO": 1}},
+  "cobertura": {"catalogo_total": 30, "implementados_nos_packs": 22, "executados": 2}
+}
